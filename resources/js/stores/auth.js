@@ -40,7 +40,6 @@ async login(credentials) {
   await this.fetchMenu()
   return data.user
 },
-
     async fetchUser() {
       this.loading = true
       try {
@@ -64,7 +63,6 @@ async login(credentials) {
         this.menu = []
       }
     },
-
     setUser(user) {
       this.user = user
       this.permissions = user?.permissions ?? []
@@ -77,7 +75,6 @@ async logout() {
   this.permissions = []
   this.menu = []
 },
-
     async savePreferences(prefs) {
       if (!this.user) return
       const { data } = await api.put('/preferences', prefs)
