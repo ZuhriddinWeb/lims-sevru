@@ -27,6 +27,18 @@ api.interceptors.request.use(async (config) => {
   if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     await ensureCsrf()
   }
+   const m = (config.method || '').toLowerCase()
+  if (['put', 'patch', 'delete'].includes(m)) {
+    config.headers = config.headers || {}
+    config.headers['X-HTTP-Method-Override'] = m.toUpperCase()
+    if (config.data instanceof FormData) {
+      config.data.append('_method', m.toUpperCase())
+    } else {
+      config.data = { ...(config.data || {}), _method: m.toUpperCase() }
+    }
+    config.method = 'post'
+  }
+
   return config
 })
 
