@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Sign in',
-     signInSubtitle: 'NMMC · HMP-3',
+     signInSubtitle: 'NMMC ·',
     username: 'Username',
     password: 'Password',
     signOut: 'Sign out',

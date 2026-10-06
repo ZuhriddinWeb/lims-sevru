@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Tizimga kirish',
-    signInSubtitle: 'NKMK · GMZ-3',
+    signInSubtitle: 'NKMK ·',
     username: 'Login',
     password: 'Parol',
     signOut: 'Chiqish',

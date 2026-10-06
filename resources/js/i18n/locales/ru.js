@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Войти в систему',
-    signInSubtitle: 'НГМК · ГМЗ-3',
+    signInSubtitle: 'НГМК ·',
     username: 'Логин',
     password: 'Пароль',
     signOut: 'Выйти',

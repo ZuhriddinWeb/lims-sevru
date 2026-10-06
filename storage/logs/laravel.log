@@ -2606,3 +2606,32 @@ Did you mean one of these?
 #57 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('E://ai projects//...')
 #58 {main}
 "} 
+[2026-10-06 09:07:22] local.ERROR: Undefined array key 1 {"exception":"[object] (ErrorException(code: 0): Undefined array key 1 at E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php:394)
+[stacktrace]
+#0 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/HandleExceptions.php(258): Illuminate/Foundation/Bootstrap/HandleExceptions->handleError(2, 'Undefined array...', 'E://ai projects//...', 394)
+#1 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(394): Illuminate/Foundation/Bootstrap/HandleExceptions->Illuminate/Foundation/Bootstrap/{closure}(2, 'Undefined array...', 'E://ai projects//...', 394)
+#2 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(323): Illuminate/Foundation/Console/ServeCommand->getDateFromLine(':22 2026] 192.1...')
+#3 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Collections/Traits/EnumeratesValues.php(261): Illuminate/Foundation/Console/ServeCommand->Illuminate/Foundation/Console/{closure}(':22 2026] 192.1...', 0)
+#4 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(305): Illuminate/Support/Collection->each(Object(Closure))
+#5 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(287): Illuminate/Foundation/Console/ServeCommand->flushOutputBuffer()
+#6 E:/ai projects/lims-sevru/vendor/symfony/process/Process.php(1341): Illuminate/Foundation/Console/ServeCommand->Illuminate/Foundation/Console/{closure}('err', ':22 2026] 192.1...')
+#7 E:/ai projects/lims-sevru/vendor/symfony/process/Process.php(1441): Symfony/Component/Process/Process->Symfony/Component/Process/{closure}('err', ':22 2026] 192.1...')
+#8 E:/ai projects/lims-sevru/vendor/symfony/process/Process.php(1361): Symfony/Component/Process/Process->readPipes(false, false)
+#9 E:/ai projects/lims-sevru/vendor/symfony/process/Process.php(896): Symfony/Component/Process/Process->updateStatus(false)
+#10 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/ServeCommand.php(131): Symfony/Component/Process/Process->isRunning()
+#11 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate/Foundation/Console/ServeCommand->handle()
+#12 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate/Container/BoundMethod::Illuminate/Container/{closure}()
+#13 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate/Container/Util::unwrapIfClosure(Object(Closure))
+#14 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate/Container/BoundMethod::callBoundMethod(Object(Illuminate/Foundation/Application), Array, Object(Closure))
+#15 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate/Container/BoundMethod::call(Object(Illuminate/Foundation/Application), Array, Array, NULL)
+#16 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate/Container/Container->call(Array)
+#17 E:/ai projects/lims-sevru/vendor/symfony/console/Command/Command.php(341): Illuminate/Console/Command->execute(Object(Symfony/Component/Console/Input/ArgvInput), Object(Illuminate/Console/OutputStyle))
+#18 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony/Component/Console/Command/Command->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Illuminate/Console/OutputStyle))
+#19 E:/ai projects/lims-sevru/vendor/symfony/console/Application.php(1117): Illuminate/Console/Command->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#20 E:/ai projects/lims-sevru/vendor/symfony/console/Application.php(356): Symfony/Component/Console/Application->doRunCommand(Object(Illuminate/Foundation/Console/ServeCommand), Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#21 E:/ai projects/lims-sevru/vendor/symfony/console/Application.php(195): Symfony/Component/Console/Application->doRun(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#22 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony/Component/Console/Application->run(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#23 E:/ai projects/lims-sevru/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate/Foundation/Console/Kernel->handle(Object(Symfony/Component/Console/Input/ArgvInput), Object(Symfony/Component/Console/Output/ConsoleOutput))
+#24 E:/ai projects/lims-sevru/artisan(12): Illuminate/Foundation/Application->handleCommand(Object(Symfony/Component/Console/Input/ArgvInput))
+#25 {main}
+"} 
