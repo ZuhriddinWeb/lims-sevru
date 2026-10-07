@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DbCompat;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,14 +11,13 @@ return new class extends Migration
     {
         // TZ 1.8 — qaysi uskunada qaysi sinov o'tkazilgani
         Schema::table('sample_elements', function (Blueprint $table) {
-            $table->foreignId('equipment_id')->nullable()->after('element_id')
-                  ->constrained('equipment')->nullOnDelete();
-            $table->string('method')->nullable()->after('result_unit'); // Sinov usuli
+            // SQL Server: sample_elements'da allaqachon cascade bor — bu FK indeks bo'ladi
+            DbCompat::foreignId($table, 'equipment_id', on: 'equipment');
+            $table->string('method')->nullable(); // Sinov usuli
         });
 
         Schema::table('water_order_results', function (Blueprint $table) {
-            $table->foreignId('equipment_id')->nullable()->after('unit')
-                  ->constrained('equipment')->nullOnDelete();
+            DbCompat::foreignId($table, 'equipment_id', on: 'equipment', safeForSqlServer: true);
         });
 
         // Uskuna ishlatilish jurnali — TZ 1.5 (ishlatilish soni bo'yicha eslatma)
@@ -41,12 +41,17 @@ return new class extends Migration
         Schema::dropIfExists('equipment_usages');
 
         Schema::table('water_order_results', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('equipment_id');
+            if (! DbCompat::isSqlServer()) {
+                $table->dropForeign(['equipment_id']);
+            }
+            $table->dropColumn('equipment_id');
         });
 
         Schema::table('sample_elements', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('equipment_id');
-            $table->dropColumn('method');
+            if (! DbCompat::isSqlServer()) {
+                $table->dropForeign(['equipment_id']);
+            }
+            $table->dropColumn(['equipment_id', 'method']);
         });
     }
 };

@@ -22,6 +22,18 @@ const routes = [
         component: () => import('@/views/dashboard/Dashboard.vue'),
       },
 
+      {
+        path: 'executive', name: 'executive',
+        component: () => import('@/views/dashboard/Executive.vue'),
+        meta: { permission: 'executive.view' },
+      },
+
+      {
+        path: 'reports', name: 'reports',
+        component: () => import('@/views/dashboard/Reports.vue'),
+        meta: { permission: 'executive.view' },
+      },
+
       /* ---- Laboratoriya modullari ---- */
       {
         path: 'samples', name: 'samples',

@@ -37,7 +37,7 @@ class RoleSeeder extends Seeder
         $labHead->syncPermissions(
             Permission::whereIn('module', [
                 'equipment', 'test_objects', 'samples', 'water_orders',
-                'monitoring_points', 'catalog', 'logs', 'documents', 'reports',
+                'monitoring_points', 'catalog', 'logs', 'documents', 'reports', 'executive',
             ])->pluck('id')->all()
         );
 

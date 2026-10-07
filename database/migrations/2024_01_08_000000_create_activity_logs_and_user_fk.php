@@ -24,21 +24,28 @@ return new class extends Migration
             $table->index('action');
         });
 
-        // Users jadvaliga foreign key'lar (barcha jadvallar yaratilgandan keyin)
-        // Schema::table('users', function (Blueprint $table) {
-        //     $table->foreign('role_id')->references('id')->on('roles')->nullOnDelete();
-        //     $table->foreign('laboratory_id')->references('id')->on('laboratories')->nullOnDelete();
-        //     $table->foreign('laboratory_group_id')->references('id')->on('laboratory_groups')->nullOnDelete();
-        // });
+        // Users jadvaliga foreign key'lar.
+        // SQL Server bir nechta SET NULL yo'lini qabul qilmaydi (users → laboratory_groups
+        // boshqa jadvallar orqali ham bog'langan), shuning uchun u yerda faqat indeks qoladi.
+        // Bog'lanishlar Eloquent darajasida ishlaydi — dastur mantiqiga ta'sir qilmaydi.
+        if (! \App\Support\DbCompat::isSqlServer()) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->foreign('role_id')->references('id')->on('roles')->nullOnDelete();
+                $table->foreign('laboratory_id')->references('id')->on('laboratories')->nullOnDelete();
+                $table->foreign('laboratory_group_id')->references('id')->on('laboratory_groups')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['role_id']);
-            $table->dropForeign(['laboratory_id']);
-            $table->dropForeign(['laboratory_group_id']);
-        });
+        if (! \App\Support\DbCompat::isSqlServer()) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign(['role_id']);
+                $table->dropForeign(['laboratory_id']);
+                $table->dropForeign(['laboratory_group_id']);
+            });
+        }
         Schema::dropIfExists('activity_logs');
     }
 };

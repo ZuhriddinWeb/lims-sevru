@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DbCompat;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -38,8 +39,9 @@ return new class extends Migration
 
         // Rol — Ruxsat (ko'pdan-ko'p)
         Schema::create('permission_role', function (Blueprint $table) {
-            $table->foreignId('role_id')->constrained('roles')->cascadeOnDelete();
-            $table->foreignId('permission_id')->constrained('permissions')->cascadeOnDelete();
+            // Pivot: bitta cascade xavfsiz, ikkinchisi SQL Server'da indeks
+            DbCompat::foreignId($table, 'role_id', on: 'roles', onDelete: 'cascadeOnDelete', nullable: false, safeForSqlServer: true);
+            DbCompat::foreignId($table, 'permission_id', on: 'permissions', onDelete: 'cascadeOnDelete', nullable: false);
             $table->primary(['role_id', 'permission_id']);
         });
 

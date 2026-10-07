@@ -41,6 +41,11 @@ class PermissionSeeder extends Seeder
                 'labels' => ['ru' => 'Документы', 'uz' => 'Hujjatlar', 'en' => 'Documents'],
                 'abilities' => ['view', 'create', 'delete'],
             ],
+            'executive' => [
+                'group'  => 'lab',
+                'labels' => ['ru' => 'Панель руководства', 'uz' => 'Rahbariyat paneli', 'en' => 'Executive dashboard'],
+                'abilities' => ['view'],
+            ],
             'reports' => [
                 'group'  => 'lab',
                 'labels' => ['ru' => 'Отчёты', 'uz' => 'Hisobotlar', 'en' => 'Reports'],

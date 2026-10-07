@@ -1,9 +1,10 @@
 <?php
 
+use App\Support\DbCompat;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\DB;
+
 return new class extends Migration
 {
     public function up(): void
@@ -12,6 +13,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('username')->unique();
+            // email unique indeksi quyida — SQL Server NULL'larni boshqacha qabul qiladi
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->string('position')->nullable(); // Lavozim
@@ -34,6 +36,9 @@ return new class extends Migration
             $table->softDeletes();
         });
 
+        // email uchun NULL-mumkin unique indeks (MySQL va SQL Server uchun mos)
+        DbCompat::nullableUnique('users', 'email');
+
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
@@ -48,15 +53,6 @@ return new class extends Migration
             $table->longText('payload');
             $table->integer('last_activity')->index();
         });
-        // SQL Server: NULL email'larni hisobga olmaydigan filtrlangan unikal indeks.
-// (Boshqa bazalarda ham ishlaydi — odatiy unikal indeks kabi.)
-if (DB::connection()->getDriverName() === 'sqlsrv') {
-    DB::statement('CREATE UNIQUE INDEX users_email_unique ON users (email) WHERE email IS NOT NULL');
-} else {
-    Schema::table('users', function (Blueprint $table) {
-        $table->unique('email');
-    });
-}
     }
 
     public function down(): void

@@ -48,13 +48,15 @@ return [
             'search_path' => 'public',
             'sslmode' => 'prefer',
         ],
+
+        // Microsoft SQL Server
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),
-            'host' => env('DB_HOST', ''),
+            'host' => env('DB_HOST', 'localhost'),
             'port' => env('DB_PORT', '1433'),
-            'database' => env('DB_DATABASE', ''),
-            'username' => env('DB_USERNAME', ''),
+            'database' => env('DB_DATABASE', 'lims_sevru'),
+            'username' => env('DB_USERNAME', 'sa'),
             'password' => env('DB_PASSWORD', ''),
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
@@ -71,7 +73,7 @@ return [
         'client' => env('REDIS_CLIENT', 'phpredis'),
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'lims'), '_') . '_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'lims'), '_').'_database_'),
         ],
         'default' => [
             'url' => env('REDIS_URL'),

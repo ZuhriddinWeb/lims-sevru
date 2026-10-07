@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DbCompat;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -17,7 +18,7 @@ return new class extends Migration
             $table->string('location')->nullable();      // Joylashuv tavsifi
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
-            $table->foreignId('laboratory_group_id')->nullable()->constrained('laboratory_groups')->nullOnDelete();
+            DbCompat::foreignId($table, 'laboratory_group_id', on: 'laboratory_groups', safeForSqlServer: true);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
@@ -29,9 +30,9 @@ return new class extends Migration
             $table->string('source_document')->nullable(); // Hujjat raqami / joylashuv
             $table->string('division')->nullable();         // Podrazdelenie
 
-            // Qaysi guruhga taqsimlangan (Водные ресурсы / Воздух / Радиационный контроль)
-            $table->unsignedBigInteger('assigned_group_id')->nullable()->index();
-            $table->foreignId('monitoring_point_id')->nullable()->constrained('monitoring_points')->nullOnDelete();
+            // Qaysi guruhga taqsimlangan — SQL Server uchun indeks, MySQL uchun FK
+            DbCompat::foreignId($table, 'assigned_group_id', on: 'laboratory_groups');
+            DbCompat::foreignId($table, 'monitoring_point_id', on: 'monitoring_points', safeForSqlServer: true);
 
             $table->enum('status', [
                 'registered',
@@ -42,7 +43,7 @@ return new class extends Migration
 
             $table->string('period_month', 7)->index(); // YYYY-MM
 
-            $table->foreignId('registered_by')->nullable()->constrained('users')->nullOnDelete();
+            DbCompat::foreignId($table, 'registered_by', on: 'users', safeForSqlServer: true);
             $table->timestamp('registered_at')->nullable(); // avtomatik
             $table->timestamp('completed_at')->nullable();   // avtomatik
             $table->text('notes')->nullable();
@@ -55,7 +56,7 @@ return new class extends Migration
         // Suv/havo natijalari (vaqt bo'yicha — AI trend tahlili uchun)
         Schema::create('water_order_results', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('water_order_id')->constrained('water_orders')->cascadeOnDelete();
+            DbCompat::foreignId($table, 'water_order_id', on: 'water_orders', onDelete: 'cascadeOnDelete', nullable: false, safeForSqlServer: true);
             $table->string('parameter');                 // pH, loyqalik, element...
             $table->decimal('value', 20, 6)->nullable();
             $table->string('unit')->nullable();
@@ -64,7 +65,7 @@ return new class extends Migration
             $table->decimal('norm_max', 20, 6)->nullable();
             $table->enum('assessment', ['normal', 'warning', 'critical', 'unknown'])->default('unknown');
             $table->timestamp('measured_at')->nullable();
-            $table->foreignId('entered_by')->nullable()->constrained('users')->nullOnDelete();
+            DbCompat::foreignId($table, 'entered_by', on: 'users', safeForSqlServer: true);
             $table->timestamps();
 
             $table->index(['parameter', 'measured_at']);

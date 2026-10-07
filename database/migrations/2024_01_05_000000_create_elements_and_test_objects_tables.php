@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\DbCompat;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -58,8 +59,8 @@ return new class extends Migration
             $table->date('disposed_at')->nullable();         // 2.14 Utilizatsiya sanasi
             $table->string('disposal_act')->nullable();      // Utilizatsiya akti
 
-            $table->foreignId('laboratory_id')->nullable()->constrained('laboratories')->nullOnDelete();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            DbCompat::foreignId($table, 'laboratory_id', on: 'laboratories', safeForSqlServer: true);
+            DbCompat::foreignId($table, 'created_by', on: 'users', safeForSqlServer: true);
             $table->timestamps();
             $table->softDeletes();
 
@@ -70,8 +71,9 @@ return new class extends Migration
 
         // Obyektga belgilangan sinov turlari — TZ 2.10
         Schema::create('test_object_element', function (Blueprint $table) {
-            $table->foreignId('test_object_id')->constrained('test_objects')->cascadeOnDelete();
-            $table->foreignId('element_id')->constrained('elements')->cascadeOnDelete();
+            // Pivot: bitta cascade xavfsiz, ikkinchisi SQL Server'da indeks
+            DbCompat::foreignId($table, 'test_object_id', on: 'test_objects', onDelete: 'cascadeOnDelete', nullable: false, safeForSqlServer: true);
+            DbCompat::foreignId($table, 'element_id', on: 'elements', onDelete: 'cascadeOnDelete', nullable: false);
             $table->primary(['test_object_id', 'element_id']);
         });
     }

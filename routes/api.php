@@ -6,11 +6,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DocumentController;
 use App\Http\Controllers\Api\ElementController;
+use App\Http\Controllers\Api\ExecutiveController;
 use App\Http\Controllers\Api\EquipmentCalibrationController;
 use App\Http\Controllers\Api\EquipmentController;
 use App\Http\Controllers\Api\EquipmentMaintenanceController;
 use App\Http\Controllers\Api\LaboratoryController;
 use App\Http\Controllers\Api\LaboratoryGroupController;
+use App\Http\Controllers\Api\ManagementReportController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MonitoringPointController;
 use App\Http\Controllers\Api\MonitoringPointParameterController;
@@ -41,6 +43,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    // Rahbariyat hisobotlari (jadval ko'rinishida)
+    Route::get('/management-reports', [ManagementReportController::class, 'index'])
+        ->middleware('permission:executive.view|reports.view');
+    Route::get('/management-reports/export', [ManagementReportController::class, 'export'])
+        ->middleware('permission:executive.view|reports.export');
+
+    // Rahbariyat paneli
+    Route::get('/executive', [ExecutiveController::class, 'index'])
+        ->middleware('permission:executive.view');
 
     // Menyu va dashboard
     Route::get('/menu', [MenuController::class, 'index']);
