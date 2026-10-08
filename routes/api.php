@@ -26,7 +26,7 @@ use App\Http\Controllers\Api\TestProfileController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WaterOrderController;
 use Illuminate\Support\Facades\Route;
-
+  use App\Http\Controllers\Api\TrashController;
 // --- Ochiq marshrutlar ---
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -211,7 +211,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/menu-items/{menuItem}', [MenuController::class, 'update']);
         Route::delete('/menu-items/{menuItem}', [MenuController::class, 'destroy']);
     });
-
+  Route::get('trash/counts', [TrashController::class, 'counts'])
+        ->middleware('permission:trash.view');
+    Route::get('trash/{type}', [TrashController::class, 'index'])
+        ->middleware('permission:trash.view');
+    Route::post('trash/{type}/{id}/restore', [TrashController::class, 'restore'])
+        ->middleware('permission:trash.restore');
+    Route::delete('trash/{type}/{id}', [TrashController::class, 'forceDelete'])
+        ->middleware('permission:trash.delete');
     // Audit jurnali
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:logs.view');
 });

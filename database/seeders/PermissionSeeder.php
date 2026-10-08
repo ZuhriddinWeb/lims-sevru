@@ -76,6 +76,12 @@ class PermissionSeeder extends Seeder
                 'labels' => ['ru' => 'Журнал действий', 'uz' => 'Audit jurnali', 'en' => 'Activity logs'],
                 'abilities' => ['view'],
             ],
+            // === YANGI: Savatcha (Recycle Bin) ===
+            'trash' => [
+                'group'  => 'admin',
+                'labels' => ['ru' => 'Корзина', 'uz' => 'Savatcha', 'en' => 'Recycle Bin'],
+                'abilities' => ['view', 'restore', 'delete'],
+            ],
         ];
 
         $abilityLabels = [
@@ -87,6 +93,8 @@ class PermissionSeeder extends Seeder
             'export' => ['ru' => 'Выгрузка', 'uz' => 'Yuklab olish', 'en' => 'Export'],
             'result' => ['ru' => 'Ввод результатов', 'uz' => 'Natija kiritish', 'en' => 'Enter results'],
             'manage' => ['ru' => 'Управление', 'uz' => 'Boshqarish', 'en' => 'Manage'],
+            // === YANGI: "restore" (tiklash) amali uchun yorliq ===
+            'restore' => ['ru' => 'Восстановление', 'uz' => 'Tiklash', 'en' => 'Restore'],
         ];
 
         $sort = 0;

@@ -40,6 +40,19 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        // O'chirilgan foydalanuvchida login/email band emasligini tekshirish
+        foreach (['username', 'email'] as $field) {
+            if ($request->filled($field)) {
+                $trashed = User::onlyTrashed()->where($field, $request->input($field))->first();
+                if ($trashed) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        $field => ["Bu qiymat o'chirilgan foydalanuvchida ishlatilgan ({$trashed->name}). "
+                            . "Administrator orqali eski hisobni tiklang yoki boshqa qiymat kiriting."],
+                    ]);
+                }
+            }
+        }
+
         $data = $request->validate([
             'name'                => ['required', 'string', 'max:191'],
             'username'            => ['required', 'string', 'max:191', 'unique:users,username'],

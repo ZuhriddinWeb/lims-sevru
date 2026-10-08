@@ -192,7 +192,7 @@ class SampleController extends Controller
     // Element bo'yicha natija kiritish (Analitik lab)
     public function saveResult(Request $request, Sample $sample, SampleElement $sampleElement, EquipmentUsageService $usage)
     {
-        abort_if((int) $sampleElement->sample_id !== (int) $sample->id, 404);
+        abort_if($sampleElement->sample_id !== $sample->id, 404);
 
         // Guruh tekshiruvi: o'zga guruh probasiga natija kiritib bo'lmaydi
         $this->assertOwnGroup($sample);
@@ -304,7 +304,9 @@ class SampleController extends Controller
     private function generateCode(): string
     {
         $prefix = 'PR-' . now()->format('Ym') . '-';
-        $last = Sample::where('code', 'like', $prefix . '%')
+        // withTrashed() — o'chirilgan probalarni ham hisobga olib, takror shifr bermaydi
+        $last = Sample::withTrashed()
+            ->where('code', 'like', $prefix . '%')
             ->orderByDesc('code')->first();
         $num = $last ? ((int) substr($last->code, -4)) + 1 : 1;
 

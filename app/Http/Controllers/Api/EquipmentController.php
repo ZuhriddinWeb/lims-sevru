@@ -76,6 +76,9 @@ class EquipmentController extends Controller
 
     public function store(Request $request)
     {
+        // O'chirilgan uskunada shu serial raqam bormi — aniq xabar berish
+        $this->checkSoftDeleted($request->input('serial_number'));
+
         $data = $this->validateData($request);
         $data['created_by'] = auth()->id();
 
@@ -188,6 +191,24 @@ class EquipmentController extends Controller
         return response()->json(
             $events->filter(fn ($e) => $e['date'])->sortByDesc('date')->values()
         );
+    }
+
+    /**
+     * O'chirilgan uskunada shu serial raqam ishlatilganmi?
+     * Agar ha — operatorga aniq xabar beradi (jim "band" o'rniga).
+     */
+    private function checkSoftDeleted(?string $serial): void
+    {
+        if (! $serial) {
+            return;
+        }
+        $trashed = Equipment::onlyTrashed()->where('serial_number', $serial)->first();
+        if ($trashed) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'serial_number' => ["Bu seriya raqami o'chirilgan uskunada ishlatilgan (#{$trashed->id}). "
+                    . "Boshqa raqam kiriting yoki administrator orqali eski yozuvni tiklang/o'chiring."],
+            ]);
+        }
     }
 
     private function validateData(Request $request, ?int $id = null): array

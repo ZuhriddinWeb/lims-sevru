@@ -19,7 +19,8 @@ class MenuSeeder extends Seeder
             ['water_orders',     'Водная лаборатория', 'Suv laboratoriyasi',   'Water lab',        'droplets',         'water-orders',     'water_orders.view',       5],
             ['monitoring_points','Точки мониторинга',  'Monitoring nuqtalari', 'Monitoring points','map-pin',          'monitoring-points','monitoring_points.view',  6],
             ['ai_analysis',      'ИИ-анализ',          'AI tahlil',            'AI analysis',      'sparkles',         'ai-analysis',      'water_orders.view',       7],
-        ];
+            ['manual', 'Руководство', 'Foydalanish yo\'riqnomasi', 'User manual', 'book-open', 'manual', null, 8],
+            ];
 
         foreach ($items as $i) {
             MenuItem::updateOrCreate(['key' => $i[0]], [
@@ -62,6 +63,8 @@ class MenuSeeder extends Seeder
             ['roles',      'Роли и права',     'Rollar va ruxsat', 'Roles & rights', 'key-round',   'roles',      'roles.view', 2],
             ['menu_admin', 'Меню',             'Menyu',            'Menu',           'list-tree',   'menu-items', 'menu.manage', 3],
             ['logs',       'Журнал действий',  'Audit jurnali',    'Activity log',   'scroll-text', 'activity-logs','logs.view', 4],
+            // === YANGI: Savatcha (Recycle Bin) ===
+            ['trash',      'Корзина',          'Savatcha',         'Recycle Bin',    'trash-2',     'trash',      'trash.view', 5],
         ];
         foreach ($adminChildren as $c) {
             MenuItem::updateOrCreate(['key' => $c[0]], [

@@ -54,7 +54,7 @@ class WaterOrderController extends Controller
     public function show(WaterOrder $waterOrder)
     {
         return $waterOrder->load([
-            'assignedGroup', 'monitoringPoint', 'registeredBy',
+            'assignedGroup', 'monitoringPoint', 'registeredBy', 'starter',
             'results.equipment:id,name,serial_number',
         ]);
     }
@@ -66,8 +66,12 @@ class WaterOrderController extends Controller
             'division'            => ['nullable', 'string', 'max:191'],
             'assigned_group_id'   => ['nullable', 'exists:laboratory_groups,id'],
             'monitoring_point_id' => ['nullable', 'exists:monitoring_points,id'],
+            'copy_point_parameters' => ['nullable', 'boolean'],
             'notes'               => ['nullable', 'string'],
         ]);
+
+        $copyParams = $data['copy_point_parameters'] ?? true;
+        unset($data['copy_point_parameters']);
 
         $now = now();
         $data['order_number']  = $this->generateNumber();
@@ -77,6 +81,24 @@ class WaterOrderController extends Controller
         $data['registered_at'] = $now;
 
         $order = WaterOrder::create($data);
+
+        // TZ — buyurtma qabul qilinayotganda qanday aniqlashlar kerakligi belgilanadi.
+        // Monitoring nuqtasiga biriktirilgan ko'rsatkichlar me'yorlari bilan ko'chiriladi.
+        if ($copyParams && $order->monitoring_point_id) {
+            $point = \App\Models\MonitoringPoint::with('parameters')->find($order->monitoring_point_id);
+            foreach ($point?->parameters ?? [] as $p) {
+                $order->results()->create([
+                    'parameter'   => $p->parameter,
+                    'unit'        => $p->unit,
+                    'norm_min'    => $p->norm_min,
+                    'norm_max'    => $p->norm_max,
+                    'assessment'  => 'unknown',
+                    'value'       => null,
+                    'entered_by'  => null,
+                ]);
+            }
+        }
+
         $this->logActivity('created', $order, $data, "Suv buyurtmasi: {$order->order_number}");
 
         return response()->json($this->show($order), 201);
@@ -144,7 +166,16 @@ class WaterOrderController extends Controller
                 $result->assessment = $result->evaluateAssessment();
                 $waterOrder->results()->save($result);
             }
-            $waterOrder->update(['status' => 'completed', 'completed_at' => now()]);
+            // Barcha ko'rsatkichlar to'ldirilgandagina "Yakunlangan"
+            $filled = collect($data['results'])->filter(fn ($r) => ($r['value'] ?? null) !== null)->count();
+            $total  = count($data['results']);
+
+            $waterOrder->update([
+                'status'       => $filled >= $total && $total > 0 ? 'completed' : 'in_progress',
+                'completed_at' => $filled >= $total && $total > 0 ? now() : null,
+                'started_at'   => $waterOrder->started_at ?: now(),
+                'started_by'   => $waterOrder->started_by ?: auth()->id(),
+            ]);
         });
 
         // TZ 1.8 — har bir ishlatilgan uskunani qayd etish
@@ -157,10 +188,43 @@ class WaterOrderController extends Controller
         return response()->json($this->show($waterOrder->fresh()));
     }
 
+    /**
+     * TZ — buyurtmani ishga olish.
+     */
+    public function takeToWork(WaterOrder $waterOrder)
+    {
+        if ($waterOrder->started_at) {
+            return response()->json(['message' => 'Buyurtma allaqachon ishga olingan'], 422);
+        }
+
+        $waterOrder->update([
+            'status'     => 'in_progress',
+            'started_at' => now(),
+            'started_by' => auth()->id(),
+        ]);
+
+        $this->logActivity('updated', $waterOrder, null, "Buyurtma ishga olindi: {$waterOrder->order_number}");
+
+        return response()->json($this->show($waterOrder));
+    }
+
+    /**
+     * Buyurtmani arxivga o'tkazish.
+     */
+    public function archive(WaterOrder $waterOrder)
+    {
+        $waterOrder->update(['status' => 'archived']);
+
+        $this->logActivity('updated', $waterOrder, null, "Buyurtma arxivlandi: {$waterOrder->order_number}");
+
+        return response()->json($this->show($waterOrder));
+    }
+
     private function generateNumber(): string
     {
         $prefix = 'WO-' . now()->format('Ym') . '-';
-        $last = WaterOrder::where('order_number', 'like', $prefix . '%')->orderByDesc('order_number')->first();
+        // withTrashed() — o'chirilgan buyurtmalarni ham hisobga oladi
+        $last = WaterOrder::withTrashed()->where('order_number', 'like', $prefix . '%')->orderByDesc('order_number')->first();
         $num = $last ? ((int) substr($last->order_number, -4)) + 1 : 1;
 
         return $prefix . str_pad((string) $num, 4, '0', STR_PAD_LEFT);

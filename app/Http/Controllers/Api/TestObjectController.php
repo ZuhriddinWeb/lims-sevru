@@ -47,6 +47,16 @@ class TestObjectController extends Controller
 
     public function store(Request $request)
     {
+        // Qo'lda identifier kiritilsa, o'chirilganda band emasligini tekshirish
+        if ($request->filled('identifier')) {
+            $trashed = TestObject::onlyTrashed()->where('identifier', $request->input('identifier'))->first();
+            if ($trashed) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'identifier' => ["Bu identifikator o'chirilgan obyektda ishlatilgan (#{$trashed->id})."],
+                ]);
+            }
+        }
+
         $data = $this->validateData($request);
         $data['created_by'] = auth()->id();
         if (empty($data['identifier'])) {
@@ -160,7 +170,8 @@ class TestObjectController extends Controller
     private function generateIdentifier(): string
     {
         $prefix = 'OB-' . now()->format('Ym') . '-';
-        $last = TestObject::where('identifier', 'like', $prefix . '%')->orderByDesc('identifier')->first();
+        // withTrashed() — o'chirilgan obyektlarni ham hisobga oladi
+        $last = TestObject::withTrashed()->where('identifier', 'like', $prefix . '%')->orderByDesc('identifier')->first();
         $num = $last ? ((int) substr($last->identifier, -4)) + 1 : 1;
 
         return $prefix . str_pad((string) $num, 4, '0', STR_PAD_LEFT);
