@@ -216,7 +216,6 @@ router.beforeEach(async (to) => {
   if (to.meta.guest && auth.isAuthenticated) {
     return { name: "dashboard" };
   }
-
   // Ruxsat tekshiruvi — menyuda ko'rinmasa ham to'g'ridan-to'g'ri URL himoyalangan
   if (
     to.meta.permission &&
