@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import AppLayout from "@/layouts/AppLayout.vue";
+import worksheetRoutes from '@/modules/worksheets/routes' // Ishchi varaqlar (sinov moduli)
 
 const routes = [
   {
@@ -183,6 +184,7 @@ const routes = [
         name: "forbidden",
         component: () => import("@/views/Forbidden.vue"),
       },
+      ...worksheetRoutes,
       {
         path: ":pathMatch(.*)*",
         name: "not-found",

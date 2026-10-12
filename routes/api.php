@@ -221,4 +221,6 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:trash.delete');
     // Audit jurnali
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:logs.view');
+    require __DIR__ . '/worksheets.php';
+
 });

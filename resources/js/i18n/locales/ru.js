@@ -1,5 +1,5 @@
 export default {
-  app: { name: 'ЦНИЛ · LIMS', short: 'LIMS' },
+  app: { name: 'НГМК · LIMS', short: 'LIMS' },
 
   common: {
     search: 'Поиск',
@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Войти в систему',
-    signInSubtitle: 'НГМК ·',
+    signInSubtitle: '',
     username: 'Логин',
     password: 'Пароль',
     signOut: 'Выйти',
@@ -411,7 +411,7 @@ copyParams: 'Подставить показатели точки',
 
   catalog: {
     laboratories: 'Лаборатории',
-    laboratoriesSubtitle: 'Подразделения ЦНИЛ',
+    laboratoriesSubtitle: 'Подразделения Лаб',
     groups: 'Группы лабораторий',
     groupsSubtitle: 'Группы внутри лабораторий и их роль в процессе',
     elements: 'Определяемые элементы',

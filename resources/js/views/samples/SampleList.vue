@@ -12,6 +12,8 @@ import { sampleResource } from '@/resources/lab'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { useCatalogStore } from '@/stores/catalogs'
+// Ishchi varaqlar moduli: jadvaldan chop etish (olib tashlansa — shu qator va pastdagi bitta teg o'chiriladi)
+import SampleWorksheetPrintButton from '@/modules/worksheets/components/SampleWorksheetPrintButton.vue'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -123,6 +125,8 @@ onMounted(() => {
       </template>
 
       <template #extra-actions="{ row }">
+        <!-- Probaning ishchi varaqlarini chop etish (varag'i bo'lsa ko'rinadi) -->
+        <SampleWorksheetPrintButton :sample="row" />
         <button
           v-if="(auth.can('samples.result') || auth.can('samples.update')) && row.status === 'assigned' && !row.started_at"
           class="btn-ghost btn-sm btn-icon" :title="t('work.take')"

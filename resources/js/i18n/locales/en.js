@@ -1,5 +1,5 @@
 export default {
-  app: { name: 'CRL · LIMS', short: 'LIMS' },
+  app: { name: 'NMMC · LIMS', short: 'LIMS' },
 
   common: {
     search: 'Search',
@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Sign in',
-     signInSubtitle: 'NMMC ·',
+     signInSubtitle: '',
     username: 'Username',
     password: 'Password',
     signOut: 'Sign out',
@@ -409,7 +409,7 @@ export default {
 
   catalog: {
     laboratories: 'Laboratories',
-    laboratoriesSubtitle: 'CRL divisions',
+    laboratoriesSubtitle: 'NMMC divisions',
     groups: 'Laboratory groups',
     groupsSubtitle: 'Groups inside laboratories and their role in the process',
     elements: 'Elements',

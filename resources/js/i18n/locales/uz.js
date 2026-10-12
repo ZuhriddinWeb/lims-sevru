@@ -1,5 +1,5 @@
 export default {
-  app: { name: 'MITL · LIMS', short: 'LIMS' },
+  app: { name: 'NKMK · LIMS', short: 'LIMS' },
 
   common: {
     search: 'Qidiruv',
@@ -53,7 +53,7 @@ export default {
 
   auth: {
     signIn: 'Tizimga kirish',
-    signInSubtitle: 'NKMK ·',
+    signInSubtitle: '',
     username: 'Login',
     password: 'Parol',
     signOut: 'Chiqish',
@@ -409,7 +409,7 @@ export default {
 
   catalog: {
     laboratories: 'Laboratoriyalar',
-    laboratoriesSubtitle: 'MITL bo‘linmalari',
+    laboratoriesSubtitle: 'Lab bo‘linmalari',
     groups: 'Laboratoriya guruhlari',
     groupsSubtitle: 'Laboratoriya ichidagi guruhlar va ularning roli',
     elements: 'Aniqlanadigan elementlar',
