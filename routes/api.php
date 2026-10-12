@@ -223,4 +223,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:logs.view');
     require __DIR__ . '/worksheets.php';
 
+
 });

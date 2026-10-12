@@ -1,0 +1,6 @@
+# LIMS interlab: kalit yaratish uchun minimal OpenSSL sozlamasi (Windows PHP'da kerak)
+HOME = .
+[ req ]
+default_bits = 2048
+distinguished_name = req_dn
+[ req_dn ]

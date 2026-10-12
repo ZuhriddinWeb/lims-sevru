@@ -126,24 +126,11 @@ class SampleController extends Controller
                 'registered_at'        => $now,
                 'assigned_at'          => ! empty($data['assigned_group_id']) ? $now : null,
                 'notes'                => $data['notes'] ?? null,
+                'test_profile_id'      => $data['test_profile_id'] ?? null,
             ]);
 
             // Elementlar: qo'lda tanlangan yoki profildan olingan (TZ 2.10)
-            $elementIds = $data['element_ids'] ?? [];
-            if (empty($elementIds) && ! empty($data['test_profile_id'])) {
-                $profile = \App\Models\TestProfile::with('elements')->find($data['test_profile_id']);
-                $elementIds = $profile ? $profile->elements->pluck('id')->all() : [];
-            }
-
-            // Aniqlanadigan elementlarni biriktirish
-            foreach ($elementIds as $elementId) {
-                $element = \App\Models\Element::find($elementId);
-                $sample->sampleElements()->create([
-                    'element_id'  => $elementId,
-                    'result_unit' => $element?->default_unit,
-                    'status'      => 'pending',
-                ]);
-            }
+            $this->syncElements($sample, $this->resolveElementIds($data));
 
             return $sample;
         });
@@ -163,12 +150,70 @@ class SampleController extends Controller
             'assigned_group_id'    => ['nullable', 'exists:laboratory_groups,id'],
             'state_of_matter'      => ['required', 'in:liquid,solid'],
             'notes'                => ['nullable', 'string'],
+            'test_profile_id'      => ['nullable', 'exists:test_profiles,id'],
+            'element_ids'          => ['nullable', 'array'],
+            'element_ids.*'        => ['exists:elements,id'],
         ]);
 
-        $sample->update($data);
+        DB::transaction(function () use ($sample, $data) {
+            $sample->update(collect($data)->except('element_ids')->all());
+
+            // Elementlar faqat yuborilgan bo'lsa (yoki profil tanlangan bo'lsa) o'zgaradi
+            if (! empty($data['element_ids']) || ! empty($data['test_profile_id'])) {
+                $this->syncElements($sample, $this->resolveElementIds($data));
+
+                if ($sample->status !== 'archived') {
+                    $sample->unsetRelation('sampleElements');
+                    $sample->refreshStatus();
+                }
+            }
+        });
+
         $this->logActivity('updated', $sample, $data, "Proba yangilandi: {$sample->code}");
 
         return response()->json($this->show($sample));
+    }
+
+    /** Qo'lda tanlangan elementlar, bo'lmasa — profil elementlari (TZ 2.10) */
+    private function resolveElementIds(array $data): array
+    {
+        $elementIds = $data['element_ids'] ?? [];
+        if (empty($elementIds) && ! empty($data['test_profile_id'])) {
+            $profile = \App\Models\TestProfile::with('elements')->find($data['test_profile_id']);
+            $elementIds = $profile ? $profile->elements->pluck('id')->all() : [];
+        }
+
+        return array_values(array_unique(array_map('intval', $elementIds)));
+    }
+
+    /**
+     * Probaning aniqlanadigan elementlarini berilgan ro'yxatga moslaydi.
+     * Yangilari qo'shiladi; ro'yxatdan chiqarilganlari faqat natija kiritilmagan
+     * bo'lsa o'chiriladi — natijasi bor element hech qachon yo'qolmaydi.
+     */
+    private function syncElements(Sample $sample, array $elementIds): void
+    {
+        $existing = $sample->sampleElements()->get()->keyBy('element_id');
+
+        foreach ($existing as $elementId => $sampleElement) {
+            if (! in_array((int) $elementId, $elementIds, true)
+                && $sampleElement->status !== 'done'
+                && $sampleElement->result_value === null) {
+                $sampleElement->delete();
+            }
+        }
+
+        foreach ($elementIds as $elementId) {
+            if ($existing->has($elementId)) {
+                continue;
+            }
+            $element = \App\Models\Element::find($elementId);
+            $sample->sampleElements()->create([
+                'element_id'  => $elementId,
+                'result_unit' => $element?->default_unit,
+                'status'      => 'pending',
+            ]);
+        }
     }
 
     // Probani analitik guruhga uzatish (Спектральная / Химическая)

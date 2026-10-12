@@ -233,16 +233,11 @@ export const sampleResource = {
           { key: 'test_profile_id', type: 'relation', labelKey: 'profile.one', hintKey: 'profile.applied',
             source: 'testProfiles', col: 2 },
           { key: 'element_ids', type: 'multiselect', labelKey: 'sample.elements', hintKey: 'sample.elementsHint',
-            source: 'elements', fromRelation: null, col: 2 },
+            source: 'elements', fromRelation: 'sample_elements', relationKey: 'element_id', col: 2 },
           { key: 'notes', type: 'textarea', labelKey: 'equipment.notes', col: 2, rows: 2 },
         ],
       },
     ],
-  },
-
-  // Tahrirlashda elementlar ro'yxati o'zgarmaydi (natijalar bog'langan)
-  beforeSave: (payload, editing) => {
-    if (editing) delete payload.element_ids
   },
 }
 

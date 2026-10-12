@@ -13,7 +13,7 @@ class MenuSeeder extends Seeder
             ['dashboard',        'Панель',             'Bosh sahifa',          'Dashboard',        'layout-dashboard', 'dashboard',        null,                      1],
             ['executive',        'Панель руководства', 'Rahbariyat paneli',    'Executive',        'trending-up',      'executive',        'executive.view',          2],
             ['reports',          'Отчёты',             'Hisobotlar',           'Reports',          'table',            'reports',          'executive.view',          3],
-            ['samples',          'Пробы',              'Probalar',             'Samples',          'test-tube',        'samples',          'samples.view',            2],
+            ['samples',          'Пробы',              'Namunalar',             'Samples',          'test-tube',        'samples',          'samples.view',            2],
             ['test_objects',     'Объекты испытания',  'Sinov obyektlari',     'Test objects',     'package',          'test-objects',     'test_objects.view',       3],
             ['equipment',        'Оборудование',       'Uskunalar',            'Equipment',        'microscope',       'equipment',        'equipment.view',          4],
             ['water_orders',     'Водная лаборатория', 'Suv laboratoriyasi',   'Water lab',        'droplets',         'water-orders',     'water_orders.view',       5],

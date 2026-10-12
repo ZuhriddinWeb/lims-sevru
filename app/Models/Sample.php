@@ -17,7 +17,7 @@ class Sample extends Model
         'customer_group_id', 'registering_lab_id', 'registering_group_id',
         'assigned_group_id', 'state_of_matter', 'status', 'period_month',
         'registered_by', 'registered_at', 'assigned_at',
-        'started_at', 'started_by', 'completed_at', 'notes',
+        'started_at', 'started_by', 'completed_at', 'notes', 'test_profile_id',
     ];
 
     protected $casts = [
@@ -58,6 +58,11 @@ class Sample extends Model
     public function starter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'started_by');
+    }
+
+    public function testProfile(): BelongsTo
+    {
+        return $this->belongsTo(TestProfile::class, 'test_profile_id');
     }
 
     public function sampleElements(): HasMany

@@ -46,7 +46,7 @@ function resetForm(row = null) {
     let v = row ? row[f.key] : (f.default ?? null)
     if (f.type === 'multiselect') {
       v = row && f.fromRelation
-        ? (row[f.fromRelation] ?? []).map((x) => x.id)
+        ? (row[f.fromRelation] ?? []).map((x) => f.relationKey ? Number(x[f.relationKey]) : x.id)
         : (Array.isArray(v) ? v : [])
     }
     if (f.type === 'switch') v = row ? !!row[f.key] : (f.default ?? false)
