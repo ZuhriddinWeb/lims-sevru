@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorksheetSignoff extends Model
 {
     protected $fillable = [
-        'worksheet_id', 'stage', 'slot', 'performer_id', 'performer_name', 'performed_at', 'recorded_by',
+        'worksheet_id', 'stage', 'slot', 'performer_id', 'performer_name', 'performed_at', 'performed_time', 'recorded_by',
     ];
 
     protected $casts = [

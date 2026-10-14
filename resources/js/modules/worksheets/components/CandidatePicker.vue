@@ -2,15 +2,17 @@
 /**
  * Shablonga mos probalarni tanlash (yangi varaq yoki mavjud varaqqa qo'shish).
  *   <CandidatePicker v-model="selected" :template-id="id" :preselect="[12]" @meta="tplMeta = $event" />
- * v-model: [{ id, parallels, code, sample_number }] — ro'yxatga olinish tartibida.
+ * v-model: [{ id, parallels, code, sample_number, quantity }] — ro'yxatga olinish tartibida.
+ * kind="control" — nazorat varag'i uchun (natijasi chiqqan probalar ham, yangilari birinchi).
+ * Proba qoldig'i ma'lum bo'lsa — har probada qoldiq va tanlangan parallellar uchun kerakli miqdor ko'rinadi.
  */
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Check, Minus, Plus, RotateCcw, Search } from 'lucide-vue-next'
+import { AlertTriangle, Check, Minus, Plus, RotateCcw, Scale, Search } from 'lucide-vue-next'
 import api from '@/lib/api'
 import { localized } from '@/i18n'
 import { formatDate } from '@/lib/format'
-import { MAX_PARALLELS, pageEstimate } from '../helpers'
+import { MAX_PARALLELS, formatQty, pageEstimate } from '../helpers'
 import '../i18n'
 
 const props = defineProps({
@@ -21,10 +23,12 @@ const props = defineProps({
   existingRows: { type: Number, default: 0 },
   existingSamples: { type: Number, default: 0 },
   modelValue: { type: Array, default: () => [] },
+  /** main | control */
+  kind: { type: String, default: 'main' },
 })
 const emit = defineEmits(['update:modelValue', 'meta'])
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const list = ref([])
 const meta = ref({ default_rows: 2, max_samples: null, orientation: 'landscape' })
@@ -42,6 +46,7 @@ async function load() {
     const { data } = await api.get('/worksheets/candidates', {
       params: {
         template_id: props.templateId,
+        kind: props.kind === 'control' ? 'control' : undefined,
         except_worksheet: props.exceptWorksheet || undefined,
         search: filters.search || undefined,
         date_from: filters.date_from || undefined,
@@ -67,7 +72,7 @@ async function load() {
 }
 
 onMounted(load)
-watch(() => props.templateId, () => {
+watch(() => [props.templateId, props.kind], () => {
   picked.clear()
   preselected = false
   publish()
@@ -81,13 +86,13 @@ watch(() => [filters.search, filters.date_from, filters.date_to], () => {
 function publish() {
   const out = [...picked.values()]
     .sort((a, b) => String(a.registered_at ?? '').localeCompare(String(b.registered_at ?? '')) || a.id - b.id)
-    .map(({ id, parallels, code, sample_number }) => ({ id, parallels, code, sample_number }))
+    .map(({ id, parallels, code, sample_number, quantity }) => ({ id, parallels, code, sample_number, quantity }))
   emit('update:modelValue', out)
 }
 
 function toggle(s) {
   if (picked.has(s.id)) picked.delete(s.id)
-  else picked.set(s.id, { id: s.id, code: s.code, sample_number: s.sample_number, registered_at: s.registered_at, parallels: meta.value.default_rows || 2 })
+  else picked.set(s.id, { id: s.id, code: s.code, sample_number: s.sample_number, registered_at: s.registered_at, parallels: meta.value.default_rows || 2, quantity: s.quantity ?? null })
   publish()
 }
 
@@ -114,6 +119,22 @@ const totalRows = computed(() => [...picked.values()].reduce((sum, p) => sum + p
 const totalSamples = computed(() => picked.size + props.existingSamples)
 const pages = computed(() => pageEstimate(totalRows.value, meta.value.orientation))
 const overLimit = computed(() => meta.value.max_samples && totalSamples.value > meta.value.max_samples)
+
+/* ---------- Proba qoldig'i ---------- */
+// Tanlangan parallellar uchun kerakli miqdor (standart naveska × parallel), probaning birligida
+function needOf(s) {
+  const q = s.quantity
+  const p = picked.get(s.id)
+  if (!q || !p || q.per_parallel === null || q.per_parallel === undefined) return null
+  return Math.round(q.per_parallel * p.parallels * 10000) / 10000
+}
+function isShort(s) {
+  const need = needOf(s)
+  return need !== null && s.quantity?.available !== null && s.quantity?.available !== undefined && need > s.quantity.available + 1e-9
+}
+const qtyTone = (q) => ({
+  negative: 'text-crit', empty: 'text-crit', low: 'text-warn-dark dark:text-warn-light',
+}[q?.state] ?? 'text-ink-muted')
 </script>
 
 <template>
@@ -174,7 +195,14 @@ const overLimit = computed(() => meta.value.max_samples && totalSamples.value > 
           <span class="block text-[12px] text-ink-muted truncate">
             {{ formatDate(s.registered_at) }}
             <template v-if="s.assigned_group"> · {{ localized(s.assigned_group, 'name') }}</template>
-            <template v-if="s.elements?.length"> · {{ s.elements.join(', ') }}</template>
+            <template v-if="s.results?.length"> · {{ s.results.map((r) => `${r.symbol} ${formatQty(r.value, locale)}`).join(', ') }}</template>
+            <template v-else-if="s.elements?.length"> · {{ s.elements.join(', ') }}</template>
+          </span>
+          <span v-if="s.quantity" class="flex items-center gap-1 text-[11.5px] tnum" :class="isShort(s) ? 'text-crit font-medium' : qtyTone(s.quantity)" data-qty>
+            <component :is="isShort(s) ? AlertTriangle : Scale" :size="12" class="shrink-0" />
+            {{ t('ws.qtyLeft', { n: formatQty(s.quantity.available, locale), unit: s.quantity.unit }) }}
+            <template v-if="needOf(s) !== null"> · {{ t('ws.qtyNeed', { n: formatQty(needOf(s), locale), unit: s.quantity.unit }) }}</template>
+            <template v-if="isShort(s)"> — {{ t('ws.qtyShort') }}</template>
           </span>
         </button>
 

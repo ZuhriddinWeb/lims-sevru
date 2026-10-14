@@ -12,6 +12,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import { formatDate } from '@/lib/format'
 import WsStatusBadge from '../components/WsStatusBadge.vue'
+import WsKindBadge from '../components/WsKindBadge.vue'
 import CreateWorksheetModal from '../components/CreateWorksheetModal.vue'
 import { STATUSES, apiErrorMessage, templateName } from '../helpers'
 import '../i18n'
@@ -27,7 +28,7 @@ const loading = ref(true)
 const templates = ref([])
 const createOpen = ref(false)
 
-const filters = reactive({ search: '', status: '', template_id: '', warnings_only: false })
+const filters = reactive({ search: '', status: '', template_id: '', kind: '', warnings_only: false })
 let timer = null
 
 async function load(page = 1) {
@@ -40,6 +41,7 @@ async function load(page = 1) {
         search: filters.search || undefined,
         status: filters.status || undefined,
         template_id: filters.template_id || undefined,
+        kind: filters.kind || undefined,
         warnings_only: filters.warnings_only ? 1 : undefined,
       },
     })
@@ -55,7 +57,7 @@ async function load(page = 1) {
   }
 }
 
-watch(() => [filters.status, filters.template_id, filters.warnings_only], () => load(1))
+watch(() => [filters.status, filters.template_id, filters.kind, filters.warnings_only], () => load(1))
 watch(() => filters.search, () => {
   clearTimeout(timer)
   timer = setTimeout(() => load(1), 300)
@@ -69,7 +71,7 @@ onMounted(async () => {
   } catch { /* filtr ixtiyoriy */ }
 })
 
-const hasFilters = computed(() => filters.search || filters.status || filters.template_id || filters.warnings_only)
+const hasFilters = computed(() => filters.search || filters.status || filters.template_id || filters.kind || filters.warnings_only)
 
 function open(row) {
   router.push({ name: 'worksheet-detail', params: { id: row.id } })
@@ -99,6 +101,11 @@ function open(row) {
       <select v-model="filters.template_id" class="field-input w-auto min-w-[190px]">
         <option value="">{{ t('ws.allTemplates') }}</option>
         <option v-for="tpl in templates" :key="tpl.id" :value="tpl.id">{{ tpl.code }} · {{ templateName(tpl, locale) }}</option>
+      </select>
+      <select v-model="filters.kind" class="field-input w-auto min-w-[150px]" data-kind-filter>
+        <option value="">{{ t('ws.kindAll') }}</option>
+        <option value="main">{{ t('ws.kindMain') }}</option>
+        <option value="control">{{ t('ws.kindControl') }}</option>
       </select>
       <label class="inline-flex items-center gap-2 text-[13.5px] text-ink-muted px-1 cursor-pointer select-none">
         <input v-model="filters.warnings_only" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500">
@@ -144,6 +151,7 @@ function open(row) {
             >
               <td class="px-4 py-2.5">
                 <span class="font-mono font-semibold text-ink">{{ row.number }}</span>
+                <WsKindBadge :kind="row.kind" size="sm" class="ml-1.5" />
                 <AlertTriangle v-if="row.has_warnings" :size="14" class="inline ml-1.5 -mt-0.5 text-warn" :title="t('ws.warnings')" />
               </td>
               <td class="px-4 py-2.5 text-ink-muted tnum whitespace-nowrap">{{ formatDate(row.worksheet_date) }}</td>

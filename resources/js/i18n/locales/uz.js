@@ -155,7 +155,7 @@ export default {
     title: 'Namunalar',
     subtitle: 'Ro‘yxatga olish, uzatish va sinov natijalari',
     one: 'Proba',
-    register: 'Probani ro‘yxatga olish',
+    register: 'Namuna ro‘yxatga olish',
     code: 'Shifr',
     number: 'Proba raqami',
     sourceDocument: 'Asos hujjat',

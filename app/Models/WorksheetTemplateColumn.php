@@ -10,13 +10,14 @@ class WorksheetTemplateColumn extends Model
     protected $fillable = [
         'template_id', 'scope', 'key', 'type', 'stage', 'label_uz', 'label_ru', 'label_uz_cyrl',
         'unit', 'decimals', 'rounding', 'formula', 'default_value', 'required', 'element_id',
-        'tolerance_pct', 'tolerance_source', 'tolerance_mode', 'width', 'sort_order',
+        'tolerance_pct', 'tolerance_source', 'tolerance_mode', 'width', 'sort_order', 'consumes_sample',
     ];
 
     protected $casts = [
         'template_id' => 'integer',
         'element_id' => 'integer',
         'required'   => 'boolean',
+        'consumes_sample' => 'boolean',
         'decimals'   => 'integer',
         'width'      => 'integer',
         'sort_order' => 'integer',
@@ -54,6 +55,7 @@ class WorksheetTemplateColumn extends Model
             'tolerance_source' => $this->tolerance_source,
             'tolerance_mode'   => $this->tolerance_mode ?: 'mean',
             'width'            => $this->width,
+            'consumes_sample'  => (bool) $this->consumes_sample, // proba sarfi (naveska) ustuni
         ];
     }
 }

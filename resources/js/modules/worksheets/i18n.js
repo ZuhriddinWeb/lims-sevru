@@ -7,6 +7,26 @@ import { i18n } from '@/i18n'
 
 const uz = {
   ws: {
+    // --- Paket 15: varaq turi va proba qoldig'i ---
+    kindMain: 'Asosiy',
+    kindControl: 'Nazorat uchun',
+    kindAll: 'Barcha turlar',
+    kindControlHint: "Nazorat tahlili: natija probaga o'tmaydi, asosiy natija bilan solishtiriladi",
+    kindControlCheckbox: 'Nazorat uchun ishchi varaq',
+    kindControlCheckboxHint: "Natija probaga o'tkazilmaydi — faqat asosiy tahlil natijasi bilan solishtiriladi. Natijasi chiqqan probalarni ham tanlash mumkin.",
+    compareOnly: 'solishtirish uchun',
+    controlApproveNote: "Nazorat varag'i: natijalar probaga o'tkazilmaydi. Ular proba kartochkasida asosiy natija bilan solishtirib ko'rsatiladi.",
+    qtyLeft: 'Qoldiq: {n} {unit}',
+    qtyNeed: 'kerak: {n} {unit}',
+    qtyShort: 'yetmaydi',
+    lowBalanceTitle: 'Probada yetarli miqdor qolmagan',
+    lowBalanceLine: 'kerak {need} {unit}, qoldiq {available} {unit}',
+    lowBalanceHint: "Baribir davom etsangiz, qoldiq manfiy bo'ladi va bu jurnalga yoziladi. Parallellar sonini kamaytirish yoki probani qayta tortish mumkin.",
+    lowBalanceBack: 'Orqaga',
+    lowBalanceConfirm: 'Baribir yaratish',
+    lowBalanceConfirmAdd: "Baribir qo'shish",
+    consumes: 'Proba sarfi',
+    consumesHint: "Shu ustundagi qiymat (naveska) probadan olingan miqdor sifatida qoldiqdan ayiriladi. Shablonda bitta ustun belgilanadi.",
     title: 'Ishchi varaqlar',
     subtitle: 'Bir yoki bir nechta proba uchun tahlil varag\'i: chop etish, kiritish, tasdiqlash',
     create: 'Yangi ishchi varaq',
@@ -93,6 +113,7 @@ const uz = {
     performerOther: 'Boshqa (qo\'lda yozish)',
     performerName: 'F.I.Sh.',
     performedAt: 'Sana',
+    performedTime: 'Soat', // [P16]
     notes: 'Izoh',
     compare: 'Skan bilan solishtirish',
     compareOff: 'Solishtirishni yopish',
@@ -268,6 +289,26 @@ const uz = {
 
 const ru = {
   ws: {
+    // --- Пакет 15: тип листа и остаток пробы ---
+    kindMain: 'Основной',
+    kindControl: 'Контрольный',
+    kindAll: 'Все типы',
+    kindControlHint: 'Контрольный анализ: результат не переносится в пробу, сравнивается с основным',
+    kindControlCheckbox: 'Контрольный рабочий лист',
+    kindControlCheckboxHint: 'Результат не переносится в пробу — только сравнивается с результатом основного анализа. Можно выбирать и пробы с готовым результатом.',
+    compareOnly: 'для сравнения',
+    controlApproveNote: 'Контрольный лист: результаты не переносятся в пробу. Они показываются в карточке пробы в сравнении с основным результатом.',
+    qtyLeft: 'Остаток: {n} {unit}',
+    qtyNeed: 'нужно: {n} {unit}',
+    qtyShort: 'не хватает',
+    lowBalanceTitle: 'Недостаточно пробы',
+    lowBalanceLine: 'нужно {need} {unit}, остаток {available} {unit}',
+    lowBalanceHint: 'Если продолжить, остаток станет отрицательным, это будет записано в журнал. Можно уменьшить число параллелей или перевзвесить пробу.',
+    lowBalanceBack: 'Назад',
+    lowBalanceConfirm: 'Всё равно создать',
+    lowBalanceConfirmAdd: 'Всё равно добавить',
+    consumes: 'Расход пробы',
+    consumesHint: 'Значение этого столбца (навеска) вычитается из остатка пробы. В шаблоне отмечается один столбец.',
     title: 'Рабочие листы',
     subtitle: 'Рабочий лист анализа для одной или нескольких проб: печать, ввод, утверждение',
     create: 'Новый рабочий лист',
@@ -352,6 +393,7 @@ const ru = {
     performerOther: 'Другой (ввести вручную)',
     performerName: 'Ф.И.О.',
     performedAt: 'Дата',
+    performedTime: 'Время', // [P16]
     notes: 'Примечание',
     compare: 'Сверить со сканом',
     compareOff: 'Закрыть сверку',
@@ -521,6 +563,26 @@ const ru = {
 
 const en = {
   ws: {
+    // --- Package 15: worksheet kind and sample balance ---
+    kindMain: 'Main',
+    kindControl: 'Control',
+    kindAll: 'All kinds',
+    kindControlHint: 'Control analysis: result is not written to the sample, only compared with the main result',
+    kindControlCheckbox: 'Control worksheet',
+    kindControlCheckboxHint: 'Results are not written to the sample — only compared with the main analysis. Samples with results can be selected too.',
+    compareOnly: 'for comparison',
+    controlApproveNote: 'Control worksheet: results are not written to the samples. They are shown on the sample card next to the main result.',
+    qtyLeft: 'Left: {n} {unit}',
+    qtyNeed: 'needed: {n} {unit}',
+    qtyShort: 'not enough',
+    lowBalanceTitle: 'Not enough sample left',
+    lowBalanceLine: 'needed {need} {unit}, left {available} {unit}',
+    lowBalanceHint: 'If you continue, the balance becomes negative and this is logged. You can reduce the parallels or re-weigh the sample.',
+    lowBalanceBack: 'Back',
+    lowBalanceConfirm: 'Create anyway',
+    lowBalanceConfirmAdd: 'Add anyway',
+    consumes: 'Sample usage',
+    consumesHint: 'The value of this column (test portion) is subtracted from the sample balance. One column per template.',
     ...uz.ws,
     title: 'Worksheets',
     subtitle: 'Analysis worksheet for one or more samples: print, enter, approve',
@@ -597,6 +659,7 @@ const en = {
     performerOther: 'Other (type name)',
     performerName: 'Full name',
     performedAt: 'Date',
+    performedTime: 'Time', // [P16]
     notes: 'Notes',
     compare: 'Compare with scan',
     compareOff: 'Close comparison',

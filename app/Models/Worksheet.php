@@ -18,8 +18,11 @@ class Worksheet extends Model
 
     public const STATUSES = ['draft', 'printed', 'in_progress', 'completed', 'approved'];
 
+    /** main — asosiy tahlil (natija probaga o'tadi); control — nazorat uchun (faqat solishtiriladi) */
+    public const KINDS = ['main', 'control'];
+
     protected $fillable = [
-        'template_id', 'sample_id', 'series', 'year', 'seq', 'number',
+        'template_id', 'sample_id', 'kind', 'series', 'year', 'seq', 'number',
         'template_snapshot', 'worksheet_date', 'status', 'header_values', 'results',
         'has_warnings', 'notes', 'created_by', 'updated_by', 'printed_at', 'completed_at',
         'approved_by', 'approved_at', 'results_pushed_at',
@@ -96,6 +99,11 @@ class Worksheet extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by')->withTrashed();
+    }
+
+    public function isControl(): bool
+    {
+        return $this->kind === 'control';
     }
 
     public function isLocked(): bool

@@ -3,7 +3,8 @@ import { useAuthStore } from "@/stores/auth";
 import AppLayout from "@/layouts/AppLayout.vue";
 import worksheetRoutes from '@/modules/worksheets/routes' // Ishchi varaqlar (sinov moduli)
 import interlabRoutes from '@/modules/interlab/routes'
-
+import intakeRoutes, { installPortalGuard } from '@/modules/intake/routes' // [P15]
+import insightsRoutes from '@/modules/insights/routes' // [P16] Rahbariyat paneli 2.0, smenalar
 
 const routes = [
   {
@@ -186,8 +187,17 @@ const routes = [
         name: "forbidden",
         component: () => import("@/views/Forbidden.vue"),
       },
+       /* ---- Ishchi varaqlar (sinov moduli) — olib tashlash uchun shu qatorni o'chiring ---- */
       ...worksheetRoutes,
+
+      /* ---- Laboratoriyalararo tekshiruv — olib tashlash uchun shu qatorni o'chiring ---- */
       ...interlabRoutes,
+
+      /* ---- [P15] Buyurtmachi bo'limlar, buyurtmachi portali, proba qoldiqlari ---- */
+      ...intakeRoutes,
+
+      /* ---- [P16] Rahbariyat paneli 2.0 (eski panel: /executive/classic) va smenalar ---- */
+      ...insightsRoutes,
       {
         path: ":pathMatch(.*)*",
         name: "not-found",
@@ -232,3 +242,4 @@ router.beforeEach(async (to) => {
 
   return true;
 });
+installPortalGuard(router)

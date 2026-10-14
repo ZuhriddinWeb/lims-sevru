@@ -10,6 +10,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import TableSkeleton from '@/components/ui/TableSkeleton.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { localized } from '@/i18n'
 
 const { t, te, locale } = useI18n()
 const auth = useAuthStore()
@@ -37,24 +38,136 @@ async function load() {
 }
 onMounted(load)
 
-/* Modul × amal matritsasi — ruxsatlarni shu ko'rinishda belgilash qulay */
+/*
+ * Bo'lim × amal matritsasi.
+ * Asosiy amallar — ustunlarda; qolganlari (barcha guruhlar, yuklab olish, tasdiqlash, jo'natish, tiklash ...)
+ * «Boshqa amallar» ustunida. Avval bular umuman ko'rinmas edi — rolga berib ham, olib ham bo'lmasdi.
+ * Bo'lim nomi: menyu tarjimasi → shu fayldagi lug'at → bazadagi ruxsat nomi (label_uz/ru/en, « — » gacha).
+ */
 const ABILITIES = ['view', 'create', 'update', 'delete', 'result', 'manage']
 
-const matrix = computed(() =>
-  permissionGroups.value.map((g) => ({
-    module: g.module,
-    label: te(`menu.${g.module}`) ? t(`menu.${g.module}`) : g.module,
-    cells: ABILITIES.map((ability) => ({
-      ability,
-      permission: g.permissions.find((p) => p.ability === ability) ?? null,
-    })),
-  }))
-)
-
-const ABILITY_LABELS = {
-  view: 'common.search', create: 'common.create', update: 'common.edit',
-  delete: 'common.delete', result: 'sample.enterResult', manage: 'menuAdmin.titleField',
+const TXT = {
+  uz: {
+    ability: { view: 'Ko‘rish', create: 'Qo‘shish', update: 'Tahrirlash', delete: 'O‘chirish', result: 'Natija kiritish', manage: 'Boshqarish' },
+    extra: { view_all: 'Barcha guruhlar', export: 'Yuklab olish', approve: 'Tasdiqlash', send: 'Tekshiruvga jo‘natish', process: 'Kiruvchini bajarish', restore: 'Tiklash' },
+    other: 'Boshqa amallar',
+    section: { lab: 'Laboratoriya', admin: 'Administratsiya', other: 'Boshqa' },
+    module: {
+      catalog: 'Kataloglar', customer_departments: 'Buyurtmachi bo‘limlar', documents: 'Hujjatlar', equipment: 'Uskunalar',
+      executive: 'Rahbariyat paneli', interlab: 'Laboratoriyalararo tekshiruv', logs: 'Audit jurnali', menu: 'Menyu',
+      monitoring_points: 'Monitoring nuqtalari', portal: 'Buyurtmachi portali', reports: 'Hisobotlar', roles: 'Rollar va ruxsatlar',
+      sample_quantity: 'Namuna miqdori', samples: 'Namunalar', shifts: 'Smenalar', staff_activity: 'Xodimlar faoliyati',
+      test_objects: 'Sinov obyektlari', trash: 'Savat', users: 'Foydalanuvchilar', water_orders: 'Suv laboratoriyasi',
+      worksheet_templates: 'Ishchi varaq shablonlari', worksheets: 'Ishchi varaqlar',
+    },
+    note: {
+      portal: 'Faqat buyurtmachi bo‘lim xodimlari uchun: bunday foydalanuvchi faqat o‘z namunalarini ko‘radi, laboratoriya sahifalari unga yopiladi',
+      staff_activity: 'Ko‘rish — barcha xodimlar faoliyati; o‘z faoliyatini har kim ko‘radi',
+      sample_quantity: 'Qabul, sarf va qaytarish hisobi',
+      customer_departments: 'Boshqarish — bo‘limlar va portal foydalanuvchilari',
+      shifts: 'Smena vaqtlarini sozlash',
+      worksheet_templates: 'Shablonlar konstruktori',
+    },
+  },
+  ru: {
+    ability: { view: 'Просмотр', create: 'Создание', update: 'Изменение', delete: 'Удаление', result: 'Ввод результатов', manage: 'Управление' },
+    extra: { view_all: 'Все группы', export: 'Выгрузка', approve: 'Утверждение', send: 'Отправка на проверку', process: 'Выполнение входящих', restore: 'Восстановление' },
+    other: 'Другие действия',
+    section: { lab: 'Лаборатория', admin: 'Администрирование', other: 'Прочее' },
+    module: {
+      catalog: 'Справочники', customer_departments: 'Подразделения-заказчики', documents: 'Документы', equipment: 'Оборудование',
+      executive: 'Панель руководства', interlab: 'Межлабораторная проверка', logs: 'Журнал действий', menu: 'Меню',
+      monitoring_points: 'Точки мониторинга', portal: 'Портал заказчика', reports: 'Отчёты', roles: 'Роли и права',
+      sample_quantity: 'Количество пробы', samples: 'Пробы', shifts: 'Смены', staff_activity: 'Деятельность сотрудников',
+      test_objects: 'Объекты испытания', trash: 'Корзина', users: 'Пользователи', water_orders: 'Водная лаборатория',
+      worksheet_templates: 'Шаблоны рабочих листов', worksheets: 'Рабочие листы',
+    },
+    note: {
+      portal: 'Только для сотрудников подразделений-заказчиков: такой пользователь видит лишь свои пробы, страницы лаборатории ему закрыты',
+      staff_activity: 'Просмотр — деятельность всех сотрудников; свою видит каждый',
+      sample_quantity: 'Учёт приёма, расхода и возврата',
+      customer_departments: 'Управление — подразделения и пользователи портала',
+      shifts: 'Настройка времени смен',
+      worksheet_templates: 'Конструктор шаблонов',
+    },
+  },
+  en: {
+    ability: { view: 'View', create: 'Create', update: 'Edit', delete: 'Delete', result: 'Enter results', manage: 'Manage' },
+    extra: { view_all: 'All groups', export: 'Export', approve: 'Approve', send: 'Send for check', process: 'Process incoming', restore: 'Restore' },
+    other: 'Other actions',
+    section: { lab: 'Laboratory', admin: 'Administration', other: 'Other' },
+    module: {
+      catalog: 'Catalog', customer_departments: 'Customer departments', documents: 'Documents', equipment: 'Equipment',
+      executive: 'Executive dashboard', interlab: 'Inter-lab check', logs: 'Activity log', menu: 'Menu',
+      monitoring_points: 'Monitoring points', portal: 'Customer portal', reports: 'Reports', roles: 'Roles & permissions',
+      sample_quantity: 'Sample quantity', samples: 'Samples', shifts: 'Shifts', staff_activity: 'Staff activity',
+      test_objects: 'Test objects', trash: 'Trash', users: 'Users', water_orders: 'Water lab',
+      worksheet_templates: 'Worksheet templates', worksheets: 'Worksheets',
+    },
+    note: {
+      portal: 'For customer-department staff only: such a user sees only their own samples, lab pages are closed to them',
+      staff_activity: 'View — activity of all staff; everyone sees their own',
+      sample_quantity: 'Receipt, usage and return accounting',
+      customer_departments: 'Manage — departments and portal users',
+      shifts: 'Shift time settings',
+      worksheet_templates: 'Template builder',
+    },
+  },
 }
+const txt = computed(() => TXT[locale.value] ?? TXT.ru)
+
+// Menyuda boshqa kalit bilan nomlangan bo'limlar
+const LABEL_KEYS = { menu: ['menu.menu_admin'], trash: ['trash.title'] }
+
+/** Bazadagi nomni « — » bo'yicha bo'lish: «Uskunalar — Ko'rish» → ['Uskunalar', "Ko'rish"] */
+function labelParts(p) {
+  const s = localized(p, 'label') || ''
+  const i = s.indexOf(' — ')
+  return i < 0 ? [s.trim(), ''] : [s.slice(0, i).trim(), s.slice(i + 3).trim()]
+}
+
+function moduleLabel(module, perms) {
+  for (const key of [`menu.${module}`, ...(LABEL_KEYS[module] ?? [])]) {
+    if (te(key)) return t(key)
+  }
+  return txt.value.module[module] || labelParts(perms[0])[0] || module
+}
+
+function extraLabel(p) {
+  return txt.value.extra[p.ability] || labelParts(p)[1] || p.ability || p.name
+}
+
+/** Katakcha ustiga olib borilganda — ruxsatning to'liq nomi */
+function permTitle(p) {
+  return localized(p, 'label') || p.name
+}
+
+const SECTION_ORDER = ['lab', 'admin']
+
+const sections = computed(() => {
+  const rows = permissionGroups.value.map((g) => {
+    const perms = [...g.permissions].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    return {
+      module: g.module,
+      label: moduleLabel(g.module, perms),
+      note: txt.value.note[g.module] ?? '',
+      group: SECTION_ORDER.includes(perms[0]?.group) ? perms[0].group : 'other',
+      order: perms[0]?.sort_order ?? 0,
+      cells: ABILITIES.map((ability) => ({
+        ability,
+        permission: perms.find((p) => p.ability === ability) ?? null,
+      })),
+      extras: perms.filter((p) => !ABILITIES.includes(p.ability)),
+    }
+  })
+  return [...SECTION_ORDER, 'other']
+    .map((key) => ({
+      key,
+      label: txt.value.section[key],
+      rows: rows.filter((r) => r.group === key).sort((a, b) => a.order - b.order),
+    }))
+    .filter((s) => s.rows.length)
+})
 
 /* Forma */
 const formOpen = ref(false)
@@ -91,7 +204,7 @@ function toggle(id) {
 }
 
 function toggleModule(row) {
-  const ids = row.cells.filter((c) => c.permission).map((c) => c.permission.id)
+  const ids = [...row.cells.filter((c) => c.permission).map((c) => c.permission), ...row.extras].map((p) => p.id)
   const allOn = ids.every((id) => selected.value.has(id))
   const next = new Set(selected.value)
   ids.forEach((id) => (allOn ? next.delete(id) : next.add(id)))
@@ -252,36 +365,71 @@ const canDelete = computed(() => auth.can('roles.delete'))
       </div>
 
       <div class="overflow-x-auto -mx-5 px-5">
-        <table class="w-full text-left min-w-[620px]">
+        <table class="w-full text-left min-w-[860px]">
           <thead>
             <tr class="text-[11.5px] font-semibold text-ink-faint">
               <th class="py-2.5 pr-4">{{ t('role.moduleAccess') }}</th>
-              <th v-for="a in ABILITIES" :key="a" class="py-2.5 px-2 text-center w-[78px]">
-                {{ t(ABILITY_LABELS[a]) }}
+              <th v-for="a in ABILITIES" :key="a" class="py-2.5 px-2 text-center w-[78px]" :data-col="a">
+                {{ txt.ability[a] }}
               </th>
+              <th class="py-2.5 pl-3 min-w-[190px]" data-col="other">{{ txt.other }}</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-line">
-            <tr v-for="row in matrix" :key="row.module" class="hover:bg-surface-sunken/50 transition-colors">
-              <td class="py-2.5 pr-4">
+          <tbody v-for="sec in sections" :key="sec.key" :data-section="sec.key">
+            <tr>
+              <th :colspan="ABILITIES.length + 2" class="pt-4 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-faint text-left">
+                {{ sec.label }}
+              </th>
+            </tr>
+            <tr v-for="row in sec.rows" :key="row.module" class="border-t border-line hover:bg-surface-sunken/50 transition-colors" :data-row="row.module">
+              <td class="py-2.5 pr-4 align-top">
                 <button class="text-[13.5px] text-ink hover:text-assay-600 dark:hover:text-assay-300 transition-colors text-left"
-                        @click="toggleModule(row)">
+                        data-row-label @click="toggleModule(row)">
                   {{ row.label }}
                 </button>
+                <span v-if="row.note" class="block max-w-[260px] text-[11.5px] leading-snug mt-0.5"
+                      :class="row.module === 'portal' ? 'text-warn' : 'text-ink-faint'" data-note>{{ row.note }}</span>
               </td>
-              <td v-for="cell in row.cells" :key="cell.ability" class="py-2.5 px-2 text-center">
+              <td v-for="cell in row.cells" :key="cell.ability" class="py-2.5 px-2 text-center align-top">
                 <button
                   v-if="cell.permission"
                   type="button"
-                  class="h-5 w-5 rounded border grid place-items-center transition-all active:scale-90"
+                  class="h-5 w-5 rounded border inline-grid place-items-center align-middle transition-all active:scale-90"
                   :class="selected.has(cell.permission.id)
                     ? 'bg-assay-500 border-assay-500 text-white'
                     : 'border-line hover:border-assay-400'"
-                  :aria-label="cell.permission.name"
+                  :title="permTitle(cell.permission)"
+                  :aria-label="permTitle(cell.permission)"
+                  :aria-pressed="selected.has(cell.permission.id)"
+                  :data-perm="cell.permission.name"
                   @click="toggle(cell.permission.id)"
                 >
                   <Check v-if="selected.has(cell.permission.id)" :size="12" :stroke-width="3" />
                 </button>
+                <span v-else class="text-ink-faint/40 text-[13px]">·</span>
+              </td>
+              <td class="py-2.5 pl-3 align-top">
+                <div v-if="row.extras.length" class="flex flex-col gap-1.5">
+                  <button
+                    v-for="p in row.extras" :key="p.id"
+                    type="button"
+                    class="group/x inline-flex items-center gap-2 text-left"
+                    :title="permTitle(p)"
+                    :aria-pressed="selected.has(p.id)"
+                    :data-perm="p.name"
+                    @click="toggle(p.id)"
+                  >
+                    <span
+                      class="h-5 w-5 shrink-0 rounded border grid place-items-center transition-all group-active/x:scale-90"
+                      :class="selected.has(p.id)
+                        ? 'bg-assay-500 border-assay-500 text-white'
+                        : 'border-line group-hover/x:border-assay-400'"
+                    >
+                      <Check v-if="selected.has(p.id)" :size="12" :stroke-width="3" />
+                    </span>
+                    <span class="text-[12.5px] text-ink-muted">{{ extraLabel(p) }}</span>
+                  </button>
+                </div>
                 <span v-else class="text-ink-faint/40 text-[13px]">·</span>
               </td>
             </tr>

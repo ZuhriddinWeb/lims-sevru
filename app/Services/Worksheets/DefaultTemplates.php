@@ -54,6 +54,7 @@ final class DefaultTemplates
             'tolerance_source' => null,
             'tolerance_mode'   => 'mean',
             'width'            => null,
+            'consumes_sample'  => false, // proba sarfi (naveska) ustuni
         ], $opts);
     }
 
@@ -93,7 +94,7 @@ final class DefaultTemplates
             ],
             'columns' => [
                 self::col('mass', 'input', 'shixtovka', ['Namuna miqdori n=1,0 g', 'Навеска n=1,0 г', 'Намуна миқдори n=1,0 г.'],
-                    ['unit' => 'g', 'default_value' => '1.0', 'required' => true]),
+                    ['unit' => 'g', 'default_value' => '1.0', 'required' => true, 'consumes_sample' => true]),
                 self::col('pb3o4', 'input', 'shixtovka', ['Pb₃O₄ m=40 g; Ag C=10 g/l 7,0 ml', 'Pb₃O₄ m=40 г; Ag C=10 г/л 7,0 мл', 'Pb₃O₄ m=40 г; Ag C=10 г/л 7,0 мл']),
                 self::col('verkbley', 'input', 'eritish', ["Verkbley og'irligi", 'Вес веркблея', 'Веркблей оғирлиги'], ['unit' => 'g']),
                 self::col('korolek', 'input', 'kupelyatsiya', ['Korolyok m Au+Ag, mg', 'Королёк m Au+Ag, мг', 'Королек m Au+Ag, мг'], ['unit' => 'mg']),
@@ -127,7 +128,7 @@ final class DefaultTemplates
             'params' => [],
             'columns' => [
                 self::col('mass', 'input', 'eritish', ["Namuna og'irligi, g", 'Навеска, г', 'Намуна оғирлиги, г'],
-                    ['unit' => 'g', 'default_value' => '1.0', 'required' => true]),
+                    ['unit' => 'g', 'default_value' => '1.0', 'required' => true, 'consumes_sample' => true]),
                 self::col('ag', 'input', 'eritish', ['Ag, mg', 'Ag, мг', 'Ag, мг'], ['unit' => 'mg']),
                 self::col('korolek', 'input', 'kupelyatsiya', ['Korolyokning vazni, mg', 'Масса королька, мг', 'Королёкнинг вазни, мг'], ['unit' => 'mg']),
                 self::col('kortochka', 'input', 'kupelyatsiya', ['Kortochkaning vazni, mg', 'Масса корточки, мг', 'Корточканинг вазни, мг'], ['unit' => 'mg', 'required' => true]),
@@ -156,7 +157,7 @@ final class DefaultTemplates
             'params' => [],
             'columns' => [
                 self::col('mass', 'input', 'shixtovka', ['Olingan namuna, g', 'Навеска, г', 'Олинган намуна, г'],
-                    ['unit' => 'g', 'default_value' => '50', 'required' => true]),
+                    ['unit' => 'g', 'default_value' => '50', 'required' => true, 'consumes_sample' => true]),
                 self::col('ag', 'input', 'shixtovka', ['Ag miqdori, mg', 'Ag, мг', 'Ag миқдори, мг'], ['unit' => 'mg', 'default_value' => '5']),
                 self::col('verkbley', 'input', 'eritish', ["Verkbley og'irligi", 'Вес веркблея', 'Веркблей оғирлиги'], ['unit' => 'g']),
                 self::col('korolek', 'input', 'kupelyatsiya', ['Korolyok, mg', 'Королёк, мг', 'Королёк, мг'], ['unit' => 'mg']),
@@ -174,7 +175,7 @@ final class DefaultTemplates
     {
         return [
             self::col('mass', 'input', 'namuna', ['K/ch olingan miqdori n=0,1000 g', 'Навеска к/о n=0,1000 г', 'К/ч олинган миқдори n=0,1000 г'],
-                ['unit' => 'g', 'default_value' => '0.1000', 'required' => true]),
+                ['unit' => 'g', 'default_value' => '0.1000', 'required' => true, 'consumes_sample' => true]),
             self::col('ag_added', 'input', 'eritish', [$pbLabel, $pbLabelRu, $pbLabelRu], ['unit' => 'mg']),
             self::col('korolek', 'input', 'kupelyatsiya', ['Korolyok m Au+Ag, mg', 'Королёк m Au+Ag, мг', 'Королек m Au+Ag, мг'], ['unit' => 'mg', 'required' => true]),
             self::col('kortochka', 'input', 'olchash', ['Kortochka Au, mg', 'Корточка Au, мг', 'Корточка Au, мг'], ['unit' => 'mg', 'required' => true]),

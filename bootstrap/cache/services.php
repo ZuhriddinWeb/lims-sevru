@@ -33,6 +33,7 @@
     29 => 'App\\Providers\\AppServiceProvider',
     30 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     31 => 'App\\Providers\\InterlabServiceProvider',
+    32 => 'App\\Providers\\SampleIntakeServiceProvider',
   ),
   'eager' => 
   array (
@@ -53,6 +54,7 @@
     14 => 'App\\Providers\\AppServiceProvider',
     15 => 'Laravel\\Sanctum\\SanctumServiceProvider',
     16 => 'App\\Providers\\InterlabServiceProvider',
+    17 => 'App\\Providers\\SampleIntakeServiceProvider',
   ),
   'deferred' => 
   array (

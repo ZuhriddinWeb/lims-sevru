@@ -16,6 +16,8 @@ import { localized } from '@/i18n'
 import WsStatusBadge from '../components/WsStatusBadge.vue'
 import ScanPanel from '../components/ScanPanel.vue'
 import CandidatePicker from '../components/CandidatePicker.vue'
+import WsKindBadge from '../components/WsKindBadge.vue'
+import LowBalanceAlert from '../components/LowBalanceAlert.vue'
 import { calculate } from '../engine'
 import { invalidateSampleWorksheets } from '../sampleWorksheets'
 import {
@@ -66,6 +68,7 @@ function hydrate(data) {
       performer_id: s.performer_id ?? '',
       performer_name: s.performer_name ?? '',
       performed_at: s.performed_at ?? '',
+      performed_time: s.performed_time ?? '', // [P16] bosqich soati
       other: !s.performer_id && !!s.performer_name,
     }
   }
@@ -73,7 +76,7 @@ function hydrate(data) {
   for (const st of data.template_snapshot?.stages ?? []) {
     for (let slot = 1; slot <= Math.max(0, st.signers ?? 1); slot++) {
       const k = `${st.key}#${slot}`
-      if (!map[k]) map[k] = { performer_id: '', performer_name: '', performed_at: '', other: false }
+      if (!map[k]) map[k] = { performer_id: '', performer_name: '', performed_at: '', performed_time: '', other: false }
     }
   }
   form.signoffs = map
@@ -231,7 +234,7 @@ function onCellKey(e, r, c) {
 }
 
 /* -------------------------------------------------------- imzolar */
-const EMPTY_SIGNOFF = Object.freeze({ performer_id: '', performer_name: '', performed_at: '', other: false })
+const EMPTY_SIGNOFF = Object.freeze({ performer_id: '', performer_name: '', performed_at: '', performed_time: '', other: false })
 function signoff(stage, slot) {
   return form.signoffs[`${stage}#${slot}`] ?? EMPTY_SIGNOFF
 }
@@ -245,8 +248,15 @@ function onPerformerChange(s, value) {
     s.performer_id = value
     s.performer_name = ''
     if (value && !s.performed_at) s.performed_at = form.worksheet_date
+    // [P16] bugungi imzo — soati ham hozirgi vaqt bilan (smenalar hisobi uchun; o'zgartirish mumkin)
+    if (value && !s.performed_time && s.performed_at === localToday()) s.performed_time = nowHm()
   }
 }
+
+/* [P16] imzo soati yordamchilari */
+const pad2 = (n) => String(n).padStart(2, '0')
+function localToday() { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` }
+function nowHm() { const d = new Date(); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}` }
 
 /* -------------------------------------------------------- saqlash */
 function payload() {
@@ -266,6 +276,7 @@ function payload() {
           performer_id: s.other ? null : (s.performer_id || null),
           performer_name: s.other ? (s.performer_name || null) : null,
           performed_at: s.performed_at || null,
+          performed_time: s.performed_time || null, // [P16]
         }
       })
       .filter((s) => s.performer_id || s.performer_name || s.performed_at),
@@ -329,16 +340,42 @@ function goPrint() {
 /* ------------------------------------------- partiyaga proba qo'shish */
 const addOpen = ref(false)
 const addSelected = ref([])
-async function addSamples() {
+const addLow = ref([]) // qoldiq yetmaydigan probalar — ogohlantirish ko'rsatilgan
+watch(addSelected, () => { addLow.value = [] })
+watch(addOpen, (v) => { if (!v) addLow.value = [] })
+async function addSamples(confirmed = false) {
   if (!addSelected.value.length) return
-  const ok = await withSaved(() => api.post(`/worksheets/${ws.value.id}/samples`, {
-    samples: addSelected.value.map((s) => ({ id: s.id, parallels: s.parallels })),
-  }))
-  if (ok) {
+  if (!confirmed) {
+    // Sahifadagi hisob: standart naveska × parallel > qoldiq
+    const short = addSelected.value
+      .filter((s) => s.quantity?.per_parallel != null && s.quantity?.available != null
+        && s.quantity.per_parallel * s.parallels > s.quantity.available + 1e-9)
+      .map((s) => ({ sample_id: s.id, code: s.code, unit: s.quantity.unit, available: s.quantity.available,
+        need: Math.round(s.quantity.per_parallel * s.parallels * 10000) / 10000 }))
+    if (short.length) {
+      addLow.value = short
+      return
+    }
+  }
+  if (dirty.value && !(await save({ silent: true }))) return
+  saving.value = true
+  try {
+    const { data } = await api.post(`/worksheets/${ws.value.id}/samples`, {
+      samples: addSelected.value.map((s) => ({ id: s.id, parallels: s.parallels })),
+      confirm_low_balance: confirmed || undefined,
+    })
+    hydrate(data)
+    members.value.forEach((m) => invalidateSampleWorksheets(m.sample_id))
     addSelected.value.forEach((s) => invalidateSampleWorksheets(s.id))
     addOpen.value = false
     addSelected.value = []
     ui.success(t('ws.saved'))
+  } catch (e) {
+    const low = e?.response?.data?.low_balance
+    if (low?.length && !confirmed) addLow.value = low
+    else ui.error(apiErrorMessage(e, t('ws.saveError')))
+  } finally {
+    saving.value = false
   }
 }
 
@@ -374,6 +411,8 @@ const approveOpen = ref(false)
 const pushResults = ref(true)
 const acceptWarnings = ref(false)
 const approveBusy = ref(false)
+// Nazorat varag'i: natija probaga o'tmaydi — faqat asosiy natija bilan solishtiriladi
+const isControl = computed(() => ws.value?.kind === 'control')
 
 function openApprove() {
   pushResults.value = true
@@ -385,7 +424,7 @@ async function approve() {
   approveBusy.value = true
   try {
     const { data } = await api.post(`/worksheets/${ws.value.id}/approve`, {
-      push_results: pushResults.value,
+      push_results: isControl.value ? false : pushResults.value,
       accept_warnings: acceptWarnings.value,
     })
     hydrate(data)
@@ -514,6 +553,7 @@ const firstTolerance = (sampleId) => Object.values(groupCalc(sampleId).tolerance
               {{ t('ws.number') }} <span class="font-mono">{{ ws.number }}</span>
             </h1>
             <WsStatusBadge :status="ws.status" />
+            <WsKindBadge :kind="ws.kind" />
             <span v-if="dirty" class="inline-flex items-center gap-1 text-[12px] text-warn-dark dark:text-warn-light">
               <span class="h-1.5 w-1.5 rounded-full bg-warn" /> {{ t('ws.unsaved') }}
             </span>
@@ -943,28 +983,32 @@ const firstTolerance = (sampleId) => Object.values(groupCalc(sampleId).tolerance
             <p class="text-[12.5px] text-ink-muted mb-3">{{ t('ws.stagesHint') }}</p>
             <div class="space-y-2.5">
               <template v-for="s in stages" :key="s.key">
-                <div v-for="slot in Math.max(0, s.signers ?? 1)" :key="`${s.key}#${slot}`" class="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1fr)] gap-2 items-center">
-                  <p class="text-[13px] text-ink leading-tight">
+                <div v-for="slot in Math.max(0, s.signers ?? 1)" :key="`${s.key}#${slot}`" :data-signoff="`${s.key}#${slot}`">
+                  <p class="text-[12.5px] text-ink-muted leading-tight mb-1">
                     {{ colLabel(s, locale) }}<span v-if="(s.signers ?? 1) > 1" class="text-ink-faint"> ({{ slot }})</span>
                   </p>
-                  <div>
-                    <input
-                      v-if="signoff(s.key, slot).other"
-                      v-model="signoff(s.key, slot).performer_name" class="field-input h-9"
-                      :placeholder="t('ws.performerName')" :disabled="!canEdit"
-                      @keydown.esc="signoff(s.key, slot).other = false"
-                    >
-                    <select
-                      v-else class="field-input h-9" :disabled="!canEdit"
-                      :value="signoff(s.key, slot).performer_id"
-                      @change="onPerformerChange(signoff(s.key, slot), $event.target.value)"
-                    >
-                      <option value="">—</option>
-                      <option v-for="u in performerOptions" :key="u.id" :value="u.id">{{ u.name }}</option>
-                      <option value="__other">{{ t('ws.performerOther') }}</option>
-                    </select>
+                  <!-- [P16] bajaruvchi · sana · soat -->
+                  <div class="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1.15fr)_7rem] gap-1.5 items-center">
+                    <div class="min-w-0">
+                      <input
+                        v-if="signoff(s.key, slot).other"
+                        v-model="signoff(s.key, slot).performer_name" class="field-input h-9"
+                        :placeholder="t('ws.performerName')" :disabled="!canEdit"
+                        @keydown.esc="signoff(s.key, slot).other = false"
+                      >
+                      <select
+                        v-else class="field-input h-9" :disabled="!canEdit"
+                        :value="signoff(s.key, slot).performer_id"
+                        @change="onPerformerChange(signoff(s.key, slot), $event.target.value)"
+                      >
+                        <option value="">—</option>
+                        <option v-for="u in performerOptions" :key="u.id" :value="u.id">{{ u.name }}</option>
+                        <option value="__other">{{ t('ws.performerOther') }}</option>
+                      </select>
+                    </div>
+                    <input v-model="signoff(s.key, slot).performed_at" type="date" class="field-input h-9 px-2" :title="t('ws.performedAt')" :disabled="!canEdit">
+                    <input v-model="signoff(s.key, slot).performed_time" type="time" class="field-input h-9 px-2 tnum" :title="t('ws.performedTime')" :disabled="!canEdit" data-signoff-time>
                   </div>
-                  <input v-model="signoff(s.key, slot).performed_at" type="date" class="field-input h-9" :disabled="!canEdit">
                 </div>
               </template>
             </div>
@@ -1004,14 +1048,18 @@ const firstTolerance = (sampleId) => Object.values(groupCalc(sampleId).tolerance
               <span class="text-ink">{{ colLabel(c, locale) }}</span>
               <span class="flex items-center gap-2">
                 <span class="font-semibold tnum text-ink">{{ fmt(groupCalc(g.member.sample_id).summary[c.key], c.decimals, locale) || '—' }} {{ c.unit }}</span>
-                <span v-if="c.element_id && !sampleElementIds(g.member.sample_id).has(Number(c.element_id))" class="text-[11.5px] text-ink-faint">({{ t('ws.pushNo') }})</span>
+                <span v-if="c.element_id && isControl" class="text-[11.5px] text-aqua-700 dark:text-aqua-200">({{ t('ws.compareOnly') }})</span>
+                <span v-else-if="c.element_id && !sampleElementIds(g.member.sample_id).has(Number(c.element_id))" class="text-[11.5px] text-ink-faint">({{ t('ws.pushNo') }})</span>
                 <span v-else-if="c.element_id" class="text-[11.5px] text-assay-600 dark:text-assay-300">→ {{ c.element_symbol }}</span>
               </span>
             </div>
           </template>
         </div>
       </div>
-      <label class="mt-4 flex items-center gap-2.5 text-[13.5px] text-ink cursor-pointer">
+      <p v-if="isControl" class="mt-4 flex items-start gap-2 rounded-md bg-aqua-50 dark:bg-aqua-800/25 px-3 py-2 text-[13px] text-aqua-700 dark:text-aqua-200" data-control-note>
+        <ShieldCheck :size="15" class="mt-0.5 shrink-0" /> {{ t('ws.controlApproveNote') }}
+      </p>
+      <label v-else class="mt-4 flex items-center gap-2.5 text-[13.5px] text-ink cursor-pointer">
         <input v-model="pushResults" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500">
         {{ t('ws.pushResults') }}
       </label>
@@ -1074,12 +1122,17 @@ const firstTolerance = (sampleId) => Object.values(groupCalc(sampleId).tolerance
         v-model="addSelected"
         :template-id="ws.template_id"
         :except-worksheet="ws.id"
+        :kind="ws.kind || 'main'"
         :existing-rows="form.rows.length"
         :existing-samples="members.length"
       />
+      <LowBalanceAlert :items="addLow" class="mt-3" />
       <template #footer>
         <button class="btn-ghost" @click="addOpen = false">{{ t('common.cancel') }}</button>
-        <button class="btn-primary" :disabled="saving || !addSelected.length" @click="addSamples">
+        <button v-if="addLow.length" class="btn-primary" :disabled="saving || !addSelected.length" data-confirm-low @click="addSamples(true)">
+          <UserPlus :size="16" /> {{ t('ws.lowBalanceConfirmAdd') }}
+        </button>
+        <button v-else class="btn-primary" :disabled="saving || !addSelected.length" @click="addSamples()">
           <UserPlus :size="16" /> {{ t('ws.addSample') }}
         </button>
       </template>

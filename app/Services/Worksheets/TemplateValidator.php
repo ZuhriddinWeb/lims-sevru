@@ -140,6 +140,19 @@ final class TemplateValidator
             $err('columns', "Kamida bitta qator ustuni bo'lishi kerak");
         }
 
+        // ---- Proba sarfi (naveska) ustuni: ko'pi bilan bitta, faqat qatordagi kiritish ustuni ----
+        $consumes = 0;
+        foreach ($columns as $i => $c) {
+            if (empty($c['consumes_sample'])) {
+                continue;
+            }
+            if (($c['scope'] ?? 'row') !== 'row' || ($c['type'] ?? 'input') !== 'input') {
+                $err("columns.$i.consumes_sample", "«Proba sarfi» faqat qatordagi kiritish (son) ustuniga belgilanadi");
+            } elseif (++$consumes > 1) {
+                $err("columns.$i.consumes_sample", "«Proba sarfi» faqat bitta ustunda belgilanadi");
+            }
+        }
+
         // ---- Bog'liqlik qoidalari ----
         $paramKeys = array_flip(array_map(fn ($p) => (string) ($p['key'] ?? ''), $params));
         $summaryKeys = [];

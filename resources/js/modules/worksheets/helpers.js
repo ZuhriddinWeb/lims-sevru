@@ -142,3 +142,10 @@ export function rowHasMeasurement(inputs, defaults) {
     return String(v).replace(',', '.') !== String(d).replace(',', '.')
   })
 }
+
+/** Proba miqdori: 4 xonagacha, ortiqcha nollarsiz (0,3015 · 2,7); bo'sh bo'lsa — «—» */
+export function formatQty(value, locale) {
+  if (value === null || value === undefined || value === '' || Number.isNaN(Number(value))) return '—'
+  const s = String(Math.round(Number(value) * 10000) / 10000)
+  return useComma(locale) ? s.replace('.', ',') : s
+}

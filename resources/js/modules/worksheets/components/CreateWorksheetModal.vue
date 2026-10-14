@@ -1,18 +1,21 @@
 <script setup>
 /**
- * Yangi ishchi varaq (partiya): 1) shablon → 2) mos probalar va parallellar soni.
+ * Yangi ishchi varaq (partiya): 1) shablon (+ «Nazorat uchun» belgisi) → 2) mos probalar va parallellar soni.
  * Proba sahifasidan ochilsa (sample prop) — o'sha proba oldindan belgilanadi.
+ * Proba qoldig'i rejalangan sarfga yetmasa — ogohlantirish, tasdiqlansa baribir yaratiladi.
  */
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Printer } from 'lucide-vue-next'
+import { ArrowLeft, ArrowRight, Check, FileSpreadsheet, Printer, ShieldCheck } from 'lucide-vue-next'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import api from '@/lib/api'
 import { useUiStore } from '@/stores/ui'
 import { apiErrorMessage, templateName, todayISO } from '../helpers'
 import { invalidateSampleWorksheets } from '../sampleWorksheets'
 import CandidatePicker from './CandidatePicker.vue'
+import LowBalanceAlert from './LowBalanceAlert.vue'
+import WsKindBadge from './WsKindBadge.vue'
 import '../i18n'
 
 const props = defineProps({
@@ -33,6 +36,9 @@ const selected = ref([])
 const tplMeta = ref(null)
 const date = ref(todayISO())
 const busy = ref(false)
+const control = ref(false)          // «Nazorat uchun» varaq
+const lowItems = ref([])            // qoldiq yetmaydigan probalar (ogohlantirish ko'rsatilgan)
+const lastPrint = ref(false)
 
 watch(() => props.modelValue, async (open) => {
   if (!open) return
@@ -41,6 +47,8 @@ watch(() => props.modelValue, async (open) => {
   selected.value = []
   tplMeta.value = null
   date.value = todayISO()
+  control.value = false
+  lowItems.value = []
   try {
     const { data } = await api.get('/worksheet-templates', { params: { active: 1 } })
     templates.value = data
@@ -63,6 +71,19 @@ watch(sortedTemplates, (list) => {
 })
 
 const currentTpl = computed(() => templates.value.find((x) => x.id === templateId.value) ?? null)
+const kind = computed(() => (control.value ? 'control' : 'main'))
+
+// Tanlangan parallellar uchun kerakli miqdor qoldiqdan oshadigan probalar (sahifadagi hisob)
+const clientShort = computed(() => selected.value
+  .filter((s) => s.quantity && s.quantity.per_parallel !== null && s.quantity.per_parallel !== undefined
+    && s.quantity.available !== null && s.quantity.available !== undefined
+    && s.quantity.per_parallel * s.parallels > s.quantity.available + 1e-9)
+  .map((s) => ({
+    sample_id: s.id, code: s.code, unit: s.quantity.unit, available: s.quantity.available,
+    need: Math.round(s.quantity.per_parallel * s.parallels * 10000) / 10000,
+  })))
+watch(selected, () => { lowItems.value = [] })
+watch(control, () => { lowItems.value = [] })
 const overLimit = computed(() => tplMeta.value?.max_samples && selected.value.length > tplMeta.value.max_samples)
 const canCreate = computed(() => templateId.value && selected.value.length > 0 && !overLimit.value && !busy.value)
 
@@ -70,13 +91,21 @@ function close() {
   emit('update:modelValue', false)
 }
 
-async function create(andPrint) {
+async function create(andPrint, confirmed = false) {
   if (!canCreate.value) return
+  lastPrint.value = andPrint
+  // Avval ogohlantirish — foydalanuvchi «Baribir yaratish» ni bossagina davom etadi
+  if (!confirmed && clientShort.value.length) {
+    lowItems.value = clientShort.value
+    return
+  }
   busy.value = true
   try {
     const { data } = await api.post('/worksheets', {
       template_id: templateId.value,
       worksheet_date: date.value,
+      kind: kind.value,
+      confirm_low_balance: confirmed || undefined,
       samples: selected.value.map((s) => ({ id: s.id, parallels: s.parallels })),
     })
     selected.value.forEach((s) => invalidateSampleWorksheets(s.id))
@@ -85,7 +114,9 @@ async function create(andPrint) {
     close()
     router.push({ name: andPrint ? 'worksheet-print' : 'worksheet-detail', params: { id: data.id } })
   } catch (e) {
-    ui.error(apiErrorMessage(e, t('ws.saveError')))
+    const low = e?.response?.data?.low_balance
+    if (low?.length && !confirmed) lowItems.value = low
+    else ui.error(apiErrorMessage(e, t('ws.saveError')))
   } finally {
     busy.value = false
   }
@@ -112,6 +143,7 @@ async function create(andPrint) {
         <span v-if="i === 0" class="w-8 h-px bg-line mx-1" />
       </li>
       <li v-if="step === 2 && currentTpl" class="ml-auto text-ink-muted truncate">
+        <WsKindBadge :kind="kind" size="sm" class="mr-1" />
         <span class="font-mono text-ink">{{ currentTpl.code }}</span> · {{ templateName(currentTpl, locale) }}
       </li>
     </ol>
@@ -150,6 +182,21 @@ async function create(andPrint) {
           </span>
         </button>
       </div>
+
+      <!-- Varaq turi: asosiy yoki nazorat uchun -->
+      <label
+        class="mt-4 flex items-start gap-2.5 rounded-md border px-3 py-2.5 cursor-pointer transition-colors"
+        :class="control ? 'border-aqua-500 bg-aqua-50/60 dark:bg-aqua-800/20' : 'border-line hover:border-ink-faint'"
+        data-control-toggle
+      >
+        <input v-model="control" type="checkbox" class="mt-0.5 rounded border-line text-aqua-600 focus:ring-aqua-500">
+        <span>
+          <span class="flex items-center gap-1.5 text-[13.5px] font-medium text-ink">
+            <ShieldCheck :size="15" class="text-aqua-600" /> {{ t('ws.kindControlCheckbox') }}
+          </span>
+          <span class="block text-[12.5px] text-ink-muted mt-0.5">{{ t('ws.kindControlCheckboxHint') }}</span>
+        </span>
+      </label>
     </div>
 
     <!-- 2-qadam: probalar -->
@@ -157,6 +204,7 @@ async function create(andPrint) {
       <CandidatePicker
         v-model="selected"
         :template-id="templateId"
+        :kind="kind"
         :preselect="sample ? [sample.id] : []"
         @meta="tplMeta = $event"
       />
@@ -166,6 +214,7 @@ async function create(andPrint) {
           <input v-model="date" type="date" class="field-input">
         </div>
       </div>
+      <LowBalanceAlert :items="lowItems" class="mt-3" />
     </div>
 
     <template #footer>
@@ -173,6 +222,12 @@ async function create(andPrint) {
       <template v-if="step === 1">
         <button class="btn-primary" :disabled="!templateId" @click="step = 2">
           {{ t('ws.next') }} <ArrowRight :size="16" />
+        </button>
+      </template>
+      <template v-else-if="lowItems.length">
+        <button class="btn-ghost" @click="lowItems = []"><ArrowLeft :size="16" /> {{ t('ws.lowBalanceBack') }}</button>
+        <button class="btn-primary" :disabled="!canCreate" data-confirm-low @click="create(lastPrint, true)">
+          <FileSpreadsheet :size="16" /> {{ t('ws.lowBalanceConfirm') }}
         </button>
       </template>
       <template v-else>

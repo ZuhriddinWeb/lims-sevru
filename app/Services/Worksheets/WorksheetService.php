@@ -15,6 +15,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -27,12 +28,39 @@ use Illuminate\Validation\ValidationException;
  *   - o'lchov kiritilgan qator o'chirilmaydi, faqat «hisobga olinmaydi» deb belgilanadi (sababi bilan);
  *   - chop etilgandan keyin qo'shilgan parallel «qo'shimcha» deb belgilanadi (kim qo'shgani bilan);
  *   - imzolar varaqqa bir marta qo'yiladi va partiyadagi barcha probalarga tegishli.
+ *
+ * Varaq turi (kind):
+ *   main    — asosiy tahlil: natijasi tasdiqlanganda probaga o'tadi;
+ *   control — nazorat uchun: natija probaga O'TMAYDI, faqat asosiy natija bilan solishtiriladi.
+ *             Nazorat uchun natijasi chiqqan (yakunlangan) probalarni ham tanlash mumkin.
+ *             Asosiy va nazorat varaqlari bir-birini «band» qilmaydi.
  */
 class WorksheetService
 {
     public const MAX_PARALLELS = 6;
     public const MAX_ROWS = 60;
     public const MAX_SAMPLES = 30;
+
+    /** worksheets.kind ustuni bormi (yangi migratsiya ishga tushirilmagan bo'lsa ham eski rejim ishlasin) */
+    public static function hasKind(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasColumn('worksheets', 'kind');
+    }
+
+    /** [P16] worksheet_signoffs.performed_time ustuni bormi (migratsiya bajarilganmi) */
+    public static function hasSignoffTime(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasColumn('worksheet_signoffs', 'performed_time');
+    }
+
+    public static function normalizeKind(?string $kind): string
+    {
+        return $kind === 'control' ? 'control' : 'main';
+    }
 
     // ------------------------------------------------------------ ruxsat doirasi
 
@@ -118,9 +146,9 @@ class WorksheetService
      * Probaning shu elementlari boshqa (tasdiqlanmagan) varaqda band bo'lsa — subquery.
      * whereNotIn('id', fn) ko'rinishida ishlatiladi (SQL Server parametr chegarasiga tushmaslik uchun).
      */
-    private function busySubquery(array $templateIds, ?int $exceptWorksheetId = null): \Closure
+    private function busySubquery(array $templateIds, ?int $exceptWorksheetId = null, string $kind = 'main'): \Closure
     {
-        return function ($sub) use ($templateIds, $exceptWorksheetId) {
+        return function ($sub) use ($templateIds, $exceptWorksheetId, $kind) {
             $sub->select('worksheet_samples.sample_id')
                 ->from('worksheet_samples')
                 ->join('worksheets', 'worksheets.id', '=', 'worksheet_samples.worksheet_id')
@@ -128,6 +156,9 @@ class WorksheetService
                 ->where('worksheets.status', '!=', 'approved')
                 ->where('worksheet_samples.status', 'active')
                 ->whereIn('worksheets.template_id', $templateIds);
+            if (self::hasKind()) {
+                $sub->where('worksheets.kind', $kind); // asosiy va nazorat varaqlari bir-birini band qilmaydi
+            }
             if ($exceptWorksheetId) {
                 $sub->where('worksheets.id', '!=', $exceptWorksheetId);
             }
@@ -136,17 +167,20 @@ class WorksheetService
 
     /**
      * Shablonga mos, hali natijasi chiqmagan va boshqa varaqda band bo'lmagan probalar.
+     * Nazorat varag'i uchun (kind=control): natijasi chiqqan probalar ham (arxivlanganlardan tashqari).
      *
-     * @param  array{search?:string,date_from?:string,date_to?:string,group_id?:int,except_worksheet?:int}  $filters
+     * @param  array{search?:string,date_from?:string,date_to?:string,group_id?:int,except_worksheet?:int,kind?:string}  $filters
      */
     public function candidates(WorksheetTemplate $template, User $user, array $filters = []): Collection
     {
         $elements = $template->resultElementIds();
         $related = $this->relatedTemplateIds($template);
+        $control = self::normalizeKind($filters['kind'] ?? null) === 'control';
 
         $query = Sample::query()
-            ->whereNotIn('status', ['completed', 'archived'])
-            ->whereNotIn('id', $this->busySubquery($related, $filters['except_worksheet'] ?? null))
+            ->when(! $control, fn ($q) => $q->whereNotIn('status', ['completed', 'archived']))
+            ->when($control, fn ($q) => $q->where('status', '!=', 'archived'))
+            ->whereNotIn('id', $this->busySubquery($related, $filters['except_worksheet'] ?? null, $control ? 'control' : 'main'))
             ->with([
                 'sampleElements:id,sample_id,element_id,result_value,status',
                 'sampleElements.element:id,symbol',
@@ -155,9 +189,11 @@ class WorksheetService
 
         if ($elements) {
             // whereHas o'rniga oddiy subquery — relation'da orderBy bo'lsa ham SQL Server'da xavfsiz
-            $query->whereIn('id', function ($sub) use ($elements) {
-                $sub->select('sample_id')->from('sample_elements')
-                    ->whereIn('element_id', $elements)->whereNull('result_value');
+            $query->whereIn('id', function ($sub) use ($elements, $control) {
+                $sub->select('sample_id')->from('sample_elements')->whereIn('element_id', $elements);
+                if (! $control) {
+                    $sub->whereNull('result_value');
+                }
             });
         }
 
@@ -183,7 +219,14 @@ class WorksheetService
             $query->where('assigned_group_id', (int) $filters['group_id']);
         }
 
-        $samples = $query->orderBy('registered_at')->orderBy('id')->limit(300)->get();
+        $samples = $control
+            ? $query->orderByDesc('registered_at')->orderByDesc('id')->limit(300)->get() // nazorat — avval yangilari
+            : $query->orderBy('registered_at')->orderBy('id')->limit(300)->get();
+
+        // Proba qoldig'i (miqdor hisobi moduli o'rnatilgan bo'lsa)
+        $qty = $samples->isNotEmpty() && class_exists(\App\Services\Samples\SampleLedger::class)
+            ? app(\App\Services\Samples\SampleLedger::class)->candidateInfo($samples, $template->toDefinition(), (int) $template->id)
+            : [];
 
         // Avval «takroriy tahlil»ga qaytarilgan probalar — belgi va sababi bilan
         $retests = $samples->isEmpty() ? collect() : DB::table('worksheet_samples')
@@ -195,11 +238,11 @@ class WorksheetService
             ->get(['worksheet_samples.sample_id', 'worksheet_samples.retest_reason', 'worksheets.number'])
             ->keyBy('sample_id');
 
-        return $samples->map(function (Sample $s) use ($elements, $retests) {
+        return $samples->map(function (Sample $s) use ($elements, $retests, $control, $qty) {
             $pending = $s->sampleElements
-                ->filter(fn ($se) => $se->result_value === null && (! $elements || in_array((int) $se->element_id, $elements, true)))
+                ->filter(fn ($se) => ($control || $se->result_value === null) && (! $elements || in_array((int) $se->element_id, $elements, true)))
                 ->map(fn ($se) => $se->element?->symbol)->filter()->values();
-            $rt = $retests->get($s->id);
+            $rt = $control ? null : $retests->get($s->id);
 
             return [
                 'id'              => $s->id,
@@ -214,6 +257,10 @@ class WorksheetService
                 ] : null,
                 'elements'        => $pending,
                 'retest'          => $rt ? ['reason' => $rt->retest_reason, 'worksheet' => $rt->number] : null,
+                'quantity'        => $qty[(int) $s->id] ?? null,
+                'results'         => $control ? $s->sampleElements
+                    ->filter(fn ($se) => $se->result_value !== null && (! $elements || in_array((int) $se->element_id, $elements, true)))
+                    ->map(fn ($se) => ['symbol' => $se->element?->symbol, 'value' => (float) $se->result_value])->values() : null,
             ];
         })->values();
     }
@@ -224,8 +271,9 @@ class WorksheetService
      * @param  array<int, array{id:int, parallels?:int}>  $items
      * @return array<int, array{sample: Sample, parallels: int}>
      */
-    public function resolveItems(WorksheetTemplate $template, array $items, User $user, ?Worksheet $into = null): array
+    public function resolveItems(WorksheetTemplate $template, array $items, User $user, ?Worksheet $into = null, ?string $kind = null): array
     {
+        $kind = self::normalizeKind($into ? $into->kind : $kind);
         $default = max(1, min(self::MAX_PARALLELS, (int) $template->default_rows ?: 2));
         $elements = $template->resultElementIds();
         $related = $this->relatedTemplateIds($template);
@@ -246,6 +294,7 @@ class WorksheetService
             ->where('worksheet_samples.status', 'active')
             ->whereIn('worksheets.template_id', $related)
             ->whereIn('worksheet_samples.sample_id', $ids ?: [0])
+            ->when(self::hasKind(), fn ($q) => $q->where('worksheets.kind', $kind))
             ->when($into, fn ($q) => $q->where('worksheets.id', '!=', $into->id))
             ->get(['worksheet_samples.sample_id', 'worksheets.number'])
             ->keyBy('sample_id');
@@ -304,8 +353,9 @@ class WorksheetService
     /**
      * @param  array<int, array{sample: Sample, parallels: int}>  $items  resolveItems() natijasi
      */
-    public function create(WorksheetTemplate $template, array $items, User $user, ?string $date = null): Worksheet
+    public function create(WorksheetTemplate $template, array $items, User $user, ?string $date = null, string $kind = 'main'): Worksheet
     {
+        $kind = self::normalizeKind($kind);
         if (! $items) {
             throw ValidationException::withMessages(['samples' => ['Kamida bitta proba tanlang']]);
         }
@@ -319,10 +369,10 @@ class WorksheetService
         // Bir vaqtda ikki kishi yaratsa — noyob indeks to'qnashuvi bo'ladi, qayta urinamiz
         for ($attempt = 1; $attempt <= 5; $attempt++) {
             try {
-                return DB::transaction(function () use ($template, $items, $user, $date, $year, $definition) {
+                return DB::transaction(function () use ($template, $items, $user, $date, $year, $definition, $kind) {
                     [$series, $seq, $number] = $this->nextNumber($template, $year);
 
-                    $worksheet = Worksheet::create([
+                    $worksheet = Worksheet::create((self::hasKind() ? ['kind' => $kind] : []) + [
                         'template_id'       => $template->id,
                         'sample_id'         => $items[0]['sample']->id,
                         'series'            => $series,
@@ -718,6 +768,11 @@ class WorksheetService
                 'performed_at'   => $performedAt ?: null,
                 'recorded_by'    => $user->id,
             ];
+            // [P16] Bosqich bajarilgan soat «HH:MM» (smenalar hisobi uchun) — ustun bo'lsa
+            if (self::hasSignoffTime()) {
+                $time = trim((string) ($s['performed_time'] ?? ''));
+                $signoffs[$stage . '#' . $slot]['performed_time'] = preg_match('/^([01]\d|2[0-3]):[0-5]\d/', $time) ? substr($time, 0, 5) : null;
+            }
         }
 
         // Tartib: probalar varaqdagi tartibida, proba ichida — kelgan tartibda
@@ -911,6 +966,12 @@ class WorksheetService
     public function approve(Worksheet $worksheet, User $user, bool $pushResults): array
     {
         $report = ['pushed' => [], 'skipped' => []];
+
+        // Nazorat varag'i — natija probaga yozilmaydi (faqat asosiy natija bilan solishtiriladi)
+        if (self::hasKind() && $worksheet->isControl()) {
+            $pushResults = false;
+            $report['skipped'][] = "Nazorat varag'i — natijalar probaga o'tkazilmaydi (asosiy natija bilan solishtirish uchun)";
+        }
 
         DB::transaction(function () use ($worksheet, $user, $pushResults, &$report) {
             $result = $this->recalculate($worksheet->fresh('rows'));

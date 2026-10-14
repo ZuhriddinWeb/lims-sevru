@@ -1,0 +1,135 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Services\Samples\CustomerPortal;
+use Closure;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Throwable;
+
+/**
+ * Buyurtmachi (portal) foydalanuvchisi uchun «devor».
+ *
+ * Laboratoriya API'sining ko'p qismi ruxsat bilan yopiq, lekin bir nechta umumiy marshrut
+ * (bosh sahifa statistikasi, kataloglar ro'yxati va h.k.) faqat login talab qiladi.
+ * Portal foydalanuvchisi ulardan ham laboratoriya ma'lumotini ko'rmasligi uchun
+ * unga faqat ro'yxatdagi marshrutlar ochiq: kirish/chiqish, profil, eslatmalar, menyu va /api/portal/*.
+ *
+ * Qo'shimcha: /api/me va /api/login javobiga user.portal (bo'limlari) qo'shiladi —
+ * interfeys shu orqali buyurtmachini portal sahifasiga yo'naltiradi;
+ * /api/menu javobida portal foydalanuvchisiga faqat portal bandlari qoladi.
+ *
+ * SampleIntakeServiceProvider 'api' guruhiga avtomatik qo'shadi — routes/api.php ga tegilmaydi.
+ */
+class CustomerPortalFence
+{
+    /** Portal foydalanuvchisiga ochiq yo'llar ('api/' dan keyingi qism) */
+    private const ALLOWED = [
+        'login', 'logout', 'me', 'profile', 'preferences', 'menu',
+        'notifications', 'notifications/*',
+        'portal', 'portal/*',
+    ];
+
+    private const DECORATE = ['api/login', 'api/me', 'api/profile'];
+
+    public function __construct(private CustomerPortal $portal)
+    {
+    }
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        $path = trim($request->path(), '/');
+        if (! str_starts_with($path, 'api/')) {
+            return $next($request);
+        }
+
+        $user = $this->user();
+        $isPortal = $user && $this->portal->isPortalUser($user);
+
+        if ($isPortal && ! $this->allowed(substr($path, 4))) {
+            return response()->json([
+                'message' => "Buyurtmachi hisobi uchun bu bo'lim yopiq",
+                'portal'  => true,
+            ], 403);
+        }
+
+        $response = $next($request);
+
+        if (! $response instanceof JsonResponse || $response->getStatusCode() >= 400) {
+            return $response;
+        }
+
+        try {
+            if (in_array($path, self::DECORATE, true)) {
+                $this->decorateUser($response);
+            } elseif ($path === 'api/menu' && $isPortal) {
+                $this->filterMenu($response);
+            }
+        } catch (Throwable $e) {
+            report($e); // javobni buzmaymiz
+        }
+
+        return $response;
+    }
+
+    private function user()
+    {
+        try {
+            return auth('sanctum')->user() ?? auth()->user();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function allowed(string $rest): bool
+    {
+        foreach (self::ALLOWED as $pattern) {
+            if ($rest === $pattern || (str_ends_with($pattern, '/*') && str_starts_with($rest, substr($pattern, 0, -1)))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function decorateUser(JsonResponse $response): void
+    {
+        $data = $response->getData(true);
+        if (! is_array($data) || ! isset($data['user']) || ! is_array($data['user'])) {
+            return;
+        }
+        $user = $this->user();
+        if (! $user || (int) $user->id !== (int) ($data['user']['id'] ?? 0)) {
+            return;
+        }
+        $data['user']['portal'] = $this->portal->profile($user);
+        $response->setData($data);
+    }
+
+    private function filterMenu(JsonResponse $response): void
+    {
+        $data = $response->getData(true);
+        if (! is_array($data)) {
+            return;
+        }
+        $keep = fn ($item) => is_array($item) && str_starts_with((string) ($item['permission'] ?? ''), 'portal.');
+
+        $out = [];
+        foreach ($data as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            if (! empty($item['children'])) {
+                $item['children'] = array_values(array_filter($item['children'], $keep));
+                if ($item['children']) {
+                    $out[] = $item;
+                }
+            } elseif ($keep($item)) {
+                $out[] = $item;
+            }
+        }
+        $response->setData($out);
+    }
+}

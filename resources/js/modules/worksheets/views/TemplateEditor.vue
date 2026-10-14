@@ -40,8 +40,15 @@ const openLangs = ref(new Set())
 const blankCol = (o = {}) => ({
   scope: 'row', key: '', type: 'input', stage: '', label_uz: '', label_ru: '', label_uz_cyrl: '',
   unit: '', decimals: null, rounding: 'round', formula: '', default_value: '', required: false,
-  element_id: null, tolerance_pct: '', tolerance_source: '', tolerance_mode: 'mean', width: null, ...o,
+  element_id: null, tolerance_pct: '', tolerance_source: '', tolerance_mode: 'mean', width: null, consumes_sample: false, ...o,
 })
+
+// «Proba sarfi» (naveska) — shablonda faqat bitta ustun: belgilansa, boshqalaridan olib tashlanadi
+function toggleConsumes(col) {
+  const on = !col.consumes_sample
+  rowCols.value.forEach((c) => { c.consumes_sample = false })
+  col.consumes_sample = on
+}
 
 function setBlank() {
   Object.assign(tpl, {
@@ -57,7 +64,7 @@ function setBlank() {
     params: [],
   })
   rowCols.value = [
-    blankCol({ key: 'mass', label_uz: "Namuna og'irligi, g", label_ru: 'Навеска, г', stage: 'shixtovka', unit: 'g', default_value: '1.0', required: true }),
+    blankCol({ key: 'mass', label_uz: "Namuna og'irligi, g", label_ru: 'Навеска, г', stage: 'shixtovka', unit: 'g', default_value: '1.0', required: true, consumes_sample: true }),
     blankCol({ key: 'kortochka', label_uz: 'Kortochka, mg', label_ru: 'Корточка, мг', stage: 'olchash', unit: 'mg', required: true }),
     blankCol({ key: 'au_gt', type: 'computed', label_uz: 'Au, g/t', label_ru: 'Au, г/т', stage: 'olchash', unit: 'g/t', formula: 'kortochka / mass * 1000', decimals: 2 }),
   ]
@@ -84,6 +91,7 @@ function fromServer(data) {
     label_ru: c.label_ru ?? '', label_uz_cyrl: c.label_uz_cyrl ?? '',
     tolerance_pct: c.tolerance_pct === null || c.tolerance_pct === undefined ? '' : String(Number(c.tolerance_pct)),
     tolerance_source: c.tolerance_source ?? '', tolerance_mode: c.tolerance_mode ?? 'mean',
+    consumes_sample: !!c.consumes_sample,
   }))
   rowCols.value = cols.filter((c) => c.scope === 'row')
   sumCols.value = cols.filter((c) => c.scope === 'summary')
@@ -139,6 +147,7 @@ function cleanCol(c) {
     tolerance_source: summary && c.tolerance_pct !== '' ? (c.tolerance_source || null) : null,
     tolerance_mode: c.tolerance_mode || 'mean',
     width: c.width || null,
+    consumes_sample: c.scope === 'row' && c.type === 'input' ? !!c.consumes_sample : false,
   }
 }
 
@@ -547,12 +556,16 @@ onBeforeRouteLeave(() => (dirty.value && !window.confirm(t('ws.leaveConfirm')) ?
                     <option value="none">{{ t('ws.roundNone') }}</option>
                   </select>
                 </div>
-                <div v-else-if="c.type === 'input'" class="grid gap-2 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center">
+                <div v-else-if="c.type === 'input'" class="grid gap-2 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-center">
                   <input v-model="c.unit" class="field-input h-9" :placeholder="t('ws.unit')">
                   <input v-model="c.default_value" class="field-input h-9 tnum" :placeholder="t('ws.default')">
                   <label class="flex items-center gap-2 text-[13px] text-ink-muted cursor-pointer">
                     <input v-model="c.required" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500">
                     {{ t('ws.required') }}
+                  </label>
+                  <label class="flex items-center gap-2 text-[13px] cursor-pointer" :class="c.consumes_sample ? 'text-aqua-700 dark:text-aqua-200 font-medium' : 'text-ink-muted'" :title="t('ws.consumesHint')" data-consumes>
+                    <input :checked="c.consumes_sample" type="checkbox" class="rounded border-line text-aqua-600 focus:ring-aqua-500" @change="toggleConsumes(c)">
+                    {{ t('ws.consumes') }}
                   </label>
                 </div>
                 <div v-if="openLangs.has(`r${i}`)" class="mt-2 grid gap-2 sm:grid-cols-2">

@@ -16,9 +16,9 @@ const props = defineProps({
 
 // Qog'oz forma matnlari — chop etish tilida (interfeys tilidan mustaqil)
 const PT = {
-  uz: { sheet: 'Ishchi varaq', rowNo: '№ t/r', sampleNo: 'Namuna №', sample: 'Namuna', samples: 'Namunalar', count: 'ta', retest: 'takroriy', year: 'y.', footer: 'LIMS', ditto: '-//-' },
-  uz_cyrl: { sheet: 'Ишчи варақ', rowNo: '№ т/р', sampleNo: 'Намуна №', sample: 'Намуна', samples: 'Намуналар', count: 'та', retest: 'такрорий', year: 'й.', footer: 'LIMS', ditto: '-//-' },
-  ru: { sheet: 'Рабочий лист', rowNo: '№ п/п', sampleNo: 'Проба №', sample: 'Проба', samples: 'Пробы', count: 'шт.', retest: 'повтор', year: 'г.', footer: 'LIMS', ditto: '-//-' },
+  uz: { sheet: 'Ishchi varaq', rowNo: '№ t/r', sampleNo: 'Namuna №', sample: 'Namuna', samples: 'Namunalar', count: 'ta', retest: 'takroriy', year: 'y.', footer: 'LIMS', ditto: '-//-', control: 'Nazorat uchun' },
+  uz_cyrl: { sheet: 'Ишчи варақ', rowNo: '№ т/р', sampleNo: 'Намуна №', sample: 'Намуна', samples: 'Намуналар', count: 'та', retest: 'такрорий', year: 'й.', footer: 'LIMS', ditto: '-//-', control: 'Назорат учун' },
+  ru: { sheet: 'Рабочий лист', rowNo: '№ п/п', sampleNo: 'Проба №', sample: 'Проба', samples: 'Пробы', count: 'шт.', retest: 'повтор', year: 'г.', footer: 'LIMS', ditto: '-//-', control: 'Контрольный' },
 }
 
 const ws = computed(() => props.ws)
@@ -137,6 +137,7 @@ const signLines = computed(() => {
           № <span class="ws-fill ws-fill-num">{{ ws.number }}</span> {{ pt.sheet }}
         </p>
         <p class="text-[11.5pt] font-semibold mt-0.5">{{ printName(def, lang) }}</p>
+        <p v-if="ws.kind === 'control'" class="ws-control-mark inline-block mt-1 px-2 py-px border border-black text-[9.5pt] font-bold uppercase tracking-wider">{{ pt.control }}</p>
       </div>
       <div class="w-1/4 text-right text-[11pt] whitespace-nowrap pt-1">
         «<span class="ws-fill ws-fill-sm">{{ dateParts.dd }}</span>»

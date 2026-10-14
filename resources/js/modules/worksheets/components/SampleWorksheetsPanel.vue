@@ -12,6 +12,7 @@ import api from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/lib/format'
 import WsStatusBadge from './WsStatusBadge.vue'
+import WsKindBadge from './WsKindBadge.vue'
 import CreateWorksheetModal from './CreateWorksheetModal.vue'
 import { templateName } from '../helpers'
 import '../i18n'
@@ -71,6 +72,7 @@ const memberStatus = (w) => (w.samples ?? []).find((s) => String(s.id) === Strin
       >
         <span class="min-w-0">
           <span class="font-mono font-semibold text-ink">{{ w.number }}</span>
+          <WsKindBadge :kind="w.kind" size="sm" class="ml-1.5" />
           <AlertTriangle v-if="w.has_warnings" :size="13" class="inline ml-1 -mt-0.5 text-warn" />
           <span class="text-[12.5px] text-ink-muted"> · {{ templateName(w.template, locale) }} · {{ formatDate(w.worksheet_date) }}</span>
           <span v-if="(w.members_count ?? 1) > 1" class="ml-1.5 rounded-full bg-surface-sunken px-1.5 py-0.5 text-[11px] text-ink-muted">{{ t('ws.batchOf', { n: w.members_count }) }}</span>

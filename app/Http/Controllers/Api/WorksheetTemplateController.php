@@ -197,6 +197,7 @@ class WorksheetTemplateController extends Controller
             'columns.*.tolerance_source' => ['nullable', 'string', 'max:40'],
             'columns.*.tolerance_mode'   => ['nullable', 'in:mean,range'],
             'columns.*.width'            => ['nullable', 'integer', 'min:20', 'max:400'],
+            'columns.*.consumes_sample'  => ['nullable', 'boolean'],
         ]);
 
         $attrs = [
@@ -256,6 +257,8 @@ class WorksheetTemplateController extends Controller
                 'tolerance_source' => $summary ? ($c['tolerance_source'] ?? null) : null,
                 'tolerance_mode'   => $c['tolerance_mode'] ?? 'mean',
                 'width'            => $c['width'] ?? null,
+                // Proba sarfi (naveska) — faqat qatordagi kiritish ustuni bo'lishi mumkin
+                'consumes_sample'  => $c['scope'] === 'row' && $c['type'] === 'input' && ! empty($c['consumes_sample']),
             ];
         }, $data['columns']));
 

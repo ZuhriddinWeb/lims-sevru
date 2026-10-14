@@ -47,6 +47,9 @@ class WorksheetController extends Controller
         if ($request->filled('template_id')) {
             $query->where('template_id', $request->input('template_id'));
         }
+        if ($request->filled('kind') && WorksheetService::hasKind()) {
+            $query->where('kind', WorksheetService::normalizeKind($request->input('kind')));
+        }
         if ($request->filled('sample_id')) {
             $sid = (int) $request->input('sample_id');
             $query->whereIn('id', fn ($sub) => $sub->select('worksheet_id')->from('worksheet_samples')->where('sample_id', $sid));
@@ -108,7 +111,11 @@ class WorksheetController extends Controller
 
         $wanted = array_flip($ids->all());
         $out = [];
-        foreach ($query->get(['id', 'sample_id', 'template_id', 'number', 'status', 'worksheet_date', 'has_warnings']) as $w) {
+        $cols = ['id', 'sample_id', 'template_id', 'number', 'status', 'worksheet_date', 'has_warnings'];
+        if (WorksheetService::hasKind()) {
+            $cols[] = 'kind';
+        }
+        foreach ($query->get($cols) as $w) {
             foreach ($w->members as $m) {
                 if (! isset($wanted[$m->sample_id])) {
                     continue;
@@ -116,6 +123,7 @@ class WorksheetController extends Controller
                 $out[$m->sample_id][] = [
                     'id'             => $w->id,
                     'number'         => $w->number,
+                    'kind'           => $w->kind ?: 'main',
                     'status'         => $w->status,
                     'worksheet_date' => $w->worksheet_date?->toDateString(),
                     'has_warnings'   => (bool) $w->has_warnings,
@@ -147,9 +155,17 @@ class WorksheetController extends Controller
             'date_to'          => ['nullable', 'date'],
             'group_id'         => ['nullable', 'integer'],
             'except_worksheet' => ['nullable', 'integer'],
+            'kind'             => ['nullable', 'in:main,control'],
         ]);
 
         $template = WorksheetTemplate::findOrFail($data['template_id']);
+        if (! empty($data['except_worksheet']) && empty($data['kind'])) {
+            // Mavjud varaqqa qo'shishda — o'sha varaqning turi
+            $data['kind'] = Worksheet::find($data['except_worksheet'])?->kind;
+        }
+        $consume = class_exists(\App\Services\Samples\SampleLedger::class)
+            ? app(\App\Services\Samples\SampleLedger::class)->consumeColumn($template->toDefinition(), (int) $template->id)
+            : null;
 
         return response()->json([
             'template' => [
@@ -158,6 +174,7 @@ class WorksheetController extends Controller
                 'max_samples'      => $template->max_samples,
                 'orientation'      => $template->orientation,
                 'result_elements'  => $template->resultElementIds(),
+                'consume'          => $consume, // proba sarfi ustuni: {key, unit, default, label}
             ],
             'samples' => $this->service->candidates($template, $request->user(), $data),
         ]);
@@ -194,7 +211,10 @@ class WorksheetController extends Controller
             'samples.*.parallels' => ['nullable', 'integer', 'min:1', 'max:' . WorksheetService::MAX_PARALLELS],
             'sample_id'           => ['required_without:samples', 'integer'],
             'rows'                => ['nullable', 'integer', 'min:1', 'max:' . WorksheetService::MAX_PARALLELS],
+            'kind'                => ['nullable', 'in:main,control'],
+            'confirm_low_balance' => ['nullable', 'boolean'],
         ]);
+        $kind = WorksheetService::normalizeKind($data['kind'] ?? null);
 
         $template = WorksheetTemplate::findOrFail($data['template_id']);
         if (! $template->is_active) {
@@ -202,13 +222,20 @@ class WorksheetController extends Controller
         }
 
         $items = $data['samples'] ?? [['id' => $data['sample_id'], 'parallels' => $data['rows'] ?? null]];
-        $resolved = $this->service->resolveItems($template, $items, $request->user());
+        $resolved = $this->service->resolveItems($template, $items, $request->user(), null, $kind);
 
-        $worksheet = $this->service->create($template, $resolved, $request->user(), $data['worksheet_date'] ?? null);
+        // Proba qoldig'i rejalangan sarfga yetmasa — ogohlantirish, foydalanuvchi tasdiqlasa davom etiladi
+        $short = $this->shortages($template->toDefinition(), (int) $template->id, $resolved);
+        if ($short && empty($data['confirm_low_balance'])) {
+            return $this->lowBalanceResponse($short);
+        }
+
+        $worksheet = $this->service->create($template, $resolved, $request->user(), $data['worksheet_date'] ?? null, $kind);
 
         $codes = collect($resolved)->map(fn ($it) => $it['sample']->code)->all();
-        $this->logActivity('created', $worksheet, ['samples' => $codes, 'template' => $template->code],
-            "Ishchi varaq yaratildi: № {$worksheet->number} (" . count($codes) . ' ta proba: ' . implode(', ', array_slice($codes, 0, 10))
+        $this->logActivity('created', $worksheet, ['samples' => $codes, 'template' => $template->code, 'kind' => $kind]
+            + ($short ? ['low_balance_confirmed' => $short] : []),
+            ($kind === 'control' ? 'Nazorat uchun ishchi varaq' : 'Ishchi varaq') . " yaratildi: № {$worksheet->number} (" . count($codes) . ' ta proba: ' . implode(', ', array_slice($codes, 0, 10))
             . (count($codes) > 10 ? ' …' : '') . ')');
 
         return response()->json($this->payload($worksheet), 201);
@@ -224,14 +251,21 @@ class WorksheetController extends Controller
             'samples'             => ['required', 'array', 'min:1', 'max:' . WorksheetService::MAX_SAMPLES],
             'samples.*.id'        => ['required', 'integer'],
             'samples.*.parallels' => ['nullable', 'integer', 'min:1', 'max:' . WorksheetService::MAX_PARALLELS],
+            'confirm_low_balance' => ['nullable', 'boolean'],
         ]);
 
         $template = WorksheetTemplate::withTrashed()->findOrFail($worksheet->template_id);
         $resolved = $this->service->resolveItems($template, $data['samples'], $request->user(), $worksheet);
+
+        $short = $this->shortages($worksheet->definition(), (int) $worksheet->template_id, $resolved);
+        if ($short && empty($data['confirm_low_balance'])) {
+            return $this->lowBalanceResponse($short);
+        }
+
         $this->service->addSamples($worksheet, $resolved, $request->user());
 
         $codes = collect($resolved)->map(fn ($it) => $it['sample']->code)->all();
-        $this->logActivity('updated', $worksheet, ['added_samples' => $codes],
+        $this->logActivity('updated', $worksheet, ['added_samples' => $codes] + ($short ? ['low_balance_confirmed' => $short] : []),
             "Ishchi varaqqa proba qo'shildi: № {$worksheet->number} (" . implode(', ', $codes) . ')');
 
         return response()->json($this->payload($worksheet->fresh()));
@@ -293,6 +327,7 @@ class WorksheetController extends Controller
             'signoffs.*.performer_id' => ['nullable', 'exists:users,id'],
             'signoffs.*.performer_name' => ['nullable', 'string', 'max:191'],
             'signoffs.*.performed_at' => ['nullable', 'date'],
+            'signoffs.*.performed_time' => ['nullable', 'date_format:H:i'],  // [P16] bosqich soati
         ]);
 
         $this->service->save($worksheet, $data, $request->user());
@@ -455,7 +490,7 @@ class WorksheetController extends Controller
     public function showScan(Request $request, Worksheet $worksheet, WorksheetScan $scan)
     {
         $this->service->assertCanAccess($request->user(), $worksheet);
-        abort_if($scan->worksheet_id !== $worksheet->id, 404);
+        abort_if((int) $scan->worksheet_id !== (int) $worksheet->id, 404);
         abort_unless(Storage::disk('local')->exists($scan->path), 404, 'Fayl topilmadi');
 
         return Storage::disk('local')->response($scan->path, $scan->original_name, [
@@ -468,7 +503,7 @@ class WorksheetController extends Controller
     {
         $this->service->assertCanAccess($request->user(), $worksheet);
         $this->service->assertEditable($worksheet);
-        abort_if($scan->worksheet_id !== $worksheet->id, 404);
+        abort_if((int) $scan->worksheet_id !== (int) $worksheet->id, 404);
 
         Storage::disk('local')->delete($scan->path);
         $name = $scan->original_name;
@@ -479,6 +514,27 @@ class WorksheetController extends Controller
     }
 
     // ----------------------------------------------------------------- yordamchi
+
+    /** Rejalangan sarf (parallellar × standart naveska) proba qoldig'idan oshadigan probalar */
+    private function shortages(array $definition, int $templateId, array $resolved): array
+    {
+        if (! class_exists(\App\Services\Samples\SampleLedger::class)) {
+            return [];
+        }
+
+        return app(\App\Services\Samples\SampleLedger::class)->shortages($definition, $templateId, $resolved);
+    }
+
+    private function lowBalanceResponse(array $short)
+    {
+        $lines = array_map(fn ($s) => "{$s['code']}: kerak {$s['need']} {$s['unit']}, qoldiq {$s['available']} {$s['unit']}", $short);
+
+        return response()->json([
+            'message'     => "Probada yetarli miqdor qolmagan — " . implode('; ', $lines),
+            'low_balance' => $short,
+            'errors'      => ['low_balance' => $lines],
+        ], 422);
+    }
 
     private function payload(Worksheet $worksheet): array
     {
