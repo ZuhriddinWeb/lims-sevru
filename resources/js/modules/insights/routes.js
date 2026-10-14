@@ -1,12 +1,13 @@
 /**
- * Ish stoli, rahbariyat paneli 2.0, smenalar, xodimlar faoliyati — marshrutlar.
+ * Ish stoli, rahbariyat paneli 2.0, smenalar, xodimlar faoliyati, audit jurnali, savatcha — marshrutlar.
  * resources/js/router/index.js ga 2 joyda qo'shiladi (aniq qatorlar — OQISH.txt da):
  *   1) yuqorida: insightsRoutes ni shu fayldan olish;
  *   2) AppLayout children ichida: ...insightsRoutes (asosiy «executive» qatoridan KEYIN, not-found dan oldin).
  *
- * «dashboard» va «executive» nomli marshrutlar shu yerda qayta e'lon qilingan: vue-router bir xil nomli
- * marshrutning oldingisini olib tashlaydi, shuning uchun menyudagi «Bosh sahifa» — Ish stolini,
- * «Rahbariyat paneli» — yangi panelni ochadi. Eski sahifalar o'chirilmaydi: /dashboard/classic, /executive/classic.
+ * «dashboard», «executive», «activity-logs», «trash» nomli marshrutlar shu yerda qayta e'lon qilingan:
+ * vue-router bir xil nomli marshrutning oldingisini olib tashlaydi, shuning uchun menyudagi bandlar yangi
+ * sahifalarni ochadi. Eski sahifalar o'chirilmaydi: /dashboard/classic, /executive/classic,
+ * /activity-logs/classic, /trash/classic.
  */
 import './i18n'
 
@@ -38,6 +39,27 @@ export default [
   {
     path: 'staff-activity/:id', name: 'staff-activity-user',
     component: () => import('./views/StaffDetail.vue'),
+  },
+  /* [P19] Audit jurnali va savatcha. Eskilari: /activity-logs/classic, /trash/classic */
+  {
+    path: 'activity-logs', name: 'activity-logs',
+    component: () => import('./views/AuditLog.vue'),
+    meta: { permission: 'logs.view' },
+  },
+  {
+    path: 'activity-logs/classic', name: 'activity-logs-classic',
+    component: () => import('@/views/admin/ActivityLog.vue'),
+    meta: { permission: 'logs.view' },
+  },
+  {
+    path: 'trash', name: 'trash',
+    component: () => import('./views/RecycleBin.vue'),
+    meta: { permission: 'trash.view' },
+  },
+  {
+    path: 'trash/classic', name: 'trash-classic',
+    component: () => import('@/views/admin/Trash.vue'),
+    meta: { permission: 'trash.view' },
   },
   {
     path: 'lab-shifts', name: 'lab-shifts',
