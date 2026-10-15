@@ -2,12 +2,13 @@
 
 /*
 |--------------------------------------------------------------------------
-| Rahbariyat paneli 2.0, smenalar, xodimlar faoliyati, ish stoli, audit jurnali, savatcha — API
+| Rahbariyat paneli 2.0, smenalar, xodimlar faoliyati, ish stoli, audit jurnali, savatcha, yordamchi — API
 |--------------------------------------------------------------------------
 | LabInsightsServiceProvider orqali /api prefiksi bilan yuklanadi.
 | routes/api.php ga hech narsa qo'shish SHART EMAS.
 */
 
+use App\Http\Controllers\Api\Help\HelpController;
 use App\Http\Controllers\Api\Insights\AuditLogController;
 use App\Http\Controllers\Api\Insights\ExecutiveInsightsController;
 use App\Http\Controllers\Api\Insights\LabShiftController;
@@ -50,6 +51,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/recycle-bin/{type}/{id}/restore', [RecycleBinController::class, 'restore'])
         ->where('type', '[a-z_]+')->whereNumber('id')
         ->middleware('permission:trash.restore');
+
+    /* ---------- [P21] Yordamchi (lokal AI): barcha tizimga kirganlar; javoblar ruxsatga qarab saralanadi ---------- */
+    Route::get('/help/suggestions', [HelpController::class, 'suggestions']);
+    Route::get('/help/entries/{id}', [HelpController::class, 'entry'])->whereNumber('id');
+    Route::post('/help/ask', [HelpController::class, 'ask'])->middleware('throttle:40,1');
+    Route::post('/help/feedback', [HelpController::class, 'feedback'])->middleware('throttle:60,1');
 
     /* ---------- Smenalar sozlamasi ---------- */
     Route::get('/lab-shifts', [LabShiftController::class, 'index'])
