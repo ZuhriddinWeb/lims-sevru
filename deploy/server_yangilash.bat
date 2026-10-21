@@ -15,6 +15,15 @@ rem    php artisan lims:upgrade - faqat yo'q ruxsat/menyu/rol; foydalanuvchi va 
 rem  Qayta ishga tushirish xavfsiz.
 rem ======================================================================
 setlocal EnableExtensions
+set "SELF=%~dp0"
+if "%SELF:~0,2%"=="\\" (
+  echo [X] Skript tarmoq yo'lidan ishga tushirildi: %SELF%
+  echo     Uni SERVERNING O'ZIDA, mahalliy yo'ldan ishga tushiring - masalan RDP orqali kirib:
+  echo        cd /d C:\xampp\htdocs\LIMS
+  echo        deploy\%~nx0
+  echo     Hech narsa o'zgarmadi.
+  exit /b 1
+)
 cd /d "%~dp0.."
 if not exist artisan (
   echo [X] artisan topilmadi. Skript loyiha ichidagi deploy papkasida bo'lishi kerak.
