@@ -48,6 +48,7 @@ class SampleIntakeController extends Controller
                 'retained_quantity' => QuantityUnit::number($sample->retained_quantity),
                 'registered_at'     => $sample->registered_at?->toDateTimeString(),
                 'registered_by'     => $sample->registeredBy?->name,
+                'handed_over_by'    => $sample->getAttribute('handed_over_by'), // [P24]
             ],
             'ledger'     => $this->ledger->detail($sample),
             'comparison' => $this->analyses->comparison($sample),

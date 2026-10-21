@@ -12,6 +12,7 @@ import { reactive } from 'vue'
 import api from '@/lib/api'
 import * as lab from '@/resources/lab'
 import './i18n'
+import './requests/i18n' // [P24] «Topshirgan shaxs» matnlari
 
 const UNITS = ['g', 'kg', 'mg', 'ml', 'l']
 
@@ -103,6 +104,18 @@ export function installSampleIntakeForm(resource = lab.sampleResource) {
       ],
     })
     changed = true
+  }
+
+  // [P24] Topshirgan shaxs — «Buyurtmachi va miqdor» bo'limiga (yoki bo'lim maydoni turgan bo'limga)
+  const all = sections.flatMap((s) => s.fields ?? [])
+  if (!all.some((f) => keyOf(f) === 'handed_over_by')) {
+    const sec = sections.find((s) => (s.fields ?? []).some((f) => keyOf(f) === 'customer_department_id'))
+    if (sec) {
+      const at = sec.fields.findIndex((f) => keyOf(f) === 'customer_code')
+      sec.fields.splice(at >= 0 ? at + 1 : sec.fields.length, 0,
+        { key: 'handed_over_by', type: 'text', labelKey: 'intake.handedOverBy', hintKey: 'intake.handedOverByHint' })
+      changed = true
+    }
   }
 
   // Jadval ustuni — «Buyurtmachi guruh» dan keyin

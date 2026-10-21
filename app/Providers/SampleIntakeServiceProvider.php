@@ -39,10 +39,9 @@ class SampleIntakeServiceProvider extends ServiceProvider
         if (class_exists(\App\Providers\LabInsightsServiceProvider::class)) {
             $this->app->register(\App\Providers\LabInsightsServiceProvider::class);
         }
-
-        // [T19] SQL Server: *_id ustunlari son bo'lib kelsin (natija kiritishdagi 404 va shu turdagi xatolar)
-        if (class_exists(\App\Providers\DatabaseTypesServiceProvider::class)) {
-            $this->app->register(\App\Providers\DatabaseTypesServiceProvider::class);
+        // [P24] Buyurtma so'rovlari (qoralama buyurtma)
+        if (class_exists(\App\Providers\SampleRequestServiceProvider::class)) {
+            $this->app->register(\App\Providers\SampleRequestServiceProvider::class);
         }
 
         $this->app->scoped(CustomerPortal::class);

@@ -107,7 +107,7 @@ const initials = computed(() => {
     >
       <!-- Logotip: oltin probirlash tigli -->
       <div class="h-14 flex items-center gap-2.5 px-4 border-b border-line shrink-0">
-       <div class="h-8 w-8 shrink-0 rounded-md overflow-hidden grid place-items-center">
+        <div class="h-8 w-8 shrink-0 rounded-md overflow-hidden grid place-items-center">
           <img src="/images/logo.png" alt="Logo" class="h-full w-full object-contain" />
         </div>
         <div v-if="!ui.sidebarCollapsed" class="min-w-0 flex-1">

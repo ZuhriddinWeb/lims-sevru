@@ -21,7 +21,8 @@ use Illuminate\Validation\Rule;
  */
 class SampleIntake
 {
-    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit'];
+    // [P24] handed_over_by — namunani topshirgan shaxs (reyestr: «topshirgan FIO»)
+    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit', 'handed_over_by'];
 
     public static function rules(?Sample $ignore = null): array
     {
@@ -47,6 +48,7 @@ class SampleIntake
             }],
             'received_quantity'      => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
             'quantity_unit'          => ['nullable', Rule::in(QuantityUnit::UNITS)],
+            'handed_over_by'         => ['nullable', 'string', 'max:191'],
         ];
     }
 
@@ -65,6 +67,16 @@ class SampleIntake
 
         if (array_key_exists('customer_department_id', $attrs) && $attrs['customer_department_id'] !== null) {
             $attrs['customer_department_id'] = (int) $attrs['customer_department_id'];
+        }
+        if (array_key_exists('handed_over_by', $attrs)) {
+            if (! \Illuminate\Support\Facades\Schema::hasColumn('samples', 'handed_over_by')) {
+                unset($attrs['handed_over_by']); // migratsiya hali bajarilmagan — boshqa maydonlar saqlansin
+            } elseif ($attrs['handed_over_by'] !== null) {
+                $attrs['handed_over_by'] = trim((string) $attrs['handed_over_by']) ?: null;
+            }
+        }
+        if (! $attrs) {
+            return $sample;
         }
         if (array_key_exists('customer_code', $attrs) && $attrs['customer_code'] !== null) {
             $attrs['customer_code'] = trim((string) $attrs['customer_code']) ?: null;

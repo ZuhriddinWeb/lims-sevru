@@ -19,6 +19,7 @@ import { formatDate, formatDateTime } from '@/lib/format'
 import ComparisonTable from './ComparisonTable.vue'
 import { MOVEMENT_KINDS, STATE_TONE, UNITS, apiErrorMessage, formatQty, templateName, unitLabel } from '../helpers'
 import '../i18n'
+import '../requests/i18n' // [P24] «Topshirgan shaxs»
 
 const props = defineProps({ sample: { type: Object, required: true } })
 const emit = defineEmits(['changed'])
@@ -190,6 +191,9 @@ const kindSign = (m) => (m.delta > 0 ? '+' : '−')
         </span>
         <span v-if="intake.customer_code" class="text-ink-muted">
           {{ t('intake.customerCode') }}: <b class="text-ink font-semibold" data-ccode>{{ intake.customer_code }}</b>
+        </span>
+        <span v-if="intake.handed_over_by" class="text-ink-muted" data-handed>
+          {{ t('intake.panel.handedOverBy') }}: <b class="text-ink font-semibold">{{ intake.handed_over_by }}</b>
         </span>
         <span v-if="intake.registered_by" class="text-[12.5px] text-ink-faint">
           {{ t('intake.panel.receivedBy') }}: {{ intake.registered_by }}, {{ formatDateTime(intake.registered_at) }}

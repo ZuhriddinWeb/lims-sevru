@@ -63,6 +63,14 @@ final class DefaultTemplates
         return self::col($key, 'computed', null, $labels, array_merge(['scope' => 'summary', 'formula' => $formula], $opts));
     }
 
+    /** Varaq bo'yicha jami — barcha probalarning korotochkalari yig'indisi (qog'ozda korotochka ustuni tagida) */
+    private static function totalKortochka(): array
+    {
+        return self::col('jami_kortochka', 'computed', null,
+            ["Korotochkalar yig'indisi, mg", 'Сумма корточек, мг', 'Корточкалар йиғиндиси, мг'],
+            ['scope' => 'total', 'formula' => 'sum(kortochka)', 'decimals' => 3, 'unit' => 'mg']);
+    }
+
     public static function all(): array
     {
         return [
@@ -106,9 +114,7 @@ final class DefaultTemplates
                 self::sum('ortacha', ["O'rtacha qiymati", 'Среднее значение', 'Ўртача қиймати'], 'avg(kortochka_xp)',
                     ['decimals' => 2, 'rounding' => 'trunc']),
                 // Varaq bo'yicha jami — qog'ozda korotochka ustuni tagiga yoziladi (458 k/m: 2,262)
-                self::col('jami_kortochka', 'computed', null,
-                    ["Korotochkalar yig'indisi, mg", 'Сумма корточек, мг', 'Корточкалар йиғиндиси, мг'],
-                    ['scope' => 'total', 'formula' => 'sum(kortochka)', 'decimals' => 3, 'unit' => 'mg']),
+                self::totalKortochka(),
             ],
         ];
     }
@@ -137,6 +143,7 @@ final class DefaultTemplates
                 self::col('izoh', 'text', null, ['Izoh', 'Примечание', 'Изоҳ']),
                 self::sum('avg_au', ["O'rtacha Au, g/kg", 'Среднее Au, г/кг', 'Ўртача Au, г/кг'], 'avg(au_gkg)',
                     ['decimals' => 2, 'unit' => 'g/kg', 'element_symbol' => 'Au']),
+                self::totalKortochka(),
             ],
         ];
     }
@@ -167,6 +174,7 @@ final class DefaultTemplates
                 self::col('izoh', 'text', null, ['Izoh', 'Примечание', 'Изоҳ']),
                 self::sum('avg_au', ["O'rtacha Au, g/t", 'Среднее Au, г/т', 'Ўртача Au, г/т'], 'avg(au_gt)',
                     ['decimals' => 2, 'unit' => 'g/t', 'element_symbol' => 'Au']),
+                self::totalKortochka(),
             ],
         ];
     }
@@ -190,6 +198,7 @@ final class DefaultTemplates
                  'tolerance_pct' => '3.5', 'tolerance_source' => 'au_pct', 'tolerance_mode' => 'mean']),
             self::sum('avg_ag', ["O'rtacha Ag, %", 'Среднее Ag, %', 'Ўртача Ag, %'], 'avg(ag_pct)',
                 ['decimals' => 2, 'rounding' => 'trunc', 'unit' => '%', 'element_symbol' => 'Ag']),
+            self::totalKortochka(),
         ];
     }
 

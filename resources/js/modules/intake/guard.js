@@ -7,7 +7,10 @@ import { useAuthStore } from '@/stores/auth'
 import { installSampleDetailPanel } from './sampleDetail'
 
 // Buyurtmachiga ochiq sahifalar
-export const PORTAL_PAGES = ['portal', 'portal-sample', 'profile', 'forbidden', 'not-found', 'login']
+export const PORTAL_PAGES = [
+  'portal', 'portal-sample', 'profile', 'forbidden', 'not-found', 'login',
+  'portal-requests', 'portal-request-new', 'portal-request', // [P24] Buyurtmalarim
+]
 
 export function isPortalUser(user) {
   return !!user && !user.is_admin && !!user.portal

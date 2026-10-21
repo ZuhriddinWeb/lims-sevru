@@ -21,6 +21,8 @@ class CustomerPortal
 {
     public const PERMISSION = 'portal.view';
     public const PREVIEW_PERMISSION = 'customer_departments.view';
+    /** [P24] buyurtma yuborish ruxsati ham portal foydalanuvchisi belgisi — devor uni ham yopadi */
+    public const REQUEST_PERMISSION = 'portal.request';
 
     /** @var array<int, bool> */
     private array $portalCache = [];
@@ -32,7 +34,8 @@ class CustomerPortal
         }
         $id = (int) $user->id;
         if (! array_key_exists($id, $this->portalCache)) {
-            $this->portalCache[$id] = ! $user->isAdmin() && $user->hasPermission(self::PERMISSION);
+            $this->portalCache[$id] = ! $user->isAdmin()
+                && ($user->hasPermission(self::PERMISSION) || $user->hasPermission(self::REQUEST_PERMISSION));
         }
 
         return $this->portalCache[$id];
@@ -121,7 +124,7 @@ class CustomerPortal
             ->join('roles', 'roles.id', '=', 'users.role_id')
             ->join('permission_role', 'permission_role.role_id', '=', 'roles.id')
             ->join('permissions', 'permissions.id', '=', 'permission_role.permission_id')
-            ->where('permissions.name', self::PERMISSION)
+            ->whereIn('permissions.name', [self::PERMISSION, self::REQUEST_PERMISSION])
             ->where('roles.name', '!=', 'admin')
             ->whereNull('users.deleted_at')
             ->pluck('users.id')->map(fn ($v) => (int) $v)->unique()->values()->all();
