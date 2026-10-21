@@ -33,7 +33,7 @@ class HelpImport extends Command
             return self::FAILURE;
         }
 
-        $added = $updated = $skipped = 0;
+        $added = $updated = $skipped = $same = 0;
         $slugs = [];
         foreach ($items as $i => $it) {
             foreach (['id', 'uz', 'ru', 'en'] as $k) {
@@ -57,6 +57,7 @@ class HelpImport extends Command
                 'permission' => $this->perms($it['permission'] ?? null),
                 'type' => $it['type'] ?? 'howto',
                 'is_top' => (bool) ($it['top'] ?? false),
+                'is_page' => (bool) ($it['page'] ?? false),
                 'keywords' => array_values($it['keywords'] ?? []),
                 'sort_order' => $i + 1,
                 'is_active' => true,
@@ -67,8 +68,13 @@ class HelpImport extends Command
                 $data['a_'.$l] = str_replace('\\n', "\n", $it[$l]['a']);
             }
             if ($row) {
-                $row->update($data);
-                $updated++;
+                $row->fill($data);
+                if ($row->isDirty()) {   // mazmun o'zgarmagan bo'lsa yozilmaydi (updated_at ham)
+                    $row->save();
+                    $updated++;
+                } else {
+                    $same++;
+                }
             } else {
                 HelpEntry::create($data + ['slug' => $slug, 'is_custom' => false, 'is_edited' => false]);
                 $added++;
@@ -76,7 +82,7 @@ class HelpImport extends Command
         }
 
         $help->forget();
-        $this->info("Tayyor: qo‘shildi {$added}, yangilandi {$updated}, o‘tkazib yuborildi (tahrirlangan) {$skipped}.");
+        $this->info("Tayyor: qo‘shildi {$added}, yangilandi {$updated}, o‘zgarmagan {$same}, o‘tkazib yuborildi (tahrirlangan) {$skipped}.");
 
         $extra = HelpEntry::where('is_custom', false)->whereNotIn('slug', $slugs)->pluck('slug');
         if ($extra->isNotEmpty()) {

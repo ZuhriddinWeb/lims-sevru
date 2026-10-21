@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LIMS - IIS uchun web.config.  public\web.config nomi bilan saqlang
+  (repoda public\web.config allaqachon bo'lsa - o'shani ishlating, bu fayl kerak emas).
+  Talab: IIS "URL Rewrite" moduli o'rnatilgan bo'lsin.
+-->
+<configuration>
+  <system.webServer>
+    <rewrite>
+      <rules>
+        <rule name="Laravel" stopProcessing="true">
+          <match url="^" ignoreCase="false" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="index.php" />
+        </rule>
+      </rules>
+    </rewrite>
+
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="index.php" />
+      </files>
+    </defaultDocument>
+
+    <!-- API 403/404/422/500 javoblari (JSON) IIS ning o'z xato sahifasi bilan almashtirilmasin -->
+    <httpErrors existingResponse="PassThrough" />
+
+    <security>
+      <requestFiltering>
+        <!-- fayl yuklash (skan, hujjat): 50 MB -->
+        <requestLimits maxAllowedContentLength="52428800" />
+      </requestFiltering>
+    </security>
+
+    <staticContent>
+      <remove fileExtension=".woff2" />
+      <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
+      <remove fileExtension=".webmanifest" />
+      <mimeMap fileExtension=".webmanifest" mimeType="application/manifest+json" />
+    </staticContent>
+  </system.webServer>
+</configuration>
