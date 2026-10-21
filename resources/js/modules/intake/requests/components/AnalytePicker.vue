@@ -7,6 +7,7 @@ import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Plus, X } from 'lucide-vue-next'
 import { nameOf } from '../shared'
+import { fold } from '@/lib/chemtext' // [P25] «so4» → «SO₄» ham topilsin
 import '../i18n'
 
 const props = defineProps({
@@ -29,11 +30,11 @@ const root = ref(null)
 const input = ref(null)
 
 const candidates = computed(() => {
-  const q = query.value.trim().toLowerCase()
+  const q = fold(query.value.trim())
   const chosen = new Set(props.elementIds.map(Number))
   return props.elements
     .filter((e) => !chosen.has(Number(e.id)))
-    .filter((e) => !q || [e.symbol, e.name_uz, e.name_ru, e.name_en].some((s) => (s || '').toLowerCase().includes(q)))
+    .filter((e) => !q || [e.symbol, e.name_uz, e.name_ru, e.name_en].some((s) => fold(s || '').includes(q)))
     .slice(0, 40)
 })
 

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Check, ChevronDown, X } from 'lucide-vue-next'
 import { useCatalogStore } from '@/stores/catalogs'
 import { localized } from '@/i18n'
+import FormulaInput from './FormulaInput.vue' // [P25] kimyoviy belgi / o'lchov birligi konstruktori
 
 const props = defineProps({
   field: { type: Object, required: true },
@@ -94,6 +95,17 @@ const selectedLabels = computed(() =>
       :step="field.step"
       :min="field.min"
       :max="field.max"
+      :disabled="field.disabled"
+    />
+
+    <!-- [P25] Kimyoviy belgi (SO4 → SO₄) yoki o'lchov birligi (dm3 → dm³) -->
+    <FormulaInput
+      v-else-if="field.type === 'formula' || field.type === 'unit'"
+      :id="`f-${field.key}`"
+      v-model="value"
+      :mode="field.type"
+      :error="!!errorText"
+      :placeholder="field.placeholderKey ? t(field.placeholderKey) : field.placeholder"
       :disabled="field.disabled"
     />
 

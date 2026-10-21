@@ -106,8 +106,8 @@ export const elementResource = {
     sections: [
       {
         fields: [
-          { key: 'symbol', type: 'text', labelKey: 'catalog.symbol' },
-          { key: 'default_unit', type: 'text', labelKey: 'catalog.defaultUnit' },
+          { key: 'symbol', type: 'formula', labelKey: 'catalog.symbol' },        // [P25] SO4 → SO₄
+          { key: 'default_unit', type: 'unit', labelKey: 'catalog.defaultUnit' }, // [P25] dm3 → dm³
           { key: 'name_ru', type: 'text', labelKey: 'catalog.nameRu', required: true, col: 2 },
           { key: 'name_uz', type: 'text', labelKey: 'catalog.nameUz', required: true, col: 2 },
           { key: 'name_en', type: 'text', labelKey: 'catalog.nameEn', required: true, col: 2 },
