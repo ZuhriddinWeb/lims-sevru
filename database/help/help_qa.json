@@ -17,6 +17,7 @@
    "about"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Bu dastur nima va nima uchun kerak?",
    "alt": [
@@ -61,6 +62,7 @@
    "log in"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Tizimga qanday kiraman?",
    "alt": [
@@ -106,6 +108,7 @@
    "kira olmayapman"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Login yoki parol noto'g'ri» deb chiqyapti, nima qilaman?",
    "alt": [
@@ -148,6 +151,7 @@
    "reset password"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Parolni unutib qo'ydim, qanday tiklayman?",
    "alt": [
@@ -189,6 +193,7 @@
    "change password"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "O'z parolimni qanday almashtiraman?",
    "alt": [
@@ -231,6 +236,7 @@
    "phone"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Profil sahifasida nimalarni o'zgartirish mumkin?",
    "alt": [
@@ -277,6 +283,7 @@
    "english"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Dastur tilini qanday o'zgartiraman?",
    "alt": [
@@ -321,6 +328,7 @@
    "light"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Tungi (qorong'i) rejimni qanday yoqaman?",
    "alt": [
@@ -367,6 +375,7 @@
    "mobile"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Chap menyuni qanday yig'ib qo'yaman yoki telefonda qanday ochaman?",
    "alt": [
@@ -411,6 +420,7 @@
    "bell"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yuqoridagi qo'ng'iroqcha (bildirishnoma) nima ko'rsatadi?",
    "alt": [
@@ -455,6 +465,7 @@
    "ruxsat"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Menyuda kerakli bo'lim ko'rinmayapti, nega?",
    "alt": [
@@ -498,6 +509,7 @@
    "no access"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Kirish yopiq. Rolingizda bu bo'limga ruxsat yo'q» chiqdi, nima qilaman?",
    "alt": [
@@ -539,6 +551,7 @@
    "page not found"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Sahifa topilmadi» chiqdi, nima bo'ldi?",
    "alt": [
@@ -582,6 +595,7 @@
    "session expired"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Seans tugadi, qayta kiring» deb chiqdi, nega?",
    "alt": [
@@ -620,6 +634,7 @@
    "sign out"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Tizimdan qanday chiqaman?",
    "alt": [
@@ -662,6 +677,7 @@
    "tozalash"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ro'yxatda qidirish va filtrlardan qanday foydalanaman?",
    "alt": [
@@ -710,6 +726,7 @@
    "rows per page"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ro'yxatni qanday tartiblayman va sahifadagi qatorlar sonini qanday o'zgartiraman?",
    "alt": [
@@ -757,6 +774,7 @@
    "download"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ro'yxatni Excel ga qanday yuklab olaman?",
    "alt": [
@@ -805,6 +823,7 @@
    "chelak"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi yozuvni qanday qo'shaman, o'zgartiraman yoki o'chiraman?",
    "alt": [
@@ -849,6 +868,7 @@
    "validatsiya"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Qaysi maydonlar majburiy va xato bo'lsa nima ko'rinadi?",
    "alt": [
@@ -892,6 +912,7 @@
    "action failed"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Amalni bajarib bo'lmadi» xabari chiqdi, nima qilaman?",
    "alt": [
@@ -936,6 +957,7 @@
    "cache"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ctrl+F5 nima uchun kerak?",
    "alt": [
@@ -983,6 +1005,7 @@
    "shablon"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Proba» va «namuna» bir narsami? Asosiy atamalar nima?",
    "alt": [
@@ -1034,6 +1057,7 @@
    "buyurtmachi"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Rollar qanday va kim nimani qila oladi?",
    "alt": [
@@ -1078,6 +1102,7 @@
    "guide"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Foydalanish yo'riqnomasi (PDF) qayerda?",
    "alt": [
@@ -1120,6 +1145,7 @@
    "old view"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Eski ko'rinish» tugmasi nima qiladi?",
    "alt": [
@@ -1165,6 +1191,7 @@
    "desk"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Bosh sahifa (Ish stoli) nimani ko'rsatadi?",
    "alt": [
@@ -1206,6 +1233,7 @@
    "cards missing"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Bosh sahifada ba'zi kartochkalar yo'q, nega?",
    "alt": [
@@ -1246,6 +1274,7 @@
    "my activity"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Shu smenadagi ishim» bloki nima?",
    "alt": [
@@ -1287,6 +1316,7 @@
    "shortcut"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Tezkor havolalar» nima uchun?",
    "alt": [
@@ -1328,6 +1358,7 @@
    "uzatilmagan"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Qabul» kartochkasi nimani ko'rsatadi?",
    "alt": [
@@ -1368,6 +1399,7 @@
    "analitik"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Guruhim navbati» kartochkasi nima?",
    "alt": [
@@ -1413,6 +1445,7 @@
    "retest"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Ochiq ishchi varaqlarim», «Takroriy tahlilga qaytarilganlar» va «Tasdiq kutayotgan varaqlar» nima?",
    "alt": [
@@ -1455,6 +1488,7 @@
    "laboratory"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Hozirgi smena — laboratoriya» va «7 kundan ortiq ishda» kartochkalari nimani anglatadi?",
    "alt": [
@@ -1502,6 +1536,7 @@
    "storage"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Uskunalar kalibrovkasi», «Saqlash muddati tugaydi», «Ochiq suv buyurtmalari» va «Qoldig'i kam namunalar» kartochkalari nimani ko'rsatadi?",
    "alt": [
@@ -1548,6 +1583,7 @@
    "management"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Rahbariyat paneli nima va kimga kerak?",
    "alt": [
@@ -1598,6 +1634,7 @@
    "interval"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Rahbariyat panelida davrni qanday tanlayman?",
    "alt": [
@@ -1645,6 +1682,7 @@
    "shift not configured"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Smenalar sozlanmagan — kun bo'yicha ko'rsatildi» degan xabar chiqdi, nima qilaman?",
    "alt": [
@@ -1693,6 +1731,7 @@
    "customer"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Rahbariyat panelida laboratoriya, guruh yoki buyurtmachi bo'yicha qanday ajrataman?",
    "alt": [
@@ -1740,6 +1779,7 @@
    "median"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Rahbariyat panelining yuqoridagi asosiy ko'rsatkichlari nimani anglatadi?",
    "alt": [
@@ -1785,6 +1825,7 @@
    "aging"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Ish oqimi — hozir» bloki nimani ko'rsatadi?",
    "alt": [
@@ -1832,6 +1873,7 @@
    "table"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Dinamika grafigini jadval ko'rinishida qanday ko'raman?",
    "alt": [
@@ -1877,6 +1919,7 @@
    "смены"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Panelning «Smenalar» blokida nima ko'rsatiladi?",
    "alt": [
@@ -1924,6 +1967,7 @@
    "customers"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Bajaruvchi guruhlar» va «Buyurtmachilar» jadvallarida nima ko'rsatiladi?",
    "alt": [
@@ -1967,6 +2011,7 @@
    "worksheets"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Panelning «Ishchi varaqlar» blokida nima bor?",
    "alt": [
@@ -2009,6 +2054,7 @@
    "attention"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Diqqat talab qiladi» bloki nima uchun?",
    "alt": [
@@ -2052,6 +2098,7 @@
    "ecology"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Panelning «Uskunalar» va «Ekologiya (suv)» bloklari nimani ko'rsatadi?",
    "alt": [
@@ -2096,6 +2143,7 @@
    "auto"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Rahbariyat paneli ma'lumotlari qachon yangilanadi?",
    "alt": [
@@ -2142,6 +2190,7 @@
    "summary"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Hisobotlar sahifasida qanday hisobotlar bor?",
    "alt": [
@@ -2190,6 +2239,7 @@
    "quarter"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Hisobotda davr va laboratoriyani qanday tanlayman?",
    "alt": [
@@ -2233,6 +2283,7 @@
    "columns"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Hisobot ustunlari nimani anglatadi?",
    "alt": [
@@ -2279,6 +2330,7 @@
    "export"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Hisobotni qanday chop etaman yoki Excel ga yuklab olaman?",
    "alt": [
@@ -2323,6 +2375,7 @@
    "empty report"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Hisobot bo'sh chiqyapti, nega?",
    "alt": [
@@ -2366,6 +2419,7 @@
    "list"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namunalar (Probalar) sahifasi nima uchun kerak?",
    "alt": [
@@ -2411,6 +2465,7 @@
    "jarayon"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namuna qanday bosqichlardan o'tadi va holatlar nimani bildiradi?",
    "alt": [
@@ -2458,6 +2513,7 @@
    "new sample"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi namunani qanday ro'yxatga olaman?",
    "alt": [
@@ -2502,6 +2558,7 @@
    "shifr"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Proba raqami» va «Shifr» maydonlari nima, farqi bormi?",
    "alt": [
@@ -2549,6 +2606,7 @@
    "state of matter"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Agregat holati» maydoniga nima tanlanadi?",
    "alt": [
@@ -2595,6 +2653,7 @@
    "division"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Asos hujjat» va «Bo'linma / olingan joy» maydonlariga nima yoziladi?",
    "alt": [
@@ -2641,6 +2700,7 @@
    "executor group"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Buyurtmachi guruh» va «Uzatilgan guruh» orasida qanday farq bor?",
    "alt": [
@@ -2687,6 +2747,7 @@
    "test profile"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Aniqlanadigan elementlarni qanday tanlayman? Sinov profili nima beradi?",
    "alt": [
@@ -2716,6 +2777,66 @@
   }
  },
  {
+  "id": "samples.code_repeat_month",
+  "section": "Namunalar",
+  "type": "howto",
+  "route": "samples",
+  "permission": [
+   "samples.view"
+  ],
+  "keywords": [
+   "shifr takrorlanadi",
+   "bir xil shifr",
+   "keyingi oy",
+   "har oy",
+   "908",
+   "qaytalanadi",
+   "повтор шифра",
+   "одинаковый шифр",
+   "следующий месяц",
+   "каждый месяц",
+   "same code",
+   "repeat",
+   "next month",
+   "every month"
+  ],
+  "top": false,
+  "page": false,
+  "uz": {
+   "q": "Bir xil shifrli namuna keyingi oyda yana kelsa nima bo'ladi?",
+   "alt": [
+    "shifr har oy qaytalanadi",
+    "oktyabrdagi 908 noyabrda ham keldi",
+    "bir xil raqamli proba boshqa oyda",
+    "shifr allaqachon ro'yxatda bor xatosi",
+    "shifr takrorlanyapti"
+   ],
+   "a": "Muammo yo'q — bo'lim shifri (va namuna raqami) har oy qaytadan boshlanishi mumkin. Masalan, oktyabrda 908 ro'yxatga olingan bo'lsa, noyabrda yana 908 kiritiladi va yangi namuna bo'lib yaratiladi.\n• Tizim har bir namunaga o'z ichki shifrini beradi: «Shifr» oy bilan — PR-202610-…, PR-202611-…. Ro'yxatlar, ishchi varaqlar va natijalarda namunalar shu shifr bilan ajraladi, shuning uchun natijalar aralashib ketmaydi — hatto ikkala 908 bitta ishchi varaqda bo'lsa ham.\n• Xato faqat bitta bo'limning bir xil shifri SHU OYNING o'zida ikkinchi marta kiritilsa chiqadi («… oyida allaqachon ro'yxatda bor»).\n• Qidiruvda «908» yozsangiz, barcha oylardagi 908 lar chiqadi — «Shifr» va sanasiga qarab keraklisini tanlang; ro'yxatda oy bo'yicha filtr ham bor."
+  },
+  "ru": {
+   "q": "Что будет, если проба с тем же шифром придёт в следующем месяце?",
+   "alt": [
+    "шифр повторяется каждый месяц",
+    "908 из октября пришла и в ноябре",
+    "проба с тем же номером в другом месяце",
+    "ошибка шифр уже зарегистрирован",
+    "повтор шифра"
+   ],
+   "a": "Это не проблема — шифр подразделения (и номер пробы) может начинаться заново каждый месяц. Например, если в октябре зарегистрирована 908, в ноябре снова вводится 908 и создаётся новая проба.\n• Система присваивает каждой пробе свой внутренний «Шифр» с месяцем — PR-202610-…, PR-202611-…. В списках, рабочих листах и результатах пробы различаются по нему, поэтому результаты не перепутаются — даже если обе 908 в одном рабочем листе.\n• Ошибка возникает только если одинаковый шифр одного подразделения вводится повторно в ТОМ ЖЕ МЕСЯЦЕ («… уже зарегистрирована в месяце …»).\n• При поиске «908» выводятся 908 всех месяцев — выбирайте нужную по «Шифр» и дате; в списке есть и фильтр по месяцу."
+  },
+  "en": {
+   "q": "What happens if a sample with the same code arrives next month?",
+   "alt": [
+    "code repeats every month",
+    "908 from October came again in November",
+    "same number in another month",
+    "code already registered error",
+    "repeated code"
+   ],
+   "a": "No problem — the department code (and sample number) may restart every month. For example, if 908 was registered in October, 908 is entered again in November and a new sample is created.\n• The system gives each sample its own internal “Code” with the month — PR-202610-…, PR-202611-…. Lists, worksheets and results tell samples apart by it, so results never get mixed — even if both 908s are on one worksheet.\n• An error appears only when the same code of one department is entered twice in the SAME MONTH (\"… already registered in month …\").\n• Searching \"908\" shows 908s from all months — pick the right one by “Code” and date; the list also has a month filter."
+  }
+ },
+ {
   "id": "samples.field_intake",
   "section": "Namunalar",
   "type": "field",
@@ -2736,6 +2857,7 @@
    "quantity"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Buyurtmachi va miqdor» bo'limidagi maydonlar nima?",
    "alt": [
@@ -2744,7 +2866,7 @@
     "qabul qilingan miqdor",
     "o'lchov birligi"
    ],
-   "a": "• «Buyurtmachi bo'lim» — namunani topshirgan zavod bo'limi (laboratoriya ichidagi guruh bo'lsa, bo'sh qoldiring). Ro'yxat «Buyurtmachi bo'limlar» katalogidan olinadi.\\n• «Buyurtmachi shifri» — bo'lim bergan shifr (namuna yorlig'idagi). Bir bo'lim ichida bir xil shifrni ikki marta kiritib bo'lmaydi — xato chiqadi.\\n• «Qabul qilingan miqdor» — qabul paytida tortilgan/o'lchangan miqdor (0 dan katta).\\n• «Birlik» — «g», «kg», «mg», «ml» yoki «l» (standart — g).\\nMiqdor kiritilsa, tizim qoldiqni hisoblab boradi."
+   "a": "• «Buyurtmachi bo'lim» — namunani topshirgan zavod bo'limi (laboratoriya ichidagi guruh bo'lsa, bo'sh qoldiring). Ro'yxat «Buyurtmachi bo'limlar» katalogidan olinadi.\\n• «Buyurtmachi shifri» — bo'lim bergan shifr (namuna yorlig'idagi). Shifr har oy qaytadan boshlanishi mumkin: oktyabrdagi 908 bo'lsa ham, noyabrda yana 908 kiritiladi. Faqat bir bo'limda SHU OYNING o'zida bir xil shifrni ikki marta kiritib bo'lmaydi — xato chiqadi. Bir xil shifrli namunalar tizim shifri (PR-YYYYMM-…) va sanasi bilan ajraladi.\\n• «Qabul qilingan miqdor» — qabul paytida tortilgan/o'lchangan miqdor (0 dan katta).\\n• «Birlik» — «g», «kg», «mg», «ml» yoki «l» (standart — g).\\nMiqdor kiritilsa, tizim qoldiqni hisoblab boradi."
   },
   "ru": {
    "q": "Что за поля в блоке «Заказчик и количество»?",
@@ -2754,7 +2876,7 @@
     "принятое количество",
     "единица измерения"
    ],
-   "a": "• «Подразделение-заказчик» — подразделение завода, сдавшее пробу (если заказчик — группа внутри лаборатории, оставьте пустым). Список берётся из справочника «Подразделения-заказчики».\\n• «Шифр заказчика» — шифр, присвоенный подразделением (на этикетке пробы). В рамках одного подразделения одинаковый шифр дважды ввести нельзя — будет ошибка.\\n• «Принятое количество» — количество, взвешенное/измеренное при приёме (больше 0).\\n• «Ед.» — «г», «кг», «мг», «мл» или «л» (по умолчанию г).\\nЕсли количество указано, система ведёт расчёт остатка."
+   "a": "• «Подразделение-заказчик» — подразделение завода, сдавшее пробу (если заказчик — группа внутри лаборатории, оставьте пустым). Список берётся из справочника «Подразделения-заказчики».\\n• «Шифр заказчика» — шифр, присвоенный подразделением (на этикетке пробы). Шифр может начинаться заново каждый месяц: если в октябре был 908, в ноябре снова можно ввести 908. Нельзя лишь дважды ввести одинаковый шифр одного подразделения В ТОМ ЖЕ МЕСЯЦЕ — будет ошибка. Пробы с одинаковым шифром различаются системным шифром (PR-ГГГГММ-…) и датой.\\n• «Принятое количество» — количество, взвешенное/измеренное при приёме (больше 0).\\n• «Ед.» — «г», «кг», «мг», «мл» или «л» (по умолчанию г).\\nЕсли количество указано, система ведёт расчёт остатка."
   },
   "en": {
    "q": "What are the fields in the \"Customer and quantity\" block?",
@@ -2764,7 +2886,7 @@
     "received quantity",
     "unit of measure"
    ],
-   "a": "• “Customer department” — the plant department that submitted the sample (leave empty if the customer is a group inside the laboratory). The list comes from the \"Customer departments\" catalog.\\n• “Customer code” — the code given by the department (on the sample label). The same code cannot be entered twice within one department — an error appears.\\n• “Received quantity” — quantity weighed/measured on receipt (greater than 0).\\n• “Unit” — “g”, “kg”, “mg”, “ml” or “l” (default g).\\nIf a quantity is entered, the system keeps track of the balance."
+   "a": "• “Customer department” — the plant department that submitted the sample (leave empty if the customer is a group inside the laboratory). The list comes from the \"Customer departments\" catalog.\\n• “Customer code” — the code given by the department (on the sample label). Codes may restart every month: if 908 was used in October, 908 can be entered again in November. Only the same code of one department within the SAME MONTH is rejected — an error appears. Samples with the same code are told apart by the system code (PR-YYYYMM-…) and date.\\n• “Received quantity” — quantity weighed/measured on receipt (greater than 0).\\n• “Unit” — “g”, “kg”, “mg”, “ml” or “l” (default g).\\nIf a quantity is entered, the system keeps track of the balance."
   }
  },
  {
@@ -2783,6 +2905,7 @@
    "already exists"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Buyurtmachi shifri kiritilganda «allaqachon mavjud» xatosi chiqdi, nima qilaman?",
    "alt": [
@@ -2827,6 +2950,7 @@
    "assign"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namunani tahlil guruhiga qanday uzataman?",
    "alt": [
@@ -2871,6 +2995,7 @@
    "start"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Ishga olish» tugmasi nima qiladi va kim bosadi?",
    "alt": [
@@ -2912,6 +3037,7 @@
    "button missing"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namuna qatorida «Uzatish», «Ishga olish» yoki «Arxivga» tugmasi yo'q, nega?",
    "alt": [
@@ -2952,6 +3078,7 @@
    "archive"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namunani arxivga qanday o'tkazaman?",
    "alt": [
@@ -2996,6 +3123,7 @@
    "mening guruhim"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namunalar ro'yxatida qanday filtrlar bor?",
    "alt": [
@@ -3041,6 +3169,7 @@
    "search code"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Kerakli namunani tez qanday topaman?",
    "alt": [
@@ -3086,6 +3215,7 @@
    "edit"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ro'yxatga olingan namuna ma'lumotini qanday o'zgartiraman?",
    "alt": [
@@ -3132,6 +3262,7 @@
    "trash"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namunani o'chirsam nima bo'ladi, qaytarish mumkinmi?",
    "alt": [
@@ -3173,6 +3304,7 @@
    "detail"
   ],
   "top": false,
+  "page": true,
   "uz": {
    "q": "Namuna sahifasida nimalar ko'rinadi?",
    "alt": [
@@ -3221,6 +3353,7 @@
    "value"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namuna sahifasida natijani qanday kiritaman?",
    "alt": [
@@ -3266,6 +3399,7 @@
    "calibration"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Natija kiritganda «Asbob bloklangan va sinovlar uchun yaroqsiz» xatosi chiqdi",
    "alt": [
@@ -3311,6 +3445,7 @@
    "print"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Sinov bayonnomasini qanday chop etaman?",
    "alt": [
@@ -3360,6 +3495,7 @@
    "usage"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Qabul va proba miqdori» paneli qoldiqni qanday hisoblaydi?",
    "alt": [
@@ -3403,6 +3539,7 @@
    "set quantity"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Qabul qilingan miqdor kiritilmagan bo'lsa, uni keyin qanday kiritaman?",
    "alt": [
@@ -3455,6 +3592,7 @@
    "correction"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Proba miqdori harakatini (boshqa sarf, qaytarish, utilizatsiya, tuzatish) qanday yozaman?",
    "alt": [
@@ -3500,6 +3638,7 @@
    "cancel movement"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Noto'g'ri yozilgan miqdor harakatini qanday bekor qilaman?",
    "alt": [
@@ -3549,6 +3688,7 @@
    "negative"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Qoldiq holatlari «Yetarli», «Kam qoldi», «Tugagan», «Manfiy!» nimani bildiradi?",
    "alt": [
@@ -3595,6 +3735,7 @@
    "comparison"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Nazorat tahlili — solishtirish» jadvali nima?",
    "alt": [
@@ -3636,6 +3777,7 @@
    "export"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namunalar ro'yxatini Excel ga qanday yuklab olaman?",
    "alt": [
@@ -3680,6 +3822,7 @@
    "disposal"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Sinov obyektlari bo'limi nima uchun kerak?",
    "alt": [
@@ -3724,6 +3867,7 @@
    "add object"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi sinov obyektini qanday qo'shaman?",
    "alt": [
@@ -3767,6 +3911,7 @@
    "status"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Obyekt turi va holatlari qanday?",
    "alt": [
@@ -3811,6 +3956,7 @@
    "expiry"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Saqlash joyi va saqlash muddatini qanday yozaman, eslatma chiqadimi?",
    "alt": [
@@ -3854,6 +4000,7 @@
    "filters"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Sinov obyektlari ro'yxatida qanday filtrlar bor?",
    "alt": [
@@ -3897,6 +4044,7 @@
    "disposal act"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Sinov obyektini utilizatsiya qilishni qanday rasmiylashtiraman?",
    "alt": [
@@ -3945,6 +4093,7 @@
    "upload"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Obyektga hujjat (yuk xati, qabul akti, bayonnoma) qanday biriktiraman?",
    "alt": [
@@ -3990,6 +4139,7 @@
    "elements"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Obyektga sinov profili va elementlarni qanday biriktiraman?",
    "alt": [
@@ -4037,6 +4187,7 @@
    "instrument"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Uskunalar bo'limi nimani hisobga oladi?",
    "alt": [
@@ -4080,6 +4231,7 @@
    "add equipment"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi uskunani qanday qo'shaman?",
    "alt": [
@@ -4123,6 +4275,7 @@
    "max uses"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Uskuna formasidagi kalibrovka maydonlari nimani anglatadi?",
    "alt": [
@@ -4170,6 +4323,7 @@
    "maintenance interval"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Uskuna formasidagi texnik xizmat maydonlari nima?",
    "alt": [
@@ -4215,6 +4369,7 @@
    "equipment status"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Uskuna holatlari («Ishchi», «Xizmatda» va boshqalar) nimani bildiradi?",
    "alt": [
@@ -4261,6 +4416,7 @@
    "unblock"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Uskunani qanday bloklayman yoki blokdan chiqaraman?",
    "alt": [
@@ -4307,6 +4463,7 @@
    "certificate"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Kalibrovkani uskuna tarixiga qanday qo'shaman?",
    "alt": [
@@ -4353,6 +4510,7 @@
    "repair"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Texnik xizmat yoki ta'mirni qanday yozaman?",
    "alt": [
@@ -4401,6 +4559,7 @@
    "tabs"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Uskuna sahifasidagi yorliqlarda («Kalibrovkalar», «Texnik xizmat», «Hujjatlar», «Tarix») nima bor?",
    "alt": [
@@ -4447,6 +4606,7 @@
    "blocked"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Uskunalar ro'yxatida qanday filtrlar bor? Kalibrovkasi yaqinlarini qanday topaman?",
    "alt": [
@@ -4495,6 +4655,7 @@
    "ekologiya"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Suv laboratoriyasi bo'limi nima va unda nimalar bor?",
    "alt": [
@@ -4538,6 +4699,7 @@
    "new order"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Suv laboratoriyasida yangi buyurtmani qanday yarataman?",
    "alt": [
@@ -4578,6 +4740,7 @@
    "take into work"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Suv buyurtmasini qanday ishga olaman?",
    "alt": [
@@ -4626,6 +4789,7 @@
    "assessment"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Suv buyurtmasida o'lchov natijalarini qanday kiritaman?",
    "alt": [
@@ -4671,6 +4835,7 @@
    "auto fill"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Nuqta ko'rsatkichlarini qo'yish» tugmasi nima qiladi?",
    "alt": [
@@ -4711,6 +4876,7 @@
    "filters"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Suv buyurtmalari ro'yxatida qanday filtrlar bor?",
    "alt": [
@@ -4752,6 +4918,7 @@
    "monitoring point"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Monitoring nuqtalari nima?",
    "alt": [
@@ -4799,6 +4966,7 @@
    "coordinates"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi monitoring nuqtasini qanday qo'shaman? Qaysi maydonlar majburiy?",
    "alt": [
@@ -4843,6 +5011,7 @@
    "trend"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«AI tahlil» sahifasi nima qiladi?",
    "alt": [
@@ -4888,6 +5057,7 @@
    "run analysis"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "AI tahlilni qanday ishga tushiraman?",
    "alt": [
@@ -4934,6 +5104,7 @@
    "sheet"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaq nima va u nima uchun kerak?",
    "alt": [
@@ -4979,6 +5150,7 @@
    "status"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaq holatlari nimani bildiradi?",
    "alt": [
@@ -5027,6 +5199,7 @@
    "search"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ishchi varaqlar ro'yxatida qanday qidiraman va filtrlayman?",
    "alt": [
@@ -5073,6 +5246,7 @@
    "create"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi ishchi varaqni qanday yarataman?",
    "alt": [
@@ -5119,6 +5293,7 @@
    "candidate"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Varaq yaratishda kerakli namuna ro'yxatda chiqmayapti, nega?",
    "alt": [
@@ -5165,6 +5340,7 @@
    "max samples"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Varaqqa nechta namuna va parallel qo'yish mumkin?",
    "alt": [
@@ -5210,6 +5386,7 @@
    "control analysis"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Nazorat uchun ishchi varaq nima va qanday yaratiladi?",
    "alt": [
@@ -5256,6 +5433,7 @@
    "create anyway"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Varaq yaratishda «Probada yetarli miqdor qolmagan» ogohlantirishi chiqdi, nima qilaman?",
    "alt": [
@@ -5303,6 +5481,7 @@
    "spare rows"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaqni qanday chop etaman? «Zaxira qatorlar» nima?",
    "alt": [
@@ -5352,6 +5531,7 @@
    "entry"
   ],
   "top": true,
+  "page": true,
   "uz": {
    "q": "Ishchi varaq sahifasi qanday tuzilgan?",
    "alt": [
@@ -5402,6 +5582,7 @@
    "comma"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Jadvalga qiymatlarni qanday kiritaman? Enter, vergul va nuqta qanday ishlaydi?",
    "alt": [
@@ -5448,6 +5629,7 @@
    "blank"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Sarlavha parametrlari» nima? (namlik, xolostoy proba va h.k.)",
    "alt": [
@@ -5495,6 +5677,7 @@
    "discrepancy"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Parallellar farqi yashil yoki qizil bo'lishi nimani bildiradi?",
    "alt": [
@@ -5542,6 +5725,7 @@
    "reason"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Chetga chiqqan parallelni hisobdan qanday chiqaraman?",
    "alt": [
@@ -5586,6 +5770,7 @@
    "extra"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Chop etilgandan keyin qo'shimcha parallelni qanday qo'shaman?",
    "alt": [
@@ -5631,6 +5816,7 @@
    "send back"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namunani takroriy tahlilga qanday qaytaraman?",
    "alt": [
@@ -5677,6 +5863,7 @@
    "remove sample"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Mavjud varaqqa namunani qanday qo'shaman yoki undan olib tashlayman?",
    "alt": [
@@ -5722,6 +5909,7 @@
    "performer"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Bajaruvchilar (bosqich imzolari)» bo'limini qanday to'ldiraman?",
    "alt": [
@@ -5772,6 +5960,7 @@
    "compare"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "To'ldirilgan qog'oz varaqning skanini qanday biriktiraman va solishtiraman?",
    "alt": [
@@ -5818,6 +6007,7 @@
    "unsaved"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Varaqni qanday saqlayman? «Saqlanmagan o'zgarishlar bor» nima?",
    "alt": [
@@ -5864,6 +6054,7 @@
    "finish"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaqni qanday yakunlayman? Nega «Yakunlash» xato beryapti?",
    "alt": [
@@ -5910,6 +6101,7 @@
    "push results"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaqni qanday tasdiqlayman? Natija namunaga qanday o'tadi?",
    "alt": [
@@ -5955,6 +6147,7 @@
    "not transferred"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Tasdiqlagandan keyin natija namunaga o'tmadi, nega?",
    "alt": [
@@ -6000,6 +6193,7 @@
    "reason"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Tasdiqlangan varaqni qanday qayta ochaman?",
    "alt": [
@@ -6044,6 +6238,7 @@
    "trash"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ishchi varaqni o'chirsam nima bo'ladi?",
    "alt": [
@@ -6087,6 +6282,7 @@
    "final result"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Varaq bo'yicha jami» va «Probalar bo'yicha natija» nima?",
    "alt": [
@@ -6132,6 +6328,7 @@
    "weigh-in"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Proba sarfi» ustuni nima uchun kerak?",
    "alt": [
@@ -6176,6 +6373,7 @@
    "form builder"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishchi varaq shabloni nima va qayerda sozlanadi?",
    "alt": [
@@ -6223,6 +6421,7 @@
    "form code"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Shablonning «Asosiy ma'lumotlar» bo'limidagi maydonlar nima?",
    "alt": [
@@ -6275,6 +6474,7 @@
    "key"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Shablonda «Bosqichlar» va «Sarlavha parametrlari»ni qanday qo'shaman?",
    "alt": [
@@ -6330,6 +6530,7 @@
    "rounding"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Qator ustunlari»ni qanday sozlayman? Turlari va yaxlitlash nima?",
    "alt": [
@@ -6384,6 +6585,7 @@
    "functions"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ustun formulalarini qanday yozaman? Qaysi funksiyalar bor?",
    "alt": [
@@ -6433,6 +6635,7 @@
    "truncate"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Yaxlitlash» va «Kesish» o'rtasida qanday farq bor?",
    "alt": [
@@ -6478,6 +6681,7 @@
    "element"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Yakuniy natijalar» bo'limini qanday sozlayman? Natija qaysi elementga yoziladi?",
    "alt": [
@@ -6525,6 +6729,7 @@
    "add total"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Shablonda «Varaq bo'yicha jami» nima uchun kerak?",
    "alt": [
@@ -6571,6 +6776,7 @@
    "check on server"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Shablonni saqlashdan oldin qanday sinab ko'raman?",
    "alt": [
@@ -6619,6 +6825,7 @@
    "existing worksheets"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Shablonni o'zgartirsam, avval yaratilgan varaqlarga ta'sir qiladimi? Nusxa nima?",
    "alt": [
@@ -6664,6 +6871,7 @@
    "inactive"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Shablonni o'chirish yoki faolsiz qilish qanday?",
    "alt": [
@@ -6711,6 +6919,7 @@
    "referral"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Laboratoriyalararo tekshiruv nima va qanday ishlaydi?",
    "alt": [
@@ -6757,6 +6966,7 @@
    "send for checking"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Namunani boshqa laboratoriyaga tekshiruvga qanday jo'nataman?",
    "alt": [
@@ -6802,6 +7012,7 @@
    "hide code"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Proba shifrini ko'rsatmaslik» (ko'r-ko'rona tekshiruv) nima uchun?",
    "alt": [
@@ -6849,6 +7060,7 @@
    "sent"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yo'llanma holatlari nimani bildiradi?",
    "alt": [
@@ -6895,6 +7107,7 @@
    "search"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Yo'llanmalar ro'yxatida qanday qidiraman va filtrlayman?",
    "alt": [
@@ -6941,6 +7154,7 @@
    "reject"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Kelgan (kiruvchi) yo'llanmani qanday qabul qilaman yoki rad etaman?",
    "alt": [
@@ -6989,6 +7203,7 @@
    "send result"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Kelgan yo'llanma bo'yicha natijani qanday kiritaman va yuboraman?",
    "alt": [
@@ -7034,6 +7249,7 @@
    "value format"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Natija qiymatiga son o'rniga «<0,01» kabi matn yozsa bo'ladimi?",
    "alt": [
@@ -7080,6 +7296,7 @@
    "revision"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Yuborilgan natijani qanday tuzataman?",
    "alt": [
@@ -7130,6 +7347,7 @@
    "verdict"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Natijalarni solishtirish jadvalida «Mos» va «Mos emas» qanday aniqlanadi?",
    "alt": [
@@ -7176,6 +7394,7 @@
    "cancel referral"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Ko'rib chiqildi» tugmasi nima qiladi va yo'llanmani qanday bekor qilaman?",
    "alt": [
@@ -7226,6 +7445,7 @@
    "offline"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Xabar navbatda» yoki «Yuborilmadi» deb chiqdi, nima qilaman?",
    "alt": [
@@ -7275,6 +7495,7 @@
    "no peers"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Bu laboratoriya hali tarmoqqa sozlanmagan» yoki «Avval laboratoriyani ulang» deb chiqdi",
    "alt": [
@@ -7323,6 +7544,7 @@
    "server address"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "O'z laboratoriyamni tarmoqqa qanday sozlayman?",
    "alt": [
@@ -7369,6 +7591,7 @@
    "valid for"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Boshqa laboratoriya menga ulanishi uchun ulanish kodini qanday yarataman?",
    "alt": [
@@ -7415,6 +7638,7 @@
    "connect"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Boshqa laboratoriyaga kod orqali qanday ulanaman?",
    "alt": [
@@ -7462,6 +7686,7 @@
    "remove"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Ulangan laboratoriya bilan nima qila olaman (aloqani tekshirish, o'chirish, olib tashlash)?",
    "alt": [
@@ -7506,6 +7731,7 @@
    "планировщик"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Avtomatik sinxronlash ishlamayapti» ogohlantirishi chiqdi, nima qilaman?",
    "alt": [
@@ -7551,6 +7777,7 @@
    "permissions"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Laboratoriyalararo tekshiruvda qaysi ruxsat nima uchun kerak?",
    "alt": [
@@ -7595,6 +7822,7 @@
    "customer department"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Buyurtmachi bo'limlar katalogi nima uchun kerak?",
    "alt": [
@@ -7641,6 +7869,7 @@
    "add department"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi buyurtmachi bo'limni qanday qo'shaman? Maydonlari nima?",
    "alt": [
@@ -7687,6 +7916,7 @@
    "link user"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Buyurtmachi foydalanuvchini bo'limga qanday biriktiraman?",
    "alt": [
@@ -7732,6 +7962,7 @@
    "account"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Buyurtmachi kirganda «Hisobingiz hali birorta bo'limga biriktirilmagan» deb chiqyapti, nima qilish kerak?",
    "alt": [
@@ -7778,6 +8009,7 @@
    "delete department"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Bo'lim portalini qanday ko'raman va bo'limni qanday o'chiraman?",
    "alt": [
@@ -7824,6 +8056,7 @@
    "customer portal"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Mening probalarim» (buyurtmachi portali) sahifasi nima ko'rsatadi?",
    "alt": [
@@ -7873,6 +8106,7 @@
    "results ready"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Portalda namuna bosqichlari nimani bildiradi?",
    "alt": [
@@ -7922,6 +8156,7 @@
    "quantity"
   ],
   "top": false,
+  "page": true,
   "uz": {
    "q": "Portalda namuna sahifasida nimalar bor? «Dastlabki» va «yakuniy» natija nima?",
    "alt": [
@@ -7966,6 +8201,7 @@
    "sample balances"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Namuna (proba) qoldiqlari» sahifasi nima ko'rsatadi?",
    "alt": [
@@ -8012,6 +8248,7 @@
    "negative"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Qoldig'i muammoli namunalarni qanday topaman? («E'tibor talab qiladi» filtri)",
    "alt": [
@@ -8056,6 +8293,7 @@
    "mening faoliyatim"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Xodimlar faoliyati» sahifasi nima ko'rsatadi?",
    "alt": [
@@ -8103,6 +8341,7 @@
    "metrics"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Xodimlar faoliyatidagi ko'rsatkichlar qanday hisoblanadi?",
    "alt": [
@@ -8153,6 +8392,7 @@
    "idle"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Xodimlar faoliyatini qanday filtrlayman, faolligi yo'q xodimlarni qanday ko'raman va Excel ga yuklayman?",
    "alt": [
@@ -8201,6 +8441,7 @@
    "employee detail"
   ],
   "top": false,
+  "page": true,
   "uz": {
    "q": "Xodimning shaxsiy faoliyat sahifasida nimalar bor? («Vaqt chizig'i»)",
    "alt": [
@@ -8244,6 +8485,7 @@
    "shifts"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Smenalar bo'limi nima uchun kerak?",
    "alt": [
@@ -8293,6 +8535,7 @@
    "midnight"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi smenani qanday qo'shaman? Yarim tundan o'tadigan smena-chi?",
    "alt": [
@@ -8340,6 +8583,7 @@
    "two shifts"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Tayyor andozadan (2 yoki 3 smena) qanday foydalanaman?",
    "alt": [
@@ -8388,6 +8632,7 @@
    "delete shift"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Smenasiz vaqt» ogohlantirishi nima? Smenani o'chirsam nima bo'ladi?",
    "alt": [
@@ -8432,6 +8677,7 @@
    "reference lists"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Kataloglar» guruhida qanday bo'limlar bor va ular nima uchun kerak?",
    "alt": [
@@ -8477,6 +8723,7 @@
    "add laboratory"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi laboratoriyani qanday qo'shaman? Maydonlari nima?",
    "alt": [
@@ -8524,6 +8771,7 @@
    "role in process"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Laboratoriya guruhini qanday qo'shaman? «Jarayondagi roli» nima?",
    "alt": [
@@ -8573,6 +8821,7 @@
    "unit"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi aniqlanadigan element (ko'rsatkich) qanday qo'shiladi? Maydonlari nima?",
    "alt": [
@@ -8622,6 +8871,7 @@
    "cannot delete"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Elementni (yoki laboratoriya, guruh, profilni) o'chirsam nima bo'ladi? Nega o'chmayapti?",
    "alt": [
@@ -8667,6 +8917,7 @@
    "test profile"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Sinov profili nima va u nima uchun kerak?",
    "alt": [
@@ -8714,6 +8965,7 @@
    "default profile"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Sinov profilini qanday yarataman? Maydonlari nima?",
    "alt": [
@@ -8758,6 +9010,7 @@
    "apply profile in sample"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Namuna ro'yxatga olishda sinov profilini qanday qo'llayman?",
    "alt": [
@@ -8804,6 +9057,7 @@
    "accounts"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Foydalanuvchilar» sahifasi nima uchun kerak?",
    "alt": [
@@ -8853,6 +9107,7 @@
    "add user"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi foydalanuvchini qanday yarataman? Maydonlari nima?",
    "alt": [
@@ -8902,6 +9157,7 @@
    "change role"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Xodimning parolini yoki rolini qanday o'zgartiraman?",
    "alt": [
@@ -8954,6 +9210,7 @@
    "delete user"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Ishdan ketgan xodimni qanday bloklayman yoki o'chiraman?",
    "alt": [
@@ -9000,6 +9257,7 @@
    "permissions"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Rollar va ruxsatlar» sahifasi nima ko'rsatadi?",
    "alt": [
@@ -9049,6 +9307,7 @@
    "tick"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Rolga ruxsatlarni qanday beraman (ruxsat matritsasi)?",
    "alt": [
@@ -9099,6 +9358,7 @@
    "create role"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Yangi rolni qanday yarataman? Maydonlari nima?",
    "alt": [
@@ -9145,6 +9405,7 @@
    "portal permission"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "«Buyurtmachi portali» ruxsati nimani bildiradi? Uni boshqa rollarga bersa bo'ladimi?",
    "alt": [
@@ -9190,6 +9451,7 @@
    "navigation"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Menyu bandlari» sahifasi nima uchun kerak?",
    "alt": [
@@ -9238,6 +9500,7 @@
    "add menu item"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Menyu bandini qanday qo'shaman yoki o'zgartiraman? Maydonlari nima?",
    "alt": [
@@ -9287,6 +9550,7 @@
    "activity log"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Audit jurnali» nima ko'rsatadi?",
    "alt": [
@@ -9336,6 +9600,7 @@
    "filter by section"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "Audit jurnalidan kerakli yozuvni qanday topaman?",
    "alt": [
@@ -9385,6 +9650,7 @@
    "record history"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Jurnal yozuvini bossam nima ochiladi? «Shu yozuv tarixi» nima?",
    "alt": [
@@ -9433,6 +9699,7 @@
    "eski ko'rinish"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Audit jurnalini Excel ga qanday yuklab olaman? «Eski ko'rinish» nima?",
    "alt": [
@@ -9478,6 +9745,7 @@
    "deleted records"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "«Savatcha» nima? O'chirilgan yozuvlar qayerga ketadi?",
    "alt": [
@@ -9524,6 +9792,7 @@
    "undelete"
   ],
   "top": true,
+  "page": false,
   "uz": {
    "q": "O'chirib yuborilgan yozuvni qanday tiklayman?",
    "alt": [
@@ -9574,6 +9843,7 @@
    "who deleted"
   ],
   "top": false,
+  "page": false,
   "uz": {
    "q": "Yozuvni kim va qachon o'chirganini qanday bilaman?",
    "alt": [
@@ -9600,6 +9870,495 @@
     "history of a deleted record"
    ],
    "a": "In the \"Trash\" table each row shows “Deleted” (the date, for example \"today\", \"yesterday\" or \"n days ago\") and “Deleted by” (who; if unknown — \"unknown\"). Filters: the \"Deleted by\" list (\"Anyone\"), the \"Deleted: from\" – \"to\" dates, search and “Reset”. The \"History\" button shows the record's full change history (the restore window also has \"Record history\"). The table can also be exported to Excel (up to about 20,000 rows)."
+  }
+ },
+ {
+  "id": "page.elements",
+  "section": "Kataloglar",
+  "type": "info",
+  "route": "elements",
+  "permission": [
+   "catalog.view"
+  ],
+  "keywords": [
+   "elementlar sahifasi",
+   "ko'rsatkichlar",
+   "элементы",
+   "показатели",
+   "elements page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "«Elementlar» sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "elementlar katalogi",
+    "aniqlanadigan elementlar sahifasi"
+   ],
+   "a": "«Aniqlanadigan elementlar» — «Elementlar va ko'rsatkichlar katalogi». Bu yerda: jadvalda belgisi, uch tildagi nomi va standart o'lchov birligini ko'rasiz; qidiruv orqali kerakli elementni topasiz; «Qo'shish» bilan yangisini qo'shasiz, qalamcha bilan tahrirlaysiz, kerak bo'lmasa faolligini o'chirasiz. Elementlar namuna ro'yxatga olishda va sinov profillarida tanlanadi. Qo'shish va o'zgartirish uchun «Kataloglarni boshqarish» ruxsati kerak."
+  },
+  "ru": {
+   "q": "Что можно делать на странице «Элементы»?",
+   "alt": [
+    "справочник элементов",
+    "страница определяемых элементов"
+   ],
+   "a": "«Определяемые элементы» — «Справочник элементов и показателей». Здесь: в таблице видны символ, название на трёх языках и единица по умолчанию; поиск помогает найти нужный элемент; кнопкой «Создать» добавляется новый, карандашом правится, ненужный отключается переключателем активности. Элементы выбираются при регистрации проб и в профилях испытаний. Для добавления и изменения нужно право «Управление справочниками»."
+  },
+  "en": {
+   "q": "What can I do on the \"Elements\" page?",
+   "alt": [
+    "elements catalog",
+    "determined elements page"
+   ],
+   "a": "\"Elements\" — “Reference list of elements and parameters”. Here: the table shows the symbol, the name in three languages and the default unit; search finds the element you need; “Create” adds a new one, the pencil edits it, an unneeded one is switched off with the activity switch. Elements are picked when registering samples and in test profiles. Adding and changing needs the \"Manage catalogs\" permission."
+  }
+ },
+ {
+  "id": "page.groups",
+  "section": "Kataloglar",
+  "type": "info",
+  "route": "laboratory-groups",
+  "permission": [
+   "catalog.view"
+  ],
+  "keywords": [
+   "guruhlar sahifasi",
+   "laboratoriya guruhlari",
+   "группы лабораторий",
+   "laboratory groups page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "«Laboratoriya guruhlari» sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "guruhlar katalogi",
+    "guruhlar sahifasi"
+   ],
+   "a": "«Laboratoriya guruhlari» — «Laboratoriya ichidagi guruhlar va ularning roli». Jadvalda har guruhning kodi, nomi, laboratoriyasi va jarayondagi roli (Buyurtmachi, Bajaruvchi yoki Buyurtmachi va bajaruvchi) ko'rinadi. Ro'yxatni «Laboratoriya» bo'yicha filtrlash, «Qo'shish» bilan yangi guruh qo'shish, qalamcha bilan tahrirlash mumkin. Guruhlar namunalarni uzatishda, ishchi varaqlarda va foydalanuvchi profilida ishlatiladi."
+  },
+  "ru": {
+   "q": "Что можно делать на странице «Группы лабораторий»?",
+   "alt": [
+    "справочник групп",
+    "страница групп"
+   ],
+   "a": "«Группы лабораторий» — «Группы внутри лабораторий и их роль в процессе». В таблице у каждой группы виден код, название, лаборатория и роль в процессе (Заказчик, Исполнитель или Заказчик и исполнитель). Список можно фильтровать по полю «Лаборатория», добавлять группу кнопкой «Создать» и править карандашом. Группы используются при передаче проб, в рабочих листах и в профиле пользователя."
+  },
+  "en": {
+   "q": "What can I do on the \"Laboratory groups\" page?",
+   "alt": [
+    "groups catalog",
+    "groups page"
+   ],
+   "a": "\"Laboratory groups\" — “Groups inside laboratories and their role in the process”. The table shows each group's code, name, laboratory and role in the process (Requester, Executor or Requester and executor). You can filter the list by “Laboratory”, add a group with “Create” and edit it with the pencil. Groups are used when handing samples over, in worksheets and in the user profile."
+  }
+ },
+ {
+  "id": "page.equipment_detail",
+  "section": "Uskunalar",
+  "type": "info",
+  "route": "equipment-detail",
+  "permission": [
+   "equipment.view"
+  ],
+  "keywords": [
+   "uskuna sahifasi",
+   "uskuna kartochkasi",
+   "страница прибора",
+   "карточка оборудования",
+   "equipment page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Uskuna sahifasida (kartochkasida) nimalar qilish mumkin?",
+   "alt": [
+    "uskuna kartochkasi",
+    "asbob sahifasi"
+   ],
+   "a": "Uskuna sahifasida asbobning ma'lumotlari va holati turadi, yorliqlar bo'yicha: «Kalibrovkalar tarixi» (kalibrovka qo'shish), «Xizmat tarixi» (texnik xizmat va ta'mirni yozish), «Hujjatlar» (sertifikat, akt, yo'riqnoma yuklash) va «Tarix» (voqealar xronologiyasi). Shuningdek asbobni «Bloklash» (sabab bilan) va «Blokdan chiqarish» mumkin: bloklangan yoki kalibrovkasi o'tgan asbob sinovlarda tanlanmaydi. Tahrirlash uchun tegishli ruxsat kerak."
+  },
+  "ru": {
+   "q": "Что можно делать на странице прибора (карточке оборудования)?",
+   "alt": [
+    "карточка оборудования",
+    "страница прибора"
+   ],
+   "a": "На странице прибора — его данные и состояние, по вкладкам: «История калибровок» (добавить калибровку), «История обслуживания» (записать обслуживание и ремонт), «Документы» (загрузить сертификат, акт, инструкцию) и «История» (хронология событий). Также прибор можно «Заблокировать» (с указанием причины) и «Разблокировать»: заблокированный прибор или прибор с просроченной калибровкой не выбирается в испытаниях. Для изменений нужны соответствующие права."
+  },
+  "en": {
+   "q": "What can I do on the instrument page (equipment card)?",
+   "alt": [
+    "equipment card",
+    "instrument page"
+   ],
+   "a": "The instrument page shows its data and state, in tabs: \"Calibration history\" (add a calibration), \"Maintenance history\" (record maintenance and repairs), \"Documents\" (upload a certificate, act, manual) and \"History\" (a chronology of events). You can also \"Block\" the instrument (with a reason) and \"Unblock\" it: a blocked instrument, or one with expired calibration, is not offered in tests. Changes need the corresponding permissions."
+  }
+ },
+ {
+  "id": "page.testobject_detail",
+  "section": "Sinov obyektlari",
+  "type": "info",
+  "route": "test-object-detail",
+  "permission": [
+   "test_objects.view"
+  ],
+  "keywords": [
+   "obyekt sahifasi",
+   "sinov obyekti kartochkasi",
+   "страница объекта",
+   "test object page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Sinov obyekti sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "obyekt kartochkasi",
+    "sinov obyekti sahifasi"
+   ],
+   "a": "Obyekt sahifasida uning ma'lumotlari, holati va «Hujjatlar» bloki turadi. Siz: hujjat biriktirasiz («Yuk xati», «Qabul akti», «Bayonnoma» va boshqalar; PDF, Word, Excel, rasm, arxiv — 20 MB gacha) va yuklab olasiz; ma'lumotlarni tahrirlaysiz; obyekt tahlildan keyin kerak bo'lmasa «Utilizatsiyani rasmiylashtirish» tugmasi bilan hisobdan chiqarasiz va «Utilizatsiya akti»ni yuklaysiz. Tugmalar ruxsatingizga qarab ko'rinadi."
+  },
+  "ru": {
+   "q": "Что можно делать на странице объекта испытания?",
+   "alt": [
+    "карточка объекта",
+    "страница объекта испытания"
+   ],
+   "a": "На странице объекта — его данные, состояние и блок «Документы». Здесь можно: прикреплять документы («Накладная», «Акт приёмки», «Протокол» и др.; PDF, Word, Excel, изображения, архивы — до 20 МБ) и скачивать их; править данные; когда объект после анализа не нужен — оформить его кнопкой «Оформить утилизацию» и загрузить «Акт утилизации». Кнопки видны в зависимости от ваших прав."
+  },
+  "en": {
+   "q": "What can I do on the test object page?",
+   "alt": [
+    "object card",
+    "test object page"
+   ],
+   "a": "The object page shows its data, state and the \"Documents\" block. Here you can: attach documents (\"Waybill\", \"Acceptance act\", \"Protocol\" etc.; PDF, Word, Excel, images, archives — up to 20 MB) and download them; edit the data; when the object is no longer needed after analysis, record it with \"Record disposal\" and upload the \"Disposal act\". Buttons appear according to your permissions."
+  }
+ },
+ {
+  "id": "page.water_detail",
+  "section": "Suv laboratoriyasi",
+  "type": "info",
+  "route": "water-order-detail",
+  "permission": [
+   "water_orders.view"
+  ],
+  "keywords": [
+   "suv buyurtmasi sahifasi",
+   "заявка водной лаборатории страница",
+   "water order page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Suv buyurtmasi sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "suv buyurtmasi kartochkasi",
+    "suv buyurtmasini ochish"
+   ],
+   "a": "Buyurtma sahifasida buyurtma ma'lumotlari va «O'lchov natijalari» jadvali bor. Siz: buyurtmani «Ishga olish» (kim va qachon olgani yoziladi); jadvalga «Ko'rsatkich qo'shish» bilan qator qo'shib qiymat, birlik, me'yor chegaralari va uskunani kiritish va «Natijalarni saqlash»; monitoring nuqtasi tanlangan bo'lsa, «Nuqta ko'rsatkichlarini qo'yish» bilan ko'rsatkich va me'yorlarni avtomatik to'ldirishingiz mumkin. Har qatorning «Baho»si qiymatga qarab aniqlanadi: «Me'yorda», «Diqqat» yoki «Kritik»."
+  },
+  "ru": {
+   "q": "Что можно делать на странице заявки водной лаборатории?",
+   "alt": [
+    "карточка заявки",
+    "открыть заявку воды"
+   ],
+   "a": "На странице заявки — её данные и таблица «Результаты измерений». Здесь можно: «Взять в работу» (запоминается, кто и когда взял); добавлять строки кнопкой «Добавить показатель», вносить значение, единицу, границы нормы и оборудование и «Сохранить результаты»; если выбрана точка мониторинга — кнопкой «Подставить показатели точки» автоматически заполнить показатели и нормы. «Оценка» строки определяется по значению: «В норме», «Внимание» или «Критично»."
+  },
+  "en": {
+   "q": "What can I do on the water order page?",
+   "alt": [
+    "water order card",
+    "open a water order"
+   ],
+   "a": "The order page shows its data and the \"Measurement results\" table. Here you can: \"Take into work\" (who and when is recorded); add rows with \"Add parameter\", enter the value, unit, norm limits and equipment, and \"Save results\"; if a monitoring point is chosen, fill parameters and norms automatically with \"Load point parameters\". A row's \"Assessment\" follows the value: \"Within norms\", \"Warning\" or \"Critical\"."
+  }
+ },
+ {
+  "id": "page.il_detail",
+  "section": "Laboratoriyalararo tekshiruv",
+  "type": "info",
+  "route": "interlab-detail",
+  "permission": [
+   "interlab.view"
+  ],
+  "keywords": [
+   "yo'llanma sahifasi",
+   "laboratoriyalararo yo'llanma",
+   "страница направления",
+   "referral page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Laboratoriyalararo yo'llanma sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "yo'llanmani ochish",
+    "yo'llanma kartochkasi"
+   ],
+   "a": "Yo'llanma sahifasida uning holati, elementlar va xabarlar tarixi bor. Nima qilish mumkinligi yo'llanma sizga kiruvchi yoki chiquvchi ekanligiga bog'liq. Kiruvchi: yo'llanmani qabul qilish yoki sababi bilan rad etish, natijalarni kiritish, qoralamani saqlash va yuborish, yuborilgan natijani tuzatish. Chiquvchi (siz jo'natgan): «Natijalarni solishtirish» jadvalini ko'rish, natijani «Ko'rib chiqildi» deb belgilash, yo'llanmani bekor qilish. Tugmalar ruxsatingizga qarab ko'rinadi."
+  },
+  "ru": {
+   "q": "Что можно делать на странице межлабораторного направления?",
+   "alt": [
+    "открыть направление",
+    "карточка направления"
+   ],
+   "a": "На странице направления — его статус, элементы и история сообщений. Что можно делать, зависит от того, входящее оно или исходящее. Входящее: принять направление или отклонить с причиной, внести результаты, сохранить черновик и отправить, исправить отправленный результат. Исходящее (вы отправитель): смотреть таблицу «Сравнение результатов», отмечать результат «Просмотрено», отменять направление. Кнопки видны в зависимости от ваших прав."
+  },
+  "en": {
+   "q": "What can I do on an inter-lab referral page?",
+   "alt": [
+    "open a referral",
+    "referral card"
+   ],
+   "a": "The referral page shows its status, elements and message history. What you can do depends on whether it is incoming or outgoing. Incoming: accept the referral or reject it with a reason, enter results, save a draft and send, correct a sent result. Outgoing (you are the sender): view the \"Result comparison\" table, mark the result \"Reviewed\", cancel the referral. Buttons appear according to your permissions."
+  }
+ },
+ {
+  "id": "page.il_network",
+  "section": "Laboratoriyalar tarmog'i",
+  "type": "info",
+  "route": "interlab-network",
+  "permission": [
+   "interlab.manage"
+  ],
+  "keywords": [
+   "tarmoq sahifasi",
+   "laboratoriyalar tarmog'i",
+   "сеть лабораторий страница",
+   "lab network page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "«Laboratoriyalar tarmog'i» sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "tarmoq sozlamalari",
+    "boshqa laboratoriyalarga ulanish sahifasi"
+   ],
+   "a": "Bu sahifada laboratoriyangiz boshqa laboratoriyalar bilan bog'lanadi: 1) bir marta «Laboratoriyani tarmoqqa sozlash» (nomi, qisqa kod, server manzili); 2) boshqalar sizga ulanishi uchun «Ulanish kodi yaratish»; 3) boshqa laboratoriyaga ulanish uchun «Laboratoriya qo'shish» (manzil va kod); 4) «Ulangan laboratoriyalar» ro'yxatida holat, oxirgi aloqa, navbatdagi xabarlar, «Aloqani tekshirish», vaqtincha o'chirish va ro'yxatdan olib tashlash. Sahifa «Laboratoriyalararo tekshiruvni boshqarish» ruxsatini talab qiladi."
+  },
+  "ru": {
+   "q": "Что можно делать на странице «Сеть лабораторий»?",
+   "alt": [
+    "настройки сети",
+    "страница подключения к другим лабораториям"
+   ],
+   "a": "На этой странице ваша лаборатория связывается с другими: 1) один раз «Настройка лаборатории для сети» (название, краткий код, адрес сервера); 2) «Создать код подключения», чтобы другие подключились к вам; 3) «Добавить лабораторию» для подключения к другой (адрес и код); 4) в списке «Подключённые лаборатории» — статус, последняя связь, очередь сообщений, «Проверить связь», временное отключение и удаление из списка. Для страницы нужно право управления межлабораторными проверками."
+  },
+  "en": {
+   "q": "What can I do on the \"Lab network\" page?",
+   "alt": [
+    "network settings",
+    "page for connecting to other laboratories"
+   ],
+   "a": "On this page your laboratory connects with others: 1) once, \"Set up this laboratory for the network\" (name, short code, server address); 2) \"Create connection code\" so others can connect to you; 3) \"Add laboratory\" to connect to another one (address and code); 4) in the \"Connected laboratories\" list — status, last contact, queued messages, \"Check connection\", temporary disabling and removal from the list. The page needs the permission to manage inter-lab checks."
+  }
+ },
+ {
+  "id": "page.sample_protocol",
+  "section": "Namunalar",
+  "type": "info",
+  "route": "sample-protocol",
+  "permission": [
+   "samples.view"
+  ],
+  "keywords": [
+   "bayonnoma sahifasi",
+   "sinov bayonnomasi",
+   "страница протокола",
+   "protocol page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Sinov bayonnomasi sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "bayonnomani ochish",
+    "bayonnomani chop etish sahifasi"
+   ],
+   "a": "Bayonnoma sahifasida namuna ma'lumotlari, natijalar, ijrochi, tasdiqlagan shaxs va imzo joylari turadi. Tepadagi «Chop etish» tugmasi brauzerning chop etish oynasini ochadi — undan qog'ozga chiqarish yoki PDF sifatida saqlash mumkin. Bayonnoma to'liq ko'rinishga hamma natijalar kiritilgach keladi. Namuna sahifasiga qaytish uchun brauzerning «orqaga» tugmasidan foydalaning."
+  },
+  "ru": {
+   "q": "Что можно делать на странице протокола испытаний?",
+   "alt": [
+    "открыть протокол",
+    "страница печати протокола"
+   ],
+   "a": "На странице протокола — данные пробы, результаты, исполнитель, утвердивший и места для подписей. Кнопка «Печать» вверху открывает окно печати браузера — оттуда можно распечатать или сохранить в PDF. Полный вид протокол приобретает после внесения всех результатов. Чтобы вернуться на страницу пробы, воспользуйтесь кнопкой «назад» браузера."
+  },
+  "en": {
+   "q": "What can I do on the test protocol page?",
+   "alt": [
+    "open the protocol",
+    "protocol print page"
+   ],
+   "a": "The protocol page shows the sample data, results, performer, approver and signature lines. The \"Print\" button at the top opens the browser print window — print on paper or save as PDF from there. The protocol looks complete once all results are entered. To return to the sample page use the browser's back button."
+  }
+ },
+ {
+  "id": "page.worksheet_print",
+  "section": "Ishchi varaqlar",
+  "type": "info",
+  "route": "worksheet-print",
+  "permission": [
+   "worksheets.view"
+  ],
+  "keywords": [
+   "varaqni chop etish sahifasi",
+   "печать листа страница",
+   "worksheet print page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Ishchi varaqni chop etish sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "varaq chop etish oynasi",
+    "varaq blankasi"
+   ],
+   "a": "Bu sahifada varaq qog'oz blanka ko'rinishida chiqadi. Chop etishdan oldin oynada tanlanadi: «Forma tili» (shablon bo'yicha yoki lotin/kirill/rus), «Kiritilgan qiymatlar bilan» (belgilanmasa — toza blanka) va «Zaxira qatorlar» (qo'shimcha parallellar uchun bo'sh qatorlar soni). So'ng «Chop etish» brauzerning chop etish oynasini ochadi (PDF sifatida ham saqlash mumkin)."
+  },
+  "ru": {
+   "q": "Что можно делать на странице печати рабочего листа?",
+   "alt": [
+    "окно печати листа",
+    "бланк листа"
+   ],
+   "a": "На этой странице лист выводится как бумажный бланк. Перед печатью в окне выбирается: «Язык формы» (по шаблону или латиница/кириллица/русский), «С введёнными значениями» (без отметки — чистый бланк) и «Резервные строки» (число пустых строк для дополнительных параллелей). Затем «Печать» открывает окно печати браузера (можно сохранить и в PDF)."
+  },
+  "en": {
+   "q": "What can I do on the worksheet print page?",
+   "alt": [
+    "worksheet print window",
+    "worksheet blank"
+   ],
+   "a": "On this page the worksheet is output as a paper form. Before printing the window lets you choose: \"Form language\" (per template or Latin/Cyrillic/Russian), \"With entered values\" (without it — a clean blank) and \"Spare rows\" (the number of empty rows for extra parallels). Then \"Print\" opens the browser print window (you can also save as PDF)."
+  }
+ },
+ {
+  "id": "page.template_editor",
+  "section": "Ishchi varaq shablonlari",
+  "type": "info",
+  "route": "worksheet-template-edit",
+  "permission": [
+   "worksheet_templates.manage"
+  ],
+  "keywords": [
+   "shablon konstruktori",
+   "shablon tahrirlash sahifasi",
+   "конструктор шаблона",
+   "template editor"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Shablon konstruktori sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "shablonni tahrirlash sahifasi",
+    "shablon yaratish sahifasi"
+   ],
+   "a": "Konstruktor bo'limlari yuqoridan pastga: «Asosiy ma'lumotlar» (forma kodi, versiya, nomi uch tilda, raqam formati); «Bosqichlar (imzolar)»; «Sarlavha parametrlari»; «Qator ustunlari» (kiritiladigan, hisoblanadigan, matnli, formula va yaxlitlash); «Yakuniy natijalar» (har namuna uchun, qaysi elementga yozilishi); «Varaq bo'yicha jami». O'ng tomondagi «Tekshirish» panelida namunaviy qiymatlarni kiritib formulalarni darhol sinaysiz va «Serverda tekshirish» bilan solishtirasiz. Tayyor bo'lsa «Saqlash»."
+  },
+  "ru": {
+   "q": "Что можно делать на странице конструктора шаблона?",
+   "alt": [
+    "страница редактирования шаблона",
+    "страница создания шаблона"
+   ],
+   "a": "Разделы конструктора сверху вниз: «Основные сведения» (код формы, версия, название на трёх языках, формат номера); «Этапы (подписи)»; «Параметры шапки»; «Столбцы строк» (вводимые, вычисляемые, текстовые, формулы и округление); «Итоговые результаты» (по каждой пробе, в какой элемент записываются); «Итого по листу». В панели «Проверка» справа можно ввести пробные значения и сразу проверить формулы, а затем сверить с сервером кнопкой «Проверить на сервере». Когда готово — «Сохранить»."
+  },
+  "en": {
+   "q": "What can I do on the template builder page?",
+   "alt": [
+    "template edit page",
+    "template creation page"
+   ],
+   "a": "The builder sections from top to bottom: \"Basic details\" (form code, version, name in three languages, number format); \"Stages (sign-off)\"; \"Header parameters\"; \"Row columns\" (entered, computed, text, formulas and rounding); \"Final results\" (per sample, which element they are written to); \"Sheet totals\". In the \"Try it\" panel on the right you enter sample values and test formulas instantly, then compare with the server using \"Check on server\". When ready — \"Save\"."
+  }
+ },
+ {
+  "id": "page.profile",
+  "section": "Umumiy",
+  "type": "info",
+  "route": "profile",
+  "permission": null,
+  "keywords": [
+   "profil sahifasi",
+   "mening hisobim",
+   "профиль страница",
+   "моя учётная запись",
+   "profile page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "Profil sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "mening profilim",
+    "hisob sozlamalari"
+   ],
+   "a": "«Profil» sahifasida o'z ma'lumotlaringizni o'zgartirasiz: «F.I.Sh.», «Elektron pochta», «Telefon», parol (ikki marta yoziladi), shuningdek dastur tilini va kunduzgi/tungi rejimni tanlaysiz. Login, rol, laboratoriya va guruh faqat ko'rsatiladi — ularni administrator «Foydalanuvchilar» sahifasida o'zgartiradi. Oxirida «O'zgarishlarni saqlash» ni bosing."
+  },
+  "ru": {
+   "q": "Что можно делать на странице «Профиль»?",
+   "alt": [
+    "мой профиль",
+    "настройки учётной записи"
+   ],
+   "a": "На странице «Профиль» вы меняете свои данные: «ФИО», «Эл. почта», «Телефон», пароль (вводится дважды), а также выбираете язык программы и светлую/тёмную тему. Логин, роль, лаборатория и группа только отображаются — их меняет администратор на странице «Пользователи». В конце нажмите «Сохранить изменения»."
+  },
+  "en": {
+   "q": "What can I do on the \"Profile\" page?",
+   "alt": [
+    "my profile",
+    "account settings"
+   ],
+   "a": "On the \"Profile\" page you change your own data: \"Full name\", \"Email\", \"Phone\", your password (typed twice), and choose the program language and the light/dark theme. Username, role, laboratory and group are read-only — the administrator changes them on the \"Users\" page. Finish with \"Save changes\"."
+  }
+ },
+ {
+  "id": "page.manual",
+  "section": "Umumiy",
+  "type": "info",
+  "route": "manual",
+  "permission": null,
+  "keywords": [
+   "yo'riqnoma sahifasi",
+   "qo'llanma",
+   "руководство страница",
+   "user guide page"
+  ],
+  "top": false,
+  "page": true,
+  "uz": {
+   "q": "«Foydalanish yo'riqnomasi» sahifasida nimalar qilish mumkin?",
+   "alt": [
+    "yo'riqnomani ochish",
+    "qo'llanmani yuklab olish"
+   ],
+   "a": "Sahifada dasturdan foydalanish yo'riqnomasi uch tilda turadi: ruscha, o'zbekcha (lotin) va o'zbekcha (kirill). Har birini «Ochish» bilan brauzerda ko'rishingiz yoki «Yuklab olish» bilan saqlashingiz mumkin. Dastur bo'yicha tezkor savollar uchun shu «Yordam» oynasidan ham foydalanishingiz mumkin."
+  },
+  "ru": {
+   "q": "Что можно делать на странице «Руководство по использованию»?",
+   "alt": [
+    "открыть руководство",
+    "скачать руководство"
+   ],
+   "a": "На странице находится руководство по работе с программой в трёх вариантах: русском, узбекском (латиница) и узбекском (кириллица). Каждое можно открыть кнопкой «Открыть» в браузере или сохранить кнопкой «Скачать». Для быстрых вопросов по программе можно пользоваться и этим окном «Помощь»."
+  },
+  "en": {
+   "q": "What can I do on the \"User guide\" page?",
+   "alt": [
+    "open the guide",
+    "download the manual"
+   ],
+   "a": "The page holds the program manual in three versions: Russian, Uzbek (Latin) and Uzbek (Cyrillic). Open any of them in the browser with \"Open\" or save it with \"Download\". For quick questions about the program you can also use this \"Help\" window."
   }
  }
 ]

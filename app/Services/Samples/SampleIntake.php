@@ -35,15 +35,20 @@ class SampleIntake
                 if ($value === '' || ! $dept) {
                     return;
                 }
-                // Bitta bo'limning faol (arxivlanmagan) probalarida shifr takrorlanmasin
+                // [P26] Bo'lim shifri har oy qaytadan boshlanishi mumkin (908 — oktyabrda ham, noyabrda ham).
+                // Takror faqat SHU OYDA taqiqlanadi: bitta bo'limning shu oydagi faol (arxivlanmagan) probalari ichida.
+                // Oy — probaning ro'yxatga olingan oyi (period_month): yangi proba uchun joriy oy,
+                // tahrirlashda — probaning o'z oyi.
+                $period = $ignore?->period_month ?: now()->format('Y-m');
                 $dup = Sample::query()
                     ->where('customer_department_id', (int) $dept)
                     ->where('customer_code', $value)
+                    ->where('period_month', $period)
                     ->where('status', '!=', 'archived')
                     ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
                     ->value('code');
                 if ($dup) {
-                    $fail("Bu bo'limning «{$value}» shifrli probasi allaqachon ro'yxatda bor: {$dup}");
+                    $fail("Bu bo'limning «{$value}» shifrli probasi {$period} oyida allaqachon ro'yxatda bor: {$dup}");
                 }
             }],
             'received_quantity'      => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],

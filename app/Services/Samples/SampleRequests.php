@@ -266,10 +266,13 @@ class SampleRequests
                     $errors["items.$i.customer_code"][] = "«{$code}» shifri bu qabulda takrorlangan";
                 }
                 $seenCodes[$code] = true;
+                // [P26] shifr har oy qaytalanishi mumkin — takror faqat shu oyda (qabul oyi) taqiqlanadi
+                $period = now()->format('Y-m');
                 $dup = Sample::query()->where('customer_department_id', $request->customer_department_id)
-                    ->where('customer_code', $code)->where('status', '!=', 'archived')->value('code');
+                    ->where('customer_code', $code)->where('period_month', $period)
+                    ->where('status', '!=', 'archived')->value('code');
                 if ($dup) {
-                    $errors["items.$i.customer_code"][] = "Bu bo'limning «{$code}» shifrli probasi allaqachon ro'yxatda bor: {$dup}";
+                    $errors["items.$i.customer_code"][] = "Bu bo'limning «{$code}» shifrli probasi {$period} oyida allaqachon ro'yxatda bor: {$dup}";
                 }
             }
 
