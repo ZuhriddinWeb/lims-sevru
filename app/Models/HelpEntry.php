@@ -20,5 +20,6 @@ class HelpEntry extends Model
         'alt_uz' => 'array',
         'alt_ru' => 'array',
         'alt_en' => 'array',
+        
     ];
 }
