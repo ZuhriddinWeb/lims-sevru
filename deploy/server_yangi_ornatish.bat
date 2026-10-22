@@ -64,12 +64,18 @@ call :need bootstrap\providers.php "bootstrap\providers.php"
 findstr /c:"InterlabServiceProvider" bootstrap\providers.php >nul || (echo   [X] providers.php da InterlabServiceProvider yo'q& set PRE=1)
 findstr /c:"SampleIntakeServiceProvider" bootstrap\providers.php >nul || (echo   [X] providers.php da SampleIntakeServiceProvider yo'q& set PRE=1)
 call :need app\Providers\DatabaseTypesServiceProvider.php "SQL Server id turi tuzatishi"
+findstr /c:"DatabaseTypesServiceProvider" app\Providers\SampleIntakeServiceProvider.php bootstrap\providers.php >nul 2>nul || (echo   [X] DatabaseTypesServiceProvider ulanmagan - natija kiritish 404 beradi. Paket 24 tuzatish 3& set PRE=1)
 call :need app\Services\Insights\RecycleBin.php "Paket 19: audit, savatcha"
 call :need app\Services\Help\HelpAssistant.php "Paket 21: yordamchi"
 call :need database\help\help_qa.json "Paket 21: yordamchi javoblari"
 call :need app\Console\Commands\SetPassword.php "lims:set-password"
 call :need app\Console\Commands\WorksheetAddTotals.php "Paket 23: varaq bo'yicha jami"
 call :need app\Services\Samples\SampleRequests.php "Paket 24: qoralama buyurtma"
+call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
+call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"
+call :need database\seeders\SampleIntakeModuleSeeder.php "seeder: SampleIntakeModuleSeeder"
+call :need database\seeders\InsightsModuleSeeder.php "seeder: InsightsModuleSeeder"
+call :need database\seeders\SampleRequestModuleSeeder.php "seeder: SampleRequestModuleSeeder"
 call :need app\Console\Commands\LimsUpgrade.php "lims:upgrade"
 call :need app\Console\Commands\InstallState.php "lims:install-state"
 set MANIFEST=public\build\manifest.json

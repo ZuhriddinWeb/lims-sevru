@@ -55,11 +55,34 @@ class LimsUpgrade extends Command
             return self::FAILURE;
         }
 
+        // SQL Server id turi tuzatishi (natija kiritishdagi 404) ulanganmi — u yo'qolsa natija kiritish buziladi
+        $dbTypes = \App\Providers\DatabaseTypesServiceProvider::class;
+        if (! class_exists($dbTypes) || ! app()->getProvider($dbTypes)) {
+            $this->error("DatabaseTypesServiceProvider ulanmagan — SQL Server'da natija kiritish 404 beradi.");
+            $this->line("app/Providers/SampleIntakeServiceProvider.php da uni ro'yxatdan o'tkazadigan qator bo'lishi kerak");
+            $this->line("(tuzatish_natija_kiritish + Paket 24 tuzatish 3). Hech narsa o'zgarmadi.");
+
+            return self::FAILURE;
+        }
+
+        // Kod to'liqmi: kerakli seeder fayli yo'q bo'lsa — jimgina o'tkazib yubormaymiz, to'xtaymiz
+        $wsInstalled = Permission::where('name', 'worksheets.view')->exists();
+        $required = array_merge($wsInstalled ? [] : ['WorksheetModuleSeeder'], array_keys(self::SAFE_SEEDERS));
+        $missing = array_values(array_filter($required, fn ($c) => ! class_exists("Database\\Seeders\\$c")));
+        if ($missing) {
+            $this->error("Kod to'liq kelmagan — seeder fayllari yo'q:");
+            foreach ($missing as $c) {
+                $this->line("   - database/seeders/$c.php");
+            }
+            $this->line("Lokalda: git add database/seeders → commit → push; serverda: git pull. Hech narsa o'zgarmadi.");
+
+            return self::FAILURE;
+        }
+
         $before = $this->counts();
         $this->info($dry ? '[SINOV] hech narsa yozilmaydi' : 'Yangilash');
 
         // 1) Ishchi varaqlar — faqat birinchi marta
-        $wsInstalled = Permission::where('name', 'worksheets.view')->exists();
         if ($wsInstalled) {
             $this->line("  = Ishchi varaqlar: o'rnatilgan — seeder ishlatilmaydi (menyu nomi va rol sozlamalari saqlanadi)");
         } else {
@@ -71,10 +94,6 @@ class LimsUpgrade extends Command
 
         // 2) Qolgan modullar — doim xavfsiz
         foreach (self::SAFE_SEEDERS as $class => $label) {
-            if (! class_exists("Database\\Seeders\\$class")) {
-                $this->warn("  ! $label: $class topilmadi — kod to'liq kelmaganmi? (git pull)");
-                continue;
-            }
             $this->line("  + $label: $class (faqat yo'q ruxsat/menyu)");
             if (! $dry && ! $this->seed($class)) {
                 return self::FAILURE;
