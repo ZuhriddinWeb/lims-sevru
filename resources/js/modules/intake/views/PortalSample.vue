@@ -14,6 +14,7 @@ import { localized } from '@/i18n'
 import StageStepper from '../components/StageStepper.vue'
 import ComparisonTable from '../components/ComparisonTable.vue'
 import { apiErrorMessage, formatQty, formatValue, label, templateName, unitLabel } from '../helpers'
+import { visibilityOf } from '../portalVisibility' // [P27]
 import '../i18n'
 
 const route = useRoute()
@@ -44,6 +45,8 @@ onMounted(load)
 watch(() => route.params.id, () => route.params.id && load())
 
 const sample = computed(() => data.value?.sample ?? null)
+// [P27] admin yopgan qismlar serverdan kelmaydi; bu yerda bo'sh bloklar yashiriladi
+const vis = computed(() => visibilityOf(data.value))
 const analyses = computed(() => data.value?.analyses ?? [])
 const qty = computed(() => data.value?.quantity ?? null)
 const consumedTotal = computed(() => {
@@ -104,11 +107,11 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
     </div>
 
     <!-- Bosqichlar -->
-    <section class="panel p-4 mb-5 overflow-x-auto">
+    <section v-if="vis.steps && data.steps?.steps?.length" class="panel p-4 mb-5 overflow-x-auto" data-steps>
       <StageStepper :steps="data.steps.steps" :current="data.steps.current" class="min-w-[520px]" />
     </section>
 
-    <div class="grid gap-5 lg:grid-cols-[1fr_300px] mb-5">
+    <div class="grid gap-5 mb-5" :class="vis.quantity && 'lg:grid-cols-[1fr_300px]'">
       <!-- Natijalar -->
       <section class="panel overflow-hidden">
         <header class="px-4 py-3.5 border-b border-line">
@@ -151,6 +154,14 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
                 >
                   <Clock :size="12" /> {{ t('intake.portal.preliminary') }}
                 </span>
+                <span
+                  v-else-if="r.hidden"
+                  class="inline-flex items-center gap-1 rounded-full bg-surface-sunken text-ink-muted px-2 py-0.5 text-[11.5px] font-medium"
+                  :title="t('portalVis.hiddenHint')"
+                  data-hidden
+                >
+                  <Lock :size="12" /> {{ t('portalVis.hidden') }}
+                </span>
                 <span v-else class="text-[12px] text-ink-faint">{{ t('intake.portal.waiting') }}</span>
               </td>
             </tr>
@@ -159,7 +170,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
       </section>
 
       <!-- Miqdor -->
-      <aside class="panel p-4 h-fit" data-quantity>
+      <aside v-if="vis.quantity" class="panel p-4 h-fit" data-quantity>
         <h2 class="flex items-center gap-2 text-[13px] font-semibold text-ink mb-3">
           <Scale :size="15" class="text-assay-500" /> {{ t('intake.portal.quantity') }}
         </h2>
@@ -182,6 +193,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
     </div>
 
     <!-- O'tkazilgan tahlillar -->
+    <template v-if="vis.analyses">
     <h2 class="text-[15px] font-semibold text-ink mb-3">{{ t('intake.portal.analyses') }}</h2>
     <div v-if="!analyses.length" class="panel">
       <EmptyState :icon="FlaskConical" :title="t('intake.portal.noAnalyses')" />
@@ -212,7 +224,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
         >{{ b.status === 'approved' ? t('intake.portal.approvedAt', { d: formatDateTime(b.approved_at) }) : t(`intake.portal.wsStatus.${b.status}`) }}</span>
       </header>
 
-      <div class="px-4 py-3 space-y-3">
+      <div v-if="b.member_status === 'retest' || b.stages.length || b.params.length || b.columns.length || b.summary_columns.length" class="px-4 py-3 space-y-3">
         <p v-if="b.member_status === 'retest'" class="flex items-center gap-1.5 text-[13px] text-warn-dark dark:text-warn-light">
           <RotateCcw :size="14" /> {{ t('intake.portal.retest') }}
         </p>
@@ -240,7 +252,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
         </p>
 
         <!-- Parallellar -->
-        <div class="overflow-x-auto rounded-md border border-line">
+        <div v-if="b.columns.length" class="overflow-x-auto rounded-md border border-line">
           <table class="w-full text-[13px]" data-rows>
             <thead>
               <tr class="bg-surface-sunken/60 text-left text-[12px] text-ink-muted">
@@ -276,6 +288,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
         </div>
       </div>
     </section>
+    </template>
 
     <!-- Nazorat bilan solishtirish -->
     <section v-if="data.comparison?.length" class="panel p-4 mt-5">

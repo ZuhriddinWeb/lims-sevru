@@ -198,7 +198,7 @@ const selectedLabels = computed(() =>
         @click="value = !value"
       >
         <span
-          class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
+          class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform"
           :class="value ? 'translate-x-[18px]' : 'translate-x-0.5'"
         />
       </button>

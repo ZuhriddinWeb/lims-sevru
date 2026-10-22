@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CustomerDepartment;
 use App\Models\Sample;
 use App\Services\Samples\CustomerPortal;
+use App\Services\Samples\PortalVisibility; // [P27] admin belgilagan ko'rinish
 use App\Services\Samples\SampleAnalyses;
 use App\Services\Samples\SampleLedger;
 use Illuminate\Http\Request;
@@ -22,6 +23,7 @@ class CustomerPortalController extends Controller
         private CustomerPortal $portal,
         private SampleAnalyses $analyses,
         private SampleLedger $ledger,
+        private PortalVisibility $visibility, // [P27]
     ) {
     }
 
@@ -40,6 +42,9 @@ class CustomerPortalController extends Controller
             'portal'      => $isPortal,
             'preview'     => ! $isPortal,
             'departments' => $departments->map(fn ($d) => ['id' => (int) $d->id, 'code' => $d->code, 'name' => $d->name])->values(),
+            // [P27] nima ko'rinadi (interfeys bo'sh bo'limlarni yashiradi; ma'lumotning o'zi serverda olib tashlanadi)
+            'visibility'    => $this->visibility->get(),
+            'can_configure' => ! $isPortal && $user->hasPermission('portal.settings'),
         ]);
     }
 
@@ -91,7 +96,7 @@ class CustomerPortalController extends Controller
         $page->setCollection($page->getCollection()->map(function (Sample $s) use ($meta) {
             $steps = $this->analyses->steps($s, $meta[(int) $s->id] ?? []);
 
-            return [
+            return $this->visibility->filterListItem([ // [P27]
                 'id'              => (int) $s->id,
                 'code'            => $s->code,
                 'customer_code'   => $s->customer_code,
@@ -109,7 +114,7 @@ class CustomerPortalController extends Controller
                 'stage'           => $steps['current'],
                 'steps'           => $steps['steps'],
                 'worksheets'      => $steps['worksheets'],
-            ];
+            ]);
         }));
 
         return response()->json($page);
@@ -147,7 +152,7 @@ class CustomerPortalController extends Controller
 
         $ledger = $this->ledger->summary($sample);
 
-        return response()->json([
+        return response()->json($this->visibility->filterSample([ // [P27] admin yopgan qismlar serverda olib tashlanadi
             'sample'     => [
                 'id'              => (int) $sample->id,
                 'code'            => $sample->code,
@@ -192,6 +197,6 @@ class CustomerPortalController extends Controller
             ],
             'analyses'   => $blocks,
             'comparison' => $this->analyses->comparison($sample, $blocks),
-        ]);
+        ]));
     }
 }

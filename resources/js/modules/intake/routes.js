@@ -6,6 +6,7 @@
  *   3) oxirida, asosiy router.beforeEach'dan keyin: installPortalGuard(router)
  */
 import './i18n'
+import './portalVisibility' // [P27] tarjimalar
 import { installSampleIntakeForm } from './sampleForm'
 export { installPortalGuard } from './guard'
 
@@ -63,6 +64,12 @@ export default [
     path: 'sample-requests/:id(\\d+)/edit', name: 'sample-request-edit',
     component: () => import('./requests/views/RequestEditor.vue'),
     meta: { permission: 'sample_requests.create', mode: 'lab' },
+  },
+  /* ---- [P27] Portal sozlamalari: buyurtmachi nimani ko'radi ---- */
+  {
+    path: 'portal-settings', name: 'portal-settings',
+    component: () => import('./views/PortalSettings.vue'),
+    meta: { permission: 'portal.settings' },
   },
   {
     path: 'customer-departments', name: 'customer-departments',

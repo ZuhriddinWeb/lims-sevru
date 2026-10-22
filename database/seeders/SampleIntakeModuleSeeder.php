@@ -18,7 +18,9 @@ use Illuminate\Support\Facades\DB;
  *        portal.view                          — buyurtmachi portali (FAQAT «Buyurtmachi» roliga)
  *  - rollarga beriladi FAQAT ruxsat yangi yaratilganda (keyin admin o'zgartirgan bo'lsa — tegilmaydi)
  *  - «Buyurtmachi» (customer) roli — yo'q bo'lsa yaratiladi
- *  - menyu: «Mening probalarim» (portal), «Proba qoldiqlari», Kataloglar → «Buyurtmachi bo'limlar»
+ *        portal.settings                      — [P27] buyurtmachi nimani ko'rishini sozlash (hech bir rolga berilmaydi)
+ *  - menyu: «Mening probalarim» (portal), «Proba qoldiqlari», Kataloglar → «Buyurtmachi bo'limlar»,
+ *    [P27] Boshqaruv → «Portal sozlamalari»
  *    (faqat yo'q bo'lsa — admin o'zgartirgan nom/tartib saqlanadi)
  */
 class SampleIntakeModuleSeeder extends Seeder
@@ -44,6 +46,8 @@ class SampleIntakeModuleSeeder extends Seeder
             'labels' => ['ru' => 'Портал заказчика', 'uz' => 'Buyurtmachi portali', 'en' => 'Customer portal'],
             'abilities' => [
                 'view' => ['ru' => 'Только свои пробы (для заказчика)', 'uz' => "Faqat o'z probalari (buyurtmachi uchun)", 'en' => 'Own samples only (for customers)'],
+                // [P27] laboratoriya tomoni: buyurtmachi nimani ko'rishini belgilash. Hech bir rolga berilmaydi — admin o'zi beradi
+                'settings' => ['ru' => 'Настройки: что видит заказчик (для лаборатории)', 'uz' => "Sozlamalar: buyurtmachi nimani ko'radi (laboratoriya uchun)", 'en' => 'Settings: what customers see (for lab staff)'],
             ],
         ],
     ];
@@ -132,7 +136,7 @@ class SampleIntakeModuleSeeder extends Seeder
         ]);
 
         MenuItem::firstOrCreate(['key' => 'sample_balances'], [
-            'title_ru' => 'Остатки проб', 'title_uz' => 'Namuna qoldiqlari', 'title_en' => 'Sample balances',
+            'title_ru' => 'Остатки проб', 'title_uz' => 'Proba qoldiqlari', 'title_en' => 'Sample balances',
             'icon' => 'scale', 'route' => 'sample-balances', 'permission' => 'samples.view',
             'parent_id' => null, 'sort_order' => 2, 'is_active' => true,
         ]);
@@ -142,6 +146,14 @@ class SampleIntakeModuleSeeder extends Seeder
             'title_ru' => 'Подразделения-заказчики', 'title_uz' => "Buyurtmachi bo'limlar", 'title_en' => 'Customer departments',
             'icon' => 'factory', 'route' => 'customer-departments', 'permission' => 'customer_departments.view',
             'parent_id' => $catalog?->id, 'sort_order' => 5, 'is_active' => true,
+        ]);
+
+        // [P27] Boshqaruv → «Portal sozlamalari» (faqat yo'q bo'lsa)
+        $admin = MenuItem::where('key', 'administration')->first();
+        MenuItem::firstOrCreate(['key' => 'portal_settings'], [
+            'title_ru' => 'Настройки портала', 'title_uz' => 'Portal sozlamalari', 'title_en' => 'Portal settings',
+            'icon' => 'eye-off', 'route' => 'portal-settings', 'permission' => 'portal.settings',
+            'parent_id' => $admin?->id, 'sort_order' => 7, 'is_active' => true,
         ]);
     }
 }

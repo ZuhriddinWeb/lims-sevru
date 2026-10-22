@@ -10,6 +10,8 @@
 
 use App\Http\Controllers\Api\Intake\CustomerDepartmentController;
 use App\Http\Controllers\Api\Intake\CustomerPortalController;
+use App\Http\Controllers\Api\Intake\PortalExportController;
+use App\Http\Controllers\Api\Intake\PortalSettingsController;
 use App\Http\Controllers\Api\Intake\SampleIntakeController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('portal')->group(function () {
         Route::get('/context', [CustomerPortalController::class, 'context']);
         Route::get('/samples', [CustomerPortalController::class, 'samples']);
-        Route::get('/samples/{sample}', [CustomerPortalController::class, 'show']);
+        // [P27] Excel — {sample} dan OLDIN turishi shart
+        Route::get('/samples/export', [PortalExportController::class, 'export'])->middleware('throttle:20,1');
+        Route::get('/samples/{sample}', [CustomerPortalController::class, 'show'])->whereNumber('sample');
     });
+
+    /* ---------- [P27] Portal sozlamalari: buyurtmachi nimani ko'radi ---------- */
+    Route::get('/portal-settings', [PortalSettingsController::class, 'show'])
+        ->middleware('permission:portal.settings');
+    Route::put('/portal-settings', [PortalSettingsController::class, 'update'])
+        ->middleware('permission:portal.settings');
 });

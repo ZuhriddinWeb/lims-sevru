@@ -6,7 +6,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, ChevronRight, Eye, Inbox, Lock, Search } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Inbox, Loader2, Lock, Search, SlidersHorizontal } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -15,14 +15,15 @@ import { formatDate } from '@/lib/format'
 import StageStepper from '../components/StageStepper.vue'
 import PeriodFilter from '../components/PeriodFilter.vue'
 import { apiErrorMessage } from '../helpers'
+import { downloadPortalExport, visibilityOf } from '../portalVisibility' // [P27]
 import '../i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
 
-const ctx = ref(null)           // { portal, preview, departments }
+const ctx = ref(null)           // { portal, preview, departments, visibility, can_configure }
 const ctxError = ref('')
 const items = ref([])
 const meta = reactive({ current_page: 1, last_page: 1, total: 0, from: 0, to: 0 })
@@ -88,6 +89,23 @@ const departments = computed(() => ctx.value?.departments ?? [])
 const showDeptSelect = computed(() => ctx.value?.preview || departments.value.length > 1)
 const notLinked = computed(() => ctx.value?.portal && departments.value.length === 0)
 
+/* [P27] admin belgilagan ko'rinish va Excel */
+const vis = computed(() => visibilityOf(ctx.value))
+const exporting = ref(false)
+async function exportExcel() {
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    const name = await downloadPortalExport({ ...filters }, locale.value)
+    ui.success(t('portalVis.excelDone', { name }))
+  } catch (e) {
+    if (e.status !== 403 || e.serverMessage) ui.error(e.serverMessage || t('portalVis.excelError'))
+    if (e.status === 403) loadContext()
+  } finally {
+    exporting.value = false
+  }
+}
+
 function open(row) {
   router.push({ name: 'portal-sample', params: { id: row.id }, query: filters.department_id ? { department_id: filters.department_id } : {} })
 }
@@ -100,6 +118,19 @@ function open(row) {
         <span class="inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-2.5 py-1 text-[12px] text-ink-muted">
           <Lock :size="13" /> {{ t('intake.portal.readOnly') }}
         </span>
+        <RouterLink v-if="ctx?.can_configure" :to="{ name: 'portal-settings' }" class="btn-ghost btn-sm" :title="t('portalVis.configureHint')" data-configure>
+          <SlidersHorizontal :size="15" /> {{ t('portalVis.configure') }}
+        </RouterLink>
+        <button
+          v-if="ctx && !notLinked && vis.export"
+          type="button" class="btn-outline btn-sm" :disabled="exporting || !items.length"
+          :title="t('portalVis.excelHint')" data-export
+          @click="exportExcel"
+        >
+          <Loader2 v-if="exporting" :size="15" class="animate-spin" />
+          <FileSpreadsheet v-else :size="15" />
+          {{ exporting ? t('portalVis.excelBusy') : t('portalVis.excel') }}
+        </button>
       </template>
     </PageHeader>
 
@@ -151,7 +182,7 @@ function open(row) {
                   <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.code') }}</th>
                   <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.registered') }}</th>
                   <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.elements') }}</th>
-                  <th class="px-4 py-2.5 font-medium min-w-[190px]">{{ t('intake.portal.stageCol') }}</th>
+                  <th v-if="vis.steps" class="px-4 py-2.5 font-medium min-w-[190px]">{{ t('intake.portal.stageCol') }}</th>
                   <th class="px-4 py-2.5 font-medium text-right">{{ t('intake.portal.progress') }}</th>
                 </tr>
               </thead>
@@ -176,7 +207,7 @@ function open(row) {
                       >{{ el.symbol }}</span>
                     </span>
                   </td>
-                  <td class="px-4 py-2.5"><StageStepper :steps="row.steps" :current="row.stage" compact /></td>
+                  <td v-if="vis.steps" class="px-4 py-2.5"><StageStepper :steps="row.steps" :current="row.stage" compact /></td>
                   <td class="px-4 py-2.5 text-right tnum font-semibold" :class="row.progress === 100 ? 'text-ok' : 'text-ink'">{{ row.progress }}%</td>
                 </tr>
               </tbody>

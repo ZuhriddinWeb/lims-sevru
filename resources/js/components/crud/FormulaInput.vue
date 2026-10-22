@@ -140,7 +140,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onDoc))
           data-auto
           @click="toggleAuto"
         >
-          <span class="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="auto ? 'translate-x-[18px]' : 'translate-x-0.5'" />
+          <span class="absolute left-0 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="auto ? 'translate-x-[18px]' : 'translate-x-0.5'" />
         </button>
       </label>
     </div>
