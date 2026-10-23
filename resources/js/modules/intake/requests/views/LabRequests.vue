@@ -137,6 +137,7 @@ function onEnter() {
               </td>
               <td class="px-4 py-2.5 text-ink-muted">
                 <span class="tnum">{{ row.delivery_date ? formatDate(row.delivery_date) : '—' }}</span>
+                <span v-if="row.delivery_shift" class="block text-[12px] text-ink-muted" data-shift>{{ row.delivery_shift }}</span>
                 <span v-if="row.contact_name" class="block text-[12px] text-ink-faint">{{ row.contact_name }}</span>
               </td>
               <td class="px-4 py-2.5"><StatusPill :status="row.status" /></td>

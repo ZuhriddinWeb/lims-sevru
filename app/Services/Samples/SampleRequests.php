@@ -5,6 +5,7 @@ namespace App\Services\Samples;
 use App\Models\ActivityLog;
 use App\Models\CustomerDepartment;
 use App\Models\Element;
+use App\Models\LabShift;
 use App\Models\Notification;
 use App\Models\Sample;
 use App\Models\SampleRequest;
@@ -13,6 +14,7 @@ use App\Models\TestProfile;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -48,6 +50,10 @@ class SampleRequests
 
         return [
             'delivery_date'          => ['nullable', 'date'],
+            // [P28] smena: faqat faol smena (jadval bo'lmasa — tekshiruvsiz e'tiborsiz qoldiriladi)
+            'delivery_shift_id'      => Schema::hasTable('lab_shifts')
+                ? ['nullable', 'integer', Rule::exists('lab_shifts', 'id')->where('is_active', true)]
+                : ['nullable', 'integer'],
             'contact_name'           => ['nullable', 'string', 'max:191'],
             'contact_phone'          => ['nullable', 'string', 'max:64'],
             'notes'                  => ['nullable', 'string', 'max:2000'],
@@ -114,8 +120,27 @@ class SampleRequests
                 $out[$k] = $v === '' ? null : $v;
             }
         }
+        // [P28] smena: id + tanlangan paytdagi nomi (keyin smena o'zgarsa ham buyurtmada saqlanadi)
+        if (array_key_exists('delivery_shift_id', $data) && $this->hasShiftColumns()) {
+            $shift = $data['delivery_shift_id'] ? LabShift::find((int) $data['delivery_shift_id']) : null;
+            $out['delivery_shift_id'] = $shift?->id;
+            $out['delivery_shift'] = $shift ? self::shiftLabel($shift) : null;
+        }
 
         return $out;
+    }
+
+    private function hasShiftColumns(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasTable('lab_shifts') && Schema::hasColumn('sample_requests', 'delivery_shift_id');
+    }
+
+    /** «Kunduzgi 08:00–20:00» */
+    public static function shiftLabel(LabShift $s): string
+    {
+        return trim($s->name . ' ' . $s->start_time . '–' . $s->end_time);
     }
 
     /** Qatorlar to'liq almashtiriladi (qoralama — tarixi kerak emas) */
@@ -503,6 +528,8 @@ class SampleRequests
         try {
             $dept = $request->department?->name ?? '';
             $count = $request->items()->count();
+            // [P28] qachon olib kelinadi: sana + smena
+            $when = trim(($request->delivery_date?->format('d.m.Y') ?? '') . ' ' . ($request->delivery_shift ?? ''));
             foreach (User::where('is_active', true)->get() as $u) {
                 if ($this->portal->isPortalUser($u) || ! $u->hasPermission('sample_requests.receive')) {
                     continue;
@@ -512,7 +539,7 @@ class SampleRequests
                     'type'       => 'sample',
                     'level'      => 'info',
                     'title'      => "Yangi buyurtma {$request->number}",
-                    'body'       => "{$dept}: {$count} ta namuna. Namuna kelganda «Buyurtmalar» sahifasida qabul qiling.",
+                    'body'       => "{$dept}: {$count} ta namuna" . ($when !== '' ? ", olib kelinadi: {$when}" : '') . ". Namuna kelganda «Buyurtmalar» sahifasida qabul qiling.",
                     'link_route' => 'sample-request',
                     'link_id'    => $request->id,
                     'dedup_key'  => "sreq-submit-{$request->id}-{$u->id}-" . $request->submitted_at?->timestamp,
@@ -574,6 +601,8 @@ class SampleRequests
             'origin'         => $r->origin,
             'department'     => $r->department ? ['id' => (int) $r->department->id, 'code' => $r->department->code, 'name' => $r->department->name] : null,
             'delivery_date'  => $r->delivery_date?->toDateString(),
+            'delivery_shift_id' => $r->delivery_shift_id ? (int) $r->delivery_shift_id : null, // [P28]
+            'delivery_shift'    => $r->delivery_shift,
             'contact_name'   => $r->contact_name,
             'contact_phone'  => $r->contact_phone,
             'notes'          => $r->notes,
@@ -655,6 +684,13 @@ class SampleRequests
                 ])->values(),
             'units'       => QuantityUnit::UNITS,
             'expire_days' => (int) config('sample_requests.expire_days', 14),
+            // [P28] namuna qaysi smenada olib kelinadi
+            'shifts'      => Schema::hasTable('lab_shifts')
+                ? LabShift::where('is_active', true)->orderBy('sort_order')->orderBy('start_time')->orderBy('id')
+                    ->get(['id', 'name', 'start_time', 'end_time'])
+                    ->map(fn ($s) => ['id' => (int) $s->id, 'name' => $s->name, 'start_time' => $s->start_time, 'end_time' => $s->end_time, 'label' => self::shiftLabel($s)])
+                    ->values()
+                : [],
         ];
     }
 }

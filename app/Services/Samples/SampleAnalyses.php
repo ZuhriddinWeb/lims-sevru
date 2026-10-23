@@ -6,6 +6,8 @@ use App\Models\Sample;
 use App\Models\Worksheet;
 use App\Models\WorksheetRow;
 use App\Models\WorksheetSignoff;
+use App\Services\Worksheets\DisplayTotals;
+use App\Services\Worksheets\WorksheetCalculator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -323,6 +325,186 @@ class SampleAnalyses
                 'worksheet_date' => $b['worksheet_date'],
                 'template'       => $b['template'],
                 'items'          => $items,
+            ];
+        }
+
+        return $out;
+    }
+
+    // ------------------------------------------------- [P28] ro'yxat uchun natijalar va varaq jamisi
+
+    /**
+     * Ko'p proba uchun varaqdagi (hali probaga yozilmagan) natijalar — bir nechta so'rov bilan.
+     * Qoida portal kartochkasidagi bilan bir xil: nazorat varag'i va «takroriy tahlil»dagi a'zo hisobga
+     * olinmaydi; bir nechta varaq bo'lsa — oxirgisi (sana, id bo'yicha).
+     * @return array<int, array<string, array>> sample_id => symbol => {value, unit, decimals, worksheet, approved}
+     */
+    public function preliminaryMap(array $sampleIds): array
+    {
+        $sampleIds = array_values(array_unique(array_map('intval', $sampleIds)));
+        if (! $sampleIds || ! $this->hasWorksheets()) {
+            return [];
+        }
+        $links = DB::table('worksheet_samples')->whereIn('sample_id', $sampleIds)
+            ->get(['worksheet_id', 'sample_id', 'status']);
+        if ($links->isEmpty()) {
+            return [];
+        }
+        $byWs = [];
+        foreach ($links as $l) {
+            if ($l->status !== 'retest') {
+                $byWs[(int) $l->worksheet_id][] = (int) $l->sample_id;
+            }
+        }
+        if (! $byWs) {
+            return [];
+        }
+
+        $out = [];
+        $worksheets = Worksheet::query()->whereIn('id', array_keys($byWs))
+            ->orderBy('worksheet_date')->orderBy('id')->get();
+        foreach ($worksheets as $w) {
+            if ((($this->hasKind() ? $w->kind : null) ?: 'main') === 'control') {
+                continue;
+            }
+            $cols = array_values(array_filter($w->definition()['columns'] ?? [],
+                fn ($c) => ($c['scope'] ?? 'row') === 'summary' && ! empty($c['element_symbol'])));
+            if (! $cols) {
+                continue;
+            }
+            $groups = (array) ($w->results['groups'] ?? []);
+            foreach ($byWs[(int) $w->id] as $sid) {
+                $group = $groups[(string) $sid] ?? null;
+                if (! $group && count($groups) === 0) {
+                    $group = ['summary' => $w->results['summary'] ?? []];
+                }
+                $summary = (array) ($group['summary'] ?? []);
+                foreach ($cols as $c) {
+                    $v = $summary[$c['key']] ?? null;
+                    if ($v !== null && $v !== '') {
+                        $out[$sid][$c['element_symbol']] = [
+                            'value' => is_numeric($v) ? (float) $v : $v, 'unit' => $c['unit'] ?? null,
+                            'decimals' => $c['decimals'] ?? null, 'worksheet' => $w->number,
+                            'approved' => $w->status === 'approved',
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Ro'yxat qatori uchun natijalar: har bir aniqlanadigan ko'rsatkich bo'yicha yakuniy (probaga yozilgan)
+     * yoki varaqdan dastlabki qiymat. $samples — sampleElements.element yuklangan.
+     * @return array<int, array> sample_id => [{symbol, value, unit, decimals, state, worksheet}]
+     */
+    public function listResults(Collection $samples): array
+    {
+        $open = $samples->filter(fn ($s) => $s->sampleElements->contains(fn ($se) => ! ($se->status === 'done' && $se->result_value !== null)));
+        $prelim = $this->preliminaryMap($open->pluck('id')->all());
+
+        $out = [];
+        foreach ($samples as $s) {
+            $sid = (int) $s->id;
+            $out[$sid] = $s->sampleElements->map(function ($se) use ($prelim, $sid) {
+                $symbol = $se->element?->symbol;
+                $final = $se->status === 'done' && $se->result_value !== null;
+                $p = ! $final && $symbol ? ($prelim[$sid][$symbol] ?? null) : null;
+
+                return [
+                    'symbol'    => $symbol,
+                    'value'     => $final ? (float) $se->result_value : ($p['value'] ?? null),
+                    'unit'      => $final ? $se->result_unit : ($p['unit'] ?? $se->result_unit),
+                    'decimals'  => $final ? null : ($p['decimals'] ?? null),
+                    'state'     => $final ? 'final' : ($p ? 'preliminary' : 'waiting'),
+                    'worksheet' => $p['worksheet'] ?? null,
+                ];
+            })->values()->all();
+        }
+
+        return $out;
+    }
+
+    /**
+     * «Varaq bo'yicha jami» (masalan, korotochkalar yig'indisi) — buyurtmachiga.
+     * Varaqda boshqa bo'limlarning namunalari ham bo'lishi mumkin: jami FAQAT ko'ruvchiga tegishli
+     * namunalarning hisobga olingan qatorlari bo'yicha qayta hisoblanadi (boshqalar ma'lumoti kirmaydi).
+     * Varaqdagi hamma namuna ko'ruvchiniki bo'lsa — laboratoriya varag'idagi jami bilan aynan bir xil.
+     *
+     * @param  int[]|null  $deptIds  ko'ruvchi bo'limlari; null — har qanday bo'lim (xodimning umumiy ko'rinishi)
+     * @return array<int, array> worksheet_id => {worksheet_id, number, kind, status, preliminary, worksheet_date,
+     *                           template, samples_own, samples_all, partial, totals: [{key, label_uz, label_ru, unit, decimals, value}]}
+     */
+    public function worksheetTotals(array $worksheetIds, ?array $deptIds): array
+    {
+        $worksheetIds = array_values(array_unique(array_map('intval', $worksheetIds)));
+        if (! $worksheetIds || ! $this->hasWorksheets()) {
+            return [];
+        }
+        $deptSet = $deptIds === null ? null : array_flip(array_map('intval', $deptIds));
+
+        $members = DB::table('worksheet_samples')
+            ->join('samples', 'samples.id', '=', 'worksheet_samples.sample_id')
+            ->whereIn('worksheet_samples.worksheet_id', $worksheetIds)
+            ->get(['worksheet_samples.worksheet_id', 'worksheet_samples.sample_id', 'samples.customer_department_id'])
+            ->groupBy(fn ($r) => (int) $r->worksheet_id);
+
+        $out = [];
+        $worksheets = Worksheet::query()->whereIn('id', $worksheetIds)->orderBy('worksheet_date')->orderBy('id')->get();
+        $rowsByWs = null;
+        foreach ($worksheets as $w) {
+            $def = DisplayTotals::augment($w->definition());
+            $totCols = array_values(array_filter($def['columns'] ?? [], fn ($c) => ($c['scope'] ?? 'row') === 'total'));
+            if (! $totCols) {
+                continue;
+            }
+            $mem = $members->get((int) $w->id, collect());
+            $all = $mem->pluck('sample_id')->map(fn ($v) => (int) $v)->unique()->values()->all();
+            $own = $mem->filter(function ($m) use ($deptSet) {
+                if ($m->customer_department_id === null) {
+                    return false;
+                }
+
+                return $deptSet === null || isset($deptSet[(int) $m->customer_department_id]);
+            })->pluck('sample_id')->map(fn ($v) => (int) $v)->unique()->values()->all();
+            if (! $own) {
+                continue;
+            }
+
+            $rowsByWs ??= WorksheetRow::query()->whereIn('worksheet_id', $worksheetIds)
+                ->orderBy('row_no')->orderBy('id')->get()->groupBy(fn ($r) => (int) $r->worksheet_id);
+            $ownSet = array_flip($own);
+            $rows = [];
+            foreach ($rowsByWs->get((int) $w->id, collect()) as $r) {
+                $sid = (int) ($r->sample_id ?: $w->sample_id);
+                if (isset($ownSet[$sid])) {
+                    $rows[] = ['values' => $r->inputs ?? [], 'excluded' => (bool) $r->excluded, 'group' => $sid];
+                }
+            }
+            $calc = WorksheetCalculator::calculate($def, $w->header_values ?? [], $rows);
+            $totals = (array) $calc['totals'];
+
+            $out[(int) $w->id] = [
+                'worksheet_id'   => (int) $w->id,
+                'number'         => $w->number,
+                'kind'           => ($this->hasKind() ? $w->kind : null) ?: 'main',
+                'status'         => $w->status,
+                'preliminary'    => $w->status !== 'approved',
+                'worksheet_date' => $w->worksheet_date?->toDateString(),
+                'template'       => ['code' => $def['code'] ?? null, 'name_uz' => $def['name_uz'] ?? null, 'name_ru' => $def['name_ru'] ?? null],
+                'samples_own'    => count($own),
+                'samples_all'    => count($all),
+                'partial'        => count($own) < count($all),
+                'totals'         => array_map(fn ($c) => [
+                    'key'      => $c['key'],
+                    'label_uz' => $c['label_uz'] ?? $c['key'],
+                    'label_ru' => $c['label_ru'] ?? null,
+                    'unit'     => $c['unit'] ?? null,
+                    'decimals' => $c['decimals'] ?? null,
+                    'value'    => $totals[$c['key']] ?? null,
+                ], $totCols),
             ];
         }
 

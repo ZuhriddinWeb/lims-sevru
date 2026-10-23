@@ -37,6 +37,7 @@ export function toForm(r) {
   return {
     department_id: r?.department?.id ?? '',
     delivery_date: r?.delivery_date ?? '',
+    delivery_shift_id: r?.delivery_shift_id ?? '', // [P28]
     contact_name: r?.contact_name ?? '',
     contact_phone: r?.contact_phone ?? '',
     notes: r?.notes ?? '',
@@ -57,6 +58,7 @@ export function toPayload(form) {
   return {
     department_id: form.department_id || null,
     delivery_date: form.delivery_date || null,
+    delivery_shift_id: form.delivery_shift_id || null, // [P28]
     contact_name: form.contact_name || null,
     contact_phone: form.contact_phone || null,
     notes: form.notes || null,
@@ -70,6 +72,11 @@ export function toPayload(form) {
       notes: (i.notes || '').trim() || null,
     })),
   }
+}
+
+/** [P28] «22.10.2026 · Kunduzgi 08:00–20:00» */
+export function deliveryText(r) {
+  return [r?.delivery_date ? formatDate(r.delivery_date) : '', r?.delivery_shift || ''].filter(Boolean).join(' · ')
 }
 
 /** Validatsiya xatosi: items.2.element_ids → qatorga */
@@ -110,7 +117,7 @@ export function printSlip(r, t, locale) {
   const meta = [
     [t('sreq.col.department'), r.department ? `${r.department.name}${r.department.code ? ` (${r.department.code})` : ''}` : ''],
     [t('sreq.info.submitted'), formatDateTime(r.submitted_at)],
-    [t('sreq.col.delivery'), r.delivery_date ? formatDate(r.delivery_date) : '—'],
+    [t('sreq.col.delivery'), deliveryText(r) || '—'],
     [t('sreq.col.contact'), [r.contact_name, r.contact_phone].filter(Boolean).join(', ') || '—'],
     [t('sreq.form.notes'), r.notes || ''],
   ].filter(([, v]) => v)

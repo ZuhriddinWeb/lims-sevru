@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { AlertTriangle, Info } from 'lucide-vue-next'
 import { formatDate, formatDateTime } from '@/lib/format'
 import StatusPill from './StatusPill.vue'
+import { deliveryText } from '../shared'
 import '../i18n'
 
 const props = defineProps({
@@ -18,7 +19,7 @@ const rows = computed(() => [
   [t('sreq.col.department'), r.value.department ? r.value.department.name + (r.value.department.code ? ` (${r.value.department.code})` : '') : '—'],
   [t('sreq.info.created'), `${formatDateTime(r.value.created_at)}${r.value.created_by ? ' · ' + r.value.created_by : ''}`],
   r.value.submitted_at && [t('sreq.info.submitted'), `${formatDateTime(r.value.submitted_at)}${r.value.submitted_by ? ' · ' + r.value.submitted_by : ''}`],
-  r.value.delivery_date && [t('sreq.col.delivery'), formatDate(r.value.delivery_date)],
+  (r.value.delivery_date || r.value.delivery_shift) && [t('sreq.col.delivery'), deliveryText(r.value)],
   r.value.expires_at && ['submitted', 'expired'].includes(r.value.status) && [t('sreq.info.expires'), formatDate(r.value.expires_at)],
   (r.value.contact_name || r.value.contact_phone) && [t('sreq.col.contact'), [r.value.contact_name, r.value.contact_phone].filter(Boolean).join(', ')],
   r.value.received_at && [t('sreq.info.received'), `${formatDateTime(r.value.received_at)}${r.value.received_by ? ' · ' + r.value.received_by : ''}`],

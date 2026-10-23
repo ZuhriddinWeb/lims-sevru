@@ -30,7 +30,7 @@ const listRoute = computed(() => ({ name: mode.value === 'lab' ? 'sample-request
 
 const options = ref(null)
 const request = ref(null)
-const form = reactive({ department_id: '', delivery_date: '', contact_name: '', contact_phone: '', notes: '', items: [] })
+const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
 const errors = ref({})
 const loading = ref(true)
 const loadError = ref('')
@@ -74,8 +74,11 @@ async function load() {
       }
       fill(req.data)
     } else {
-      Object.assign(form, { department_id: '', delivery_date: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
+      Object.assign(form, { department_id: '', delivery_date: '', delivery_shift_id: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
       if (opt.data.departments?.length === 1) form.department_id = opt.data.departments[0].id
+      // portal ko'rib chiqish rejimidan tanlangan bo'lim bilan kelgan bo'lsa
+      const want = Number(route.query.department_id)
+      if (want && opt.data.departments?.some((d) => Number(d.id) === want)) form.department_id = want
       if (mode.value === 'portal' && !opt.data.can_write) loadError.value = t('sreq.readOnly')
       saved.value = snapshot()
     }

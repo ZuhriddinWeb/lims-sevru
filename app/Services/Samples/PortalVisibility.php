@@ -29,6 +29,7 @@ class PortalVisibility
         'analyses'         => true,   // o'tkazilgan tahlillar: varaq raqami, shablon, sana, holati
         'analysis_details' => true,   // varaq ichi: o'lchov qiymatlari (parallellar), parametrlar, bajarilgan bosqichlar
         'comparison'       => true,   // nazorat tahlili bilan solishtirish
+        'totals'           => true,   // [P28] varaq bo'yicha jami (korotochkalar yig'indisi) — faqat o'z namunalari bo'yicha
         'export'           => true,   // natijalarni Excel'ga yuklab olish
     ];
 
@@ -116,8 +117,49 @@ class PortalVisibility
             $item['steps'] = [];
             $item['worksheets'] = null;
         }
+        // [P28] qatordagi natijalar
+        if (isset($item['results'])) {
+            $item['results'] = $this->filterResultChips($item['results']);
+        }
 
         return $item;
+    }
+
+    /** [P28] Ro'yxatdagi natija belgilari: yopilgan qiymat yuborilmaydi */
+    public function filterResultChips(array $chips): array
+    {
+        $v = $this->get();
+
+        return array_map(function (array $c) use ($v) {
+            if ($c['state'] === 'final' && ! $v['final_results']) {
+                $c['value'] = null;
+                $c['state'] = 'hidden';
+            } elseif ($c['state'] === 'preliminary' && ! $v['preliminary']) {
+                $c['value'] = null;
+                $c['decimals'] = null;
+                $c['worksheet'] = null;
+                $c['state'] = 'waiting';
+            }
+
+            return $c;
+        }, $chips);
+    }
+
+    /** [P28] Varaq bo'yicha jami: ko'rinadimi (sozlama + varaq holati bo'yicha) */
+    public function totalsAllowed(array $t): bool
+    {
+        $v = $this->get();
+        if (! $v['totals'] || ! $v['analyses']) {
+            return false;
+        }
+
+        return ! empty($t['preliminary']) ? $v['preliminary'] : $v['final_results'];
+    }
+
+    /** [P28] Ro'yxat ostidagi «Varaqlar bo'yicha jami» */
+    public function filterTotals(array $list): array
+    {
+        return array_values(array_filter($list, fn ($t) => $this->totalsAllowed($t)));
     }
 
     /** Bitta namuna sahifasi — CustomerPortalController::show() javobi */
@@ -162,6 +204,10 @@ class PortalVisibility
                     $b['summary'] = (object) [];
                     $b['tolerance'] = (object) [];
                     $b['summary_columns'] = [];
+                }
+                // [P28] varaq bo'yicha jami
+                if (array_key_exists('totals', $b) && ($b['totals'] === null || ! $this->totalsAllowed($b['totals']))) {
+                    $b['totals'] = null;
                 }
 
                 return $b;

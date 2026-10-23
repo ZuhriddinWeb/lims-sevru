@@ -11,7 +11,7 @@ import '../i18n'
 
 const props = defineProps({
   form: { type: Object, required: true },
-  options: { type: Object, required: true },   // { elements, profiles, units, departments }
+  options: { type: Object, required: true },   // { elements, profiles, units, departments, shifts }
   errors: { type: Object, default: () => ({}) },
   showDepartment: { type: Boolean, default: true },
 })
@@ -50,9 +50,22 @@ function remove(i) {
         </select>
         <p v-if="err('department_id')" class="mt-1.5 text-[12.5px] text-crit">{{ err('department_id') }}</p>
       </div>
-      <div>
+      <div :class="options.shifts?.length && 'sm:col-span-2 lg:col-span-2'">
         <label class="field-label">{{ t('sreq.form.delivery') }}</label>
-        <input v-model="form.delivery_date" type="date" class="field-input" data-f="delivery">
+        <!-- [P28] sana + smena -->
+        <div class="flex gap-2">
+          <input v-model="form.delivery_date" type="date" class="field-input min-w-0 flex-1" data-f="delivery">
+          <select
+            v-if="options.shifts?.length"
+            v-model="form.delivery_shift_id" class="field-input w-auto min-w-[200px]"
+            :class="err('delivery_shift_id') && 'field-input-error'" :title="t('sreq.form.shift')" :aria-label="t('sreq.form.shift')"
+            data-f="shift"
+          >
+            <option value="">{{ t('sreq.form.anyShift') }}</option>
+            <option v-for="s in options.shifts" :key="s.id" :value="s.id">{{ s.name }} · {{ s.start_time }}–{{ s.end_time }}</option>
+          </select>
+        </div>
+        <p v-if="err('delivery_shift_id')" class="mt-1.5 text-[12.5px] text-crit">{{ err('delivery_shift_id') }}</p>
       </div>
       <div>
         <label class="field-label">{{ t('sreq.form.contact') }}</label>
@@ -62,7 +75,7 @@ function remove(i) {
         <label class="field-label">{{ t('sreq.form.phone') }}</label>
         <input v-model="form.contact_phone" class="field-input" maxlength="64" inputmode="tel">
       </div>
-      <div class="sm:col-span-2" :class="showDepartment ? 'lg:col-span-3' : 'lg:col-span-3'">
+      <div class="sm:col-span-2" :class="showDepartment && options.shifts?.length ? 'lg:col-span-2' : 'lg:col-span-3'">
         <label class="field-label">{{ t('sreq.form.notes') }}</label>
         <input v-model="form.notes" class="field-input" maxlength="2000" :placeholder="t('sreq.form.notesHint')">
       </div>

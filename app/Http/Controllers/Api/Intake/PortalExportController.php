@@ -19,7 +19,8 @@ use Illuminate\Http\Request;
  * eksport o'chirilgan bo'lsa — 403; yopilgan ma'lumot (dastlabki natija, bosqich) faylga ham yozilmaydi.
  *
  * Varaqlar: «Natijalar» (namuna — qator, element — ustun), «Batafsil» (har bir natija alohida qator,
- * holati bilan), «Ma'lumot» (bo'lim, filtr, kim va qachon yuklagan).
+ * holati bilan), [P28] «Varaqlar jami» (korotochkalar yig'indisi — o'z namunalari bo'yicha),
+ * «Ma'lumot» (bo'lim, filtr, kim va qachon yuklagan).
  */
 class PortalExportController extends Controller
 {
@@ -178,6 +179,37 @@ class PortalExportController extends Controller
             }
         }
 
+        // ---- [P28] Varaqlar bo'yicha jami (korotochkalar yig'indisi) — faqat o'z namunalari bo'yicha ----
+        $totalsSheet = null;
+        if ($vis['totals'] && $vis['analyses'] && $samples->isNotEmpty()) {
+            $wsIds = [];
+            foreach ($this->analyses->worksheetMeta($samples->pluck('id')->map(fn ($v) => (int) $v)->all()) as $list) {
+                foreach ($list as $m) {
+                    $wsIds[] = $m['worksheet_id'];
+                }
+            }
+            $wsTotals = $this->visibility->filterTotals(array_values($this->analyses->worksheetTotals($wsIds, $scope['ids'] ?: null)));
+            if ($wsTotals) {
+                $totalsSheet = [[$L['worksheet'], $L['kind'], $L['template'], $L['ws_date'], $L['status'], $L['samples'], $L['element_name'], $L['value'], $L['unit']]];
+                foreach ($wsTotals as $t) {
+                    foreach ($t['totals'] as $c) {
+                        $tplName = $locale === 'ru' ? ($t['template']['name_ru'] ?: $t['template']['name_uz']) : $t['template']['name_uz'];
+                        $totalsSheet[] = [
+                            (string) $t['number'],
+                            $L['kind_' . ($t['kind'] === 'control' ? 'control' : 'main')],
+                            trim(($tplName ?? '') . ' · ' . ($t['template']['code'] ?? ''), ' ·'),
+                            $t['worksheet_date'] ? date('d.m.Y', strtotime($t['worksheet_date'])) : '',
+                            $t['preliminary'] ? $L['st_preliminary'] : $L['st_final'],
+                            $t['partial'] ? $t['samples_own'] . ' / ' . $t['samples_all'] : (string) $t['samples_all'],
+                            ($locale === 'ru' ? ($c['label_ru'] ?: $c['label_uz']) : $c['label_uz']),
+                            $c['value'] !== null && is_numeric($c['value']) ? (float) $c['value'] : '',
+                            $c['unit'] ?? '',
+                        ];
+                    }
+                }
+            }
+        }
+
         // ---- 3-varaq: Ma'lumot ----
         $deps = $scope['ids'] ? CustomerDepartment::whereIn('id', $scope['ids'])->orderBy('name')->pluck('name')->implode(', ') : $L['all_departments'];
         $info = [
@@ -190,15 +222,20 @@ class PortalExportController extends Controller
             [$L['created'], now()->format('d.m.Y H:i') . ' · ' . $request->user()->name],
             [$L['note'], $vis['preliminary'] ? $L['note_prelim'] : $L['note_final']],
         ];
+        if ($totalsSheet) {
+            $info[] = ['', $L['note_totals']];
+        }
 
         $name = 'natijalar_' . now()->format('Y-m-d_Hi');
         if (SimpleXlsx::available()) {
             $widths = array_merge([14, 18, 12, 24, 12, 22], array_fill(0, count($columns), 16), $vis['preliminary'] ? [18] : []);
-            $path = (new SimpleXlsx())
+            $x = (new SimpleXlsx())
                 ->sheet($L['sheet_results'], $wide, $widths)
-                ->sheet($L['sheet_detail'], $detail, [14, 18, 12, 9, 26, 12, 10, 16, 17, 12])
-                ->sheet($L['info'], $info, [22, 70])
-                ->save();
+                ->sheet($L['sheet_detail'], $detail, [14, 18, 12, 9, 26, 12, 10, 16, 17, 12]);
+            if ($totalsSheet) {
+                $x->sheet($L['sheet_totals'], $totalsSheet, [12, 12, 30, 12, 16, 12, 32, 12, 8]);
+            }
+            $path = $x->sheet($L['info'], $info, [22, 70])->save();
 
             return response()->download($path, $name . '.xlsx', [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -260,6 +297,9 @@ class PortalExportController extends Controller
         $all = [
             'uz' => [
                 'sheet_results' => 'Natijalar', 'sheet_detail' => 'Batafsil', 'info' => "Ma'lumot",
+                'sheet_totals' => 'Varaqlar jami', 'kind' => 'Turi', 'kind_main' => 'Asosiy', 'kind_control' => 'Nazorat',
+                'template' => 'Shablon (usul)', 'ws_date' => 'Varaq sanasi', 'samples' => 'Namunalar',
+                'note_totals' => "«Varaqlar jami» — har varaq bo'yicha jami faqat sizning namunalaringiz qatorlaridan; «3 / 6» — varaqdagi 6 tadan 3 tasi sizniki.",
                 'customer_code' => 'Shifr', 'lab_code' => 'Laboratoriya shifri', 'number' => 'Namuna raqami',
                 'department' => "Bo'lim", 'registered' => 'Topshirilgan', 'state' => 'Bosqich',
                 'prelim_col' => 'Dastlabki (tasdiqlanmagan)', 'element' => 'Belgi', 'element_name' => "Ko'rsatkich",
@@ -277,6 +317,9 @@ class PortalExportController extends Controller
             ],
             'ru' => [
                 'sheet_results' => 'Результаты', 'sheet_detail' => 'Подробно', 'info' => 'Сведения',
+                'sheet_totals' => 'Итоги по листам', 'kind' => 'Вид', 'kind_main' => 'Основной', 'kind_control' => 'Контроль',
+                'template' => 'Шаблон (методика)', 'ws_date' => 'Дата листа', 'samples' => 'Пробы',
+                'note_totals' => '«Итоги по листам» — итог по каждому листу только по строкам ваших проб; «3 / 6» — ваши 3 из 6 проб листа.',
                 'customer_code' => 'Шифр', 'lab_code' => 'Шифр лаборатории', 'number' => 'Номер пробы',
                 'department' => 'Подразделение', 'registered' => 'Сдана', 'state' => 'Этап',
                 'prelim_col' => 'Предварительные (не утверждены)', 'element' => 'Символ', 'element_name' => 'Показатель',
@@ -294,6 +337,9 @@ class PortalExportController extends Controller
             ],
             'en' => [
                 'sheet_results' => 'Results', 'sheet_detail' => 'Details', 'info' => 'Info',
+                'sheet_totals' => 'Worksheet totals', 'kind' => 'Kind', 'kind_main' => 'Main', 'kind_control' => 'Control',
+                'template' => 'Template (method)', 'ws_date' => 'Worksheet date', 'samples' => 'Samples',
+                'note_totals' => '"Worksheet totals" — each worksheet total uses only the rows of your samples; "3 / 6" — 3 of the 6 samples are yours.',
                 'customer_code' => 'Code', 'lab_code' => 'Lab code', 'number' => 'Sample no.',
                 'department' => 'Department', 'registered' => 'Submitted', 'state' => 'Stage',
                 'prelim_col' => 'Preliminary (not approved)', 'element' => 'Symbol', 'element_name' => 'Analyte',

@@ -10,6 +10,7 @@ use App\Models\Worksheet;
 use App\Models\WorksheetScan;
 use App\Models\WorksheetTemplate;
 use App\Services\Worksheets\WorksheetService;
+use App\Services\Worksheets\DisplayTotals;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -558,6 +559,11 @@ class WorksheetController extends Controller
             'approver:id,name',
         ]);
 
-        return $worksheet->toArray();
+        $out = $worksheet->toArray();
+        // [P28] «Varaq bo'yicha jami» nusxada yo'q eski/tasdiqlangan varaqlarda ham ekranda va chop etishda
+        // ko'rinsin — faqat javobdagi nusxaga (bazadagi nusxa va natijalar o'zgarmaydi)
+        $out['template_snapshot'] = DisplayTotals::augment((array) ($out['template_snapshot'] ?? []));
+
+        return $out;
     }
 }

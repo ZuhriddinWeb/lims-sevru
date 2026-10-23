@@ -6,7 +6,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Inbox, Loader2, Lock, Search, SlidersHorizontal } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Inbox, Loader2, Lock, Search, Sigma, SlidersHorizontal } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -14,7 +14,7 @@ import { useUiStore } from '@/stores/ui'
 import { formatDate } from '@/lib/format'
 import StageStepper from '../components/StageStepper.vue'
 import PeriodFilter from '../components/PeriodFilter.vue'
-import { apiErrorMessage } from '../helpers'
+import { apiErrorMessage, formatValue, label, templateName } from '../helpers'
 import { downloadPortalExport, visibilityOf } from '../portalVisibility' // [P27]
 import '../i18n'
 
@@ -26,6 +26,7 @@ const ui = useUiStore()
 const ctx = ref(null)           // { portal, preview, departments, visibility, can_configure }
 const ctxError = ref('')
 const items = ref([])
+const totals = ref([])          // [P28] varaqlar bo'yicha jami (faqat o'z namunalari bo'yicha)
 const meta = reactive({ current_page: 1, last_page: 1, total: 0, from: 0, to: 0 })
 const loading = ref(true)
 const filters = reactive({
@@ -62,6 +63,7 @@ async function load(page = 1) {
       },
     })
     items.value = data.data
+    totals.value = data.worksheet_totals ?? []
     Object.assign(meta, {
       current_page: data.current_page, last_page: data.last_page,
       total: data.total, from: data.from ?? 0, to: data.to ?? 0,
@@ -88,6 +90,21 @@ watch(() => filters.search, () => {
 const departments = computed(() => ctx.value?.departments ?? [])
 const showDeptSelect = computed(() => ctx.value?.preview || departments.value.length > 1)
 const notLinked = computed(() => ctx.value?.portal && departments.value.length === 0)
+
+/* [P28] qatordagi natijalar: yakuniy / dastlabki / yopiq / kutilmoqda */
+const CHIP = {
+  final: 'bg-ok-light text-ok-dark dark:bg-ok-dark/25 dark:text-ok-light',
+  preliminary: 'bg-warn-light text-warn-dark dark:bg-warn-dark/25 dark:text-warn-light border border-dashed border-warn/50',
+  hidden: 'bg-surface-sunken text-ink-muted',
+  waiting: 'bg-surface-sunken text-ink-muted',
+}
+function chipTitle(r) {
+  if (r.state === 'final') return t('portalVis.chipFinal')
+  if (r.state === 'preliminary') return t('portalVis.chipPrelim', { n: r.worksheet || '' })
+  if (r.state === 'hidden') return t('portalVis.hiddenHint')
+  return t('portalVis.chipWaiting')
+}
+const hasPrelim = computed(() => items.value.some((row) => row.results?.some((r) => r.state === 'preliminary')))
 
 /* [P27] admin belgilagan ko'rinish va Excel */
 const vis = computed(() => visibilityOf(ctx.value))
@@ -168,6 +185,44 @@ function open(row) {
           <PeriodFilter v-model:from="filters.date_from" v-model:to="filters.date_to" class="w-full" />
         </div>
 
+        <!-- [P28] Ishchi varaqlar bo'yicha jami (korotochkalar yig'indisi) -->
+        <section v-if="totals.length && items.length" class="panel mb-4 overflow-hidden" data-totals>
+          <header class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 border-b border-line">
+            <h2 class="flex items-center gap-2 text-[14px] font-semibold text-ink">
+              <Sigma :size="16" class="text-assay-500" /> {{ t('portalVis.totals.title') }}
+            </h2>
+            <p class="text-[12px] text-ink-muted">{{ t('portalVis.totals.hint') }}</p>
+          </header>
+          <div class="grid gap-3 p-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            <div v-for="w in totals" :key="w.worksheet_id" class="rounded-md border border-line px-3.5 py-3" :data-ws-total="w.worksheet_id">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="text-[13.5px] font-semibold text-ink">
+                    {{ t('portalVis.totals.worksheet', { n: w.number }) }}
+                    <span v-if="w.kind === 'control'" class="text-[11.5px] font-normal text-ink-muted">· {{ t('portalVis.totals.control') }}</span>
+                  </p>
+                  <p class="text-[12px] text-ink-muted truncate">{{ templateName(w.template, locale) }}<template v-if="w.worksheet_date"> · {{ formatDate(w.worksheet_date) }}</template></p>
+                </div>
+                <span
+                  class="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  :class="w.preliminary ? 'bg-warn-light text-warn-dark dark:bg-warn-dark/25 dark:text-warn-light' : 'bg-ok-light text-ok-dark dark:bg-ok-dark/25 dark:text-ok-light'"
+                >{{ w.preliminary ? t('portalVis.totals.preliminary') : t('portalVis.totals.approved') }}</span>
+              </div>
+              <div v-for="c in w.totals" :key="c.key" class="mt-2" :data-total-key="c.key">
+                <p class="text-[12px] text-ink-muted">{{ label(c, locale) }}</p>
+                <p class="text-[20px] font-semibold tnum text-ink leading-tight">
+                  {{ formatValue(c.value, c.decimals, locale) || '—' }} <span class="text-[12.5px] font-normal text-ink-muted">{{ c.unit }}</span>
+                </p>
+              </div>
+              <p
+                class="mt-1.5 text-[11.5px]" :class="w.partial ? 'text-warn-dark dark:text-warn-light' : 'text-ink-faint'"
+                :title="w.partial ? t('portalVis.totals.partialHint', { own: w.samples_own, all: w.samples_all }) : null"
+                data-ws-samples
+              >{{ w.partial ? t('portalVis.totals.partial', { own: w.samples_own, all: w.samples_all }) : t('portalVis.totals.samples', { n: w.samples_all }) }}</p>
+            </div>
+          </div>
+        </section>
+
         <div class="panel overflow-hidden">
           <div v-if="loading && !items.length" class="p-4 space-y-2.5">
             <div v-for="i in 5" :key="i" class="h-12 rounded bg-surface-sunken animate-pulse" />
@@ -181,9 +236,16 @@ function open(row) {
                 <tr class="border-b border-line bg-surface-sunken/60 text-left text-[12px] uppercase tracking-wide text-ink-muted">
                   <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.code') }}</th>
                   <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.registered') }}</th>
-                  <th class="px-4 py-2.5 font-medium">{{ t('intake.portal.elements') }}</th>
+                  <th class="px-4 py-2.5 font-medium">
+                    {{ items.some((row) => row.results) ? t('portalVis.resultsCol') : t('intake.portal.elements') }}
+                    <!-- [P28] belgilar izohi -->
+                    <span v-if="items.some((row) => row.results)" class="ml-2 inline-flex items-center gap-2 normal-case tracking-normal font-normal text-[11.5px]" data-legend>
+                      <span class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-sm bg-ok-light border border-ok/40" />{{ t('portalVis.legendFinal') }}</span>
+                      <span v-if="hasPrelim" class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-sm bg-warn-light border border-dashed border-warn/60" />{{ t('portalVis.legendPrelim') }}</span>
+                    </span>
+                  </th>
                   <th v-if="vis.steps" class="px-4 py-2.5 font-medium min-w-[190px]">{{ t('intake.portal.stageCol') }}</th>
-                  <th class="px-4 py-2.5 font-medium text-right">{{ t('intake.portal.progress') }}</th>
+                  <th class="px-4 py-2.5 font-medium text-right">{{ items.some((row) => row.results) ? t('portalVis.progressCol') : t('intake.portal.progress') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-line">
@@ -199,7 +261,22 @@ function open(row) {
                   </td>
                   <td class="px-4 py-2.5 text-ink-muted tnum whitespace-nowrap">{{ formatDate(row.registered_at) }}</td>
                   <td class="px-4 py-2.5">
-                    <span class="flex flex-wrap gap-1">
+                    <!-- [P28] natija qiymati bilan — kartochkani ochmasdan -->
+                    <span v-if="row.results" class="flex flex-wrap gap-1" data-results>
+                      <span
+                        v-for="(r, i) in row.results" :key="i"
+                        class="inline-flex items-baseline gap-1 rounded px-1.5 py-0.5 text-[12px] whitespace-nowrap"
+                        :class="CHIP[r.state] || CHIP.waiting" :title="chipTitle(r)" :data-chip="r.state"
+                      >
+                        <span class="font-mono text-[11.5px]">{{ r.symbol }}</span>
+                        <template v-if="r.value !== null && r.value !== undefined">
+                          <span class="tnum font-semibold">{{ formatValue(r.value, r.decimals, locale) }}</span>
+                          <span v-if="r.unit" class="text-[11px] opacity-75">{{ r.unit }}</span>
+                        </template>
+                        <Lock v-else-if="r.state === 'hidden'" :size="11" class="self-center" />
+                      </span>
+                    </span>
+                    <span v-else class="flex flex-wrap gap-1">
                       <span
                         v-for="(el, i) in row.elements" :key="i"
                         class="rounded px-1.5 py-0.5 text-[11.5px] font-mono"

@@ -29,6 +29,7 @@ const uz = {
     notLinked: "Hisobingiz hech bir bo'limga biriktirilmagan. Laboratoriyaga murojaat qiling.",
     readOnly: "Sizda buyurtma yuborish huquqi yo'q — faqat ko'rish",
     previewBanner: "Ko'rib chiqish rejimi: buyurtmachi sahifasini laboratoriya xodimi sifatida ko'ryapsiz",
+    previewHint: "Bu yerda faqat buyurtmachi hisobi yozadi; xodim buyurtmani «Buyurtmachi nomidan» tugmasi orqali tuzadi",
     tabs: {
       draft: 'Qoralamalar', sent: 'Yuborilgan', done: 'Qabul qilingan', closed: 'Yopilgan', all: 'Hammasi',
       waiting: 'Kutilmoqda', expired: "Muddati o'tgan", received: 'Qabul qilingan', drafts: 'Qoralamalar',
@@ -48,6 +49,7 @@ const uz = {
       department: "Bo'lim",
       chooseDepartment: "Bo'limni tanlang",
       delivery: 'Qachon olib kelinadi',
+      shift: 'Smena', anyShift: '— smena —',
       contact: 'Kim olib keladi',
       phone: 'Telefon',
       notes: 'Izoh',
@@ -171,6 +173,7 @@ const ru = {
     notLinked: 'Ваша учётная запись не привязана к подразделению. Обратитесь в лабораторию.',
     readOnly: 'У вас нет права отправлять заявки — только просмотр',
     previewBanner: 'Режим просмотра: вы видите страницу заказчика как сотрудник лаборатории',
+    previewHint: 'Здесь заявки оформляет только учётная запись заказчика; сотрудник создаёт заявку кнопкой «От имени заказчика»',
     tabs: {
       draft: 'Черновики', sent: 'Отправленные', done: 'Принятые', closed: 'Закрытые', all: 'Все',
       waiting: 'Ожидают', expired: 'Просроченные', received: 'Принятые', drafts: 'Черновики',
@@ -190,6 +193,7 @@ const ru = {
       department: 'Подразделение',
       chooseDepartment: 'Выберите подразделение',
       delivery: 'Когда доставят',
+      shift: 'Смена', anyShift: '— смена —',
       contact: 'Кто доставит',
       phone: 'Телефон',
       notes: 'Примечание',
@@ -313,6 +317,7 @@ const en = {
     notLinked: 'Your account is not linked to a department. Contact the laboratory.',
     readOnly: 'You cannot send requests — view only',
     previewBanner: 'Preview mode: you are viewing the customer page as laboratory staff',
+    previewHint: 'Only customer accounts write requests here; staff create one with «On behalf of customer»',
     tabs: {
       draft: 'Drafts', sent: 'Sent', done: 'Received', closed: 'Closed', all: 'All',
       waiting: 'Waiting', expired: 'Overdue', received: 'Received', drafts: 'Drafts',
@@ -332,6 +337,7 @@ const en = {
       department: 'Department',
       chooseDepartment: 'Choose department',
       delivery: 'Delivery date',
+      shift: 'Shift', anyShift: '— shift —',
       contact: 'Who delivers',
       phone: 'Phone',
       notes: 'Notes',

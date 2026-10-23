@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, CheckCircle2, Clock, FlaskConical, Lock, RotateCcw, Scale, ShieldCheck } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle2, Clock, FlaskConical, Lock, RotateCcw, Scale, ShieldCheck, Sigma } from 'lucide-vue-next'
 import api from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { formatDate, formatDateTime } from '@/lib/format'
@@ -224,7 +224,7 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
         >{{ b.status === 'approved' ? t('intake.portal.approvedAt', { d: formatDateTime(b.approved_at) }) : t(`intake.portal.wsStatus.${b.status}`) }}</span>
       </header>
 
-      <div v-if="b.member_status === 'retest' || b.stages.length || b.params.length || b.columns.length || b.summary_columns.length" class="px-4 py-3 space-y-3">
+      <div v-if="b.member_status === 'retest' || b.stages.length || b.params.length || b.columns.length || b.summary_columns.length || b.totals?.totals?.length" class="px-4 py-3 space-y-3">
         <p v-if="b.member_status === 'retest'" class="flex items-center gap-1.5 text-[13px] text-warn-dark dark:text-warn-light">
           <RotateCcw :size="14" /> {{ t('intake.portal.retest') }}
         </p>
@@ -285,6 +285,20 @@ const stageDoneCount = (b) => b.stages.filter((s) => s.done).length
               {{ summaryValue(b, c) || '—' }} <span class="text-[12px] font-normal text-ink-muted">{{ c.unit }}</span>
             </p>
           </div>
+        </div>
+
+        <!-- [P28] Varaq bo'yicha jami — faqat bo'lim namunalari qatorlaridan -->
+        <div v-if="b.totals?.totals?.length" class="rounded-md border border-line px-3 py-2.5" data-block-totals>
+          <p class="flex items-center gap-1.5 text-[12px] font-medium uppercase tracking-wide text-ink-muted">
+            <Sigma :size="13" class="text-assay-500" /> {{ t('portalVis.totals.block') }}
+          </p>
+          <div v-for="c in b.totals.totals" :key="c.key" class="mt-1 flex flex-wrap items-baseline justify-between gap-x-4 text-[13.5px]">
+            <span class="text-ink-muted">{{ label(c, locale) }}</span>
+            <span class="font-semibold tnum text-ink">{{ formatValue(c.value, c.decimals, locale) || '—' }} <span class="font-normal text-ink-muted">{{ c.unit }}</span></span>
+          </div>
+          <p v-if="b.totals.partial" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-partial>
+            {{ t('portalVis.totals.partialNote', { own: b.totals.samples_own, all: b.totals.samples_all }) }}
+          </p>
         </div>
       </div>
     </section>

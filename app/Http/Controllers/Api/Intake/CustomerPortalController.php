@@ -54,7 +54,7 @@ class CustomerPortalController extends Controller
         $scope = $this->portal->scope($request);
 
         $query = Sample::query()->with([
-            'sampleElements:id,sample_id,element_id,status',
+            'sampleElements:id,sample_id,element_id,status,result_value,result_unit', // [P28] natija ham
             'sampleElements.element:id,symbol',
             'customerDepartment:id,code,name',
         ]);
@@ -92,8 +92,9 @@ class CustomerPortalController extends Controller
 
         $ids = $page->getCollection()->pluck('id')->map(fn ($v) => (int) $v)->all();
         $meta = $this->analyses->worksheetMeta($ids);
+        $results = $this->analyses->listResults($page->getCollection()); // [P28]
 
-        $page->setCollection($page->getCollection()->map(function (Sample $s) use ($meta) {
+        $page->setCollection($page->getCollection()->map(function (Sample $s) use ($meta, $results) {
             $steps = $this->analyses->steps($s, $meta[(int) $s->id] ?? []);
 
             return $this->visibility->filterListItem([ // [P27]
@@ -114,10 +115,22 @@ class CustomerPortalController extends Controller
                 'stage'           => $steps['current'],
                 'steps'           => $steps['steps'],
                 'worksheets'      => $steps['worksheets'],
+                'results'         => $results[(int) $s->id] ?? [], // [P28] qiymatlar — kartochkani ochmasdan
             ]);
         }));
 
-        return response()->json($page);
+        // [P28] shu sahifadagi namunalar o'tgan varaqlar bo'yicha jami (faqat ko'ruvchining namunalari bo'yicha)
+        $wsIds = [];
+        foreach ($meta as $list) {
+            foreach ($list as $m) {
+                $wsIds[] = $m['worksheet_id'];
+            }
+        }
+        $totals = $this->visibility->filterTotals(array_values(
+            $this->analyses->worksheetTotals($wsIds, $scope['ids'] ?: null)
+        ));
+
+        return response()->json($page->toArray() + ['worksheet_totals' => $totals]);
     }
 
     /** Bitta proba: bosqichlar, natijalar, varaqlardagi shu probaning ma'lumoti, miqdor */
@@ -132,6 +145,15 @@ class CustomerPortalController extends Controller
         ]);
         $meta = $this->analyses->worksheetMeta([(int) $sample->id])[(int) $sample->id] ?? [];
         $blocks = $this->analyses->blocks($sample);
+
+        // [P28] har varaq bo'yicha jami — ko'ruvchi bo'limi(lari) namunalari bo'yicha
+        // (ko'rib chiqish rejimi: shu namuna bo'limi — buyurtmachi ko'radigan holat)
+        $scope = $this->portal->scope($request);
+        $deptIds = $scope['ids'] ?: [(int) $sample->customer_department_id];
+        $wsTotals = $this->analyses->worksheetTotals(array_column($blocks, 'id'), $deptIds);
+        foreach ($blocks as $i => $b) {
+            $blocks[$i]['totals'] = $wsTotals[(int) $b['id']] ?? null;
+        }
 
         // Elementlar bo'yicha natija: yakuniy (probaga yozilgan) yoki varaqdan dastlabki
         $prelim = [];
