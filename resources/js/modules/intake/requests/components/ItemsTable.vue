@@ -1,8 +1,10 @@
 <script setup>
 /** Buyurtma namunalari — faqat ko'rish (holati va yaratilgan proba shifri bilan) */
 import { useI18n } from 'vue-i18n'
+import { KeyRound, MapPin } from 'lucide-vue-next'
 import { ITEM_TONE, nameOf } from '../shared'
 import '../i18n'
+import '../i18nGroup' // [P30]
 
 defineProps({
   items: { type: Array, default: () => [] },
@@ -29,6 +31,10 @@ const { t, locale } = useI18n()
           <td class="px-4 py-2.5 text-ink-faint tnum">{{ i.position }}</td>
           <td class="px-4 py-2.5">
             <span class="font-mono font-semibold text-ink">{{ i.customer_code || '—' }}</span>
+            <!-- [P29] svodka nuqtasi — server faqat buyurtmachiga beradi -->
+            <span v-if="i.svodka_point" class="flex items-center gap-1 text-[12px] text-aqua-700 dark:text-aqua-200" data-point-name><MapPin :size="12" class="shrink-0" />{{ i.svodka_point }}</span>
+            <!-- [P30] guruh shifri — server faqat buyurtmachiga va o'sha guruh xodimiga beradi -->
+            <span v-if="i.group_code" class="flex items-center gap-1 font-mono text-[12px] text-assay-700 dark:text-assay-200" :title="t('sreq.group.codeHint')" data-group-code><KeyRound :size="12" class="shrink-0" />{{ i.group_code }}</span>
             <span v-if="i.notes" class="block text-[12px] text-ink-faint">{{ i.notes }}</span>
           </td>
           <td class="px-4 py-2.5 text-ink-muted">{{ t(`sreq.form.states.${i.state_of_matter}`) }}</td>

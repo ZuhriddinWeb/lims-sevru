@@ -1,0 +1,70 @@
+--- eski/app/Http/Controllers/Api/Intake/PortalExportController.php
++++ yangi/app/Http/Controllers/Api/Intake/PortalExportController.php
+@@ -9,6 +9,7 @@
+ use App\Services\Samples\CustomerPortal;
+ use App\Services\Samples\PortalVisibility;
+ use App\Services\Samples\SampleAnalyses;
++use App\Services\Svodka\SvodkaGate; // [P29]
+ use Illuminate\Http\Request;
+ 
+ /**
+@@ -83,8 +84,11 @@
+         // ---- har bir namuna: natijalar (yakuniy / dastlabki) ----
+         $columns = [];   // element_id => [symbol, name, sort, units[unit=>count]]
+         $records = [];
++        $gates = SvodkaGate::for($samples); // [P29] svodka rejimi: faqat chiqarilgan va o'zgarmagan qiymat
+         foreach ($samples as $s) {
+-            $prelim = $vis['preliminary'] ? $this->preliminary($s) : [];
++            $g = $gates[(int) $s->id] ?? null;
++            $gated = $g && $g['enabled'];
++            $prelim = $vis['preliminary'] && ! $gated ? $this->preliminary($s) : [];
+             $vals = [];
+             foreach ($s->sampleElements as $se) {
+                 $el = $se->element;
+@@ -95,7 +99,9 @@
+                 $columns[$eid] ??= ['symbol' => $el->symbol, 'name' => $el->{'name_' . $locale} ?: $el->name_uz, 'sort' => (int) $el->sort_order, 'units' => []];
+ 
+                 $final = $se->status === 'done' && $se->result_value !== null;
+-                if ($final && $vis['final_results']) {
++                if ($final && $vis['final_results'] && $gated && empty($g['visible'][$eid])) {
++                    $vals[$eid] = ['value' => null, 'unit' => $se->result_unit, 'state' => 'locked', 'date' => null, 'ws' => null];
++                } elseif ($final && $vis['final_results']) {
+                     $vals[$eid] = ['value' => (float) $se->result_value, 'unit' => $se->result_unit, 'state' => 'final',
+                         'date' => $se->result_entered_at?->format('d.m.Y H:i'), 'ws' => null];
+                 } elseif (! $final && isset($prelim[$el->symbol])) {
+@@ -188,7 +194,7 @@
+                     $wsIds[] = $m['worksheet_id'];
+                 }
+             }
+-            $wsTotals = $this->visibility->filterTotals(array_values($this->analyses->worksheetTotals($wsIds, $scope['ids'] ?: null)));
++            $wsTotals = SvodkaGate::totals($this->visibility->filterTotals(array_values($this->analyses->worksheetTotals($wsIds, $scope['ids'] ?: null))));
+             if ($wsTotals) {
+                 $totalsSheet = [[$L['worksheet'], $L['kind'], $L['template'], $L['ws_date'], $L['status'], $L['samples'], $L['element_name'], $L['value'], $L['unit']]];
+                 foreach ($wsTotals as $t) {
+@@ -305,7 +311,7 @@
+                 'prelim_col' => 'Dastlabki (tasdiqlanmagan)', 'element' => 'Belgi', 'element_name' => "Ko'rsatkich",
+                 'value' => 'Natija', 'unit' => 'Birlik', 'status' => 'Holati', 'entered' => 'Kiritilgan', 'worksheet' => 'Ishchi varaq',
+                 'cell_waiting' => '', 'cell_hidden' => '', 'cell_final' => '', 'cell_preliminary' => '',
+-                'st_final' => 'Tasdiqlangan', 'st_preliminary' => 'Dastlabki', 'st_waiting' => 'Kutilmoqda', 'st_hidden' => "Ko'rsatilmaydi",
++                'st_final' => 'Tasdiqlangan', 'st_preliminary' => 'Dastlabki', 'st_waiting' => 'Kutilmoqda', 'st_hidden' => "Ko'rsatilmaydi", 'st_locked' => 'Tasdiqlash kutilmoqda', 'cell_locked' => '',
+                 'step_registered' => 'Qabul qilindi', 'step_assigned' => 'Tahlilga uzatildi', 'step_analysis' => 'Tahlil jarayonida',
+                 'step_review' => 'Natijalar tekshirilmoqda', 'step_done' => 'Natijalar tayyor', 'step_archived' => 'Arxivda',
+                 'tab_active' => 'Jarayonda', 'tab_done' => 'Tayyor', 'tab_all' => 'Hammasi',
+@@ -325,7 +331,7 @@
+                 'prelim_col' => 'Предварительные (не утверждены)', 'element' => 'Символ', 'element_name' => 'Показатель',
+                 'value' => 'Результат', 'unit' => 'Ед.', 'status' => 'Статус', 'entered' => 'Внесён', 'worksheet' => 'Рабочий лист',
+                 'cell_waiting' => '', 'cell_hidden' => '', 'cell_final' => '', 'cell_preliminary' => '',
+-                'st_final' => 'Утверждён', 'st_preliminary' => 'Предварительный', 'st_waiting' => 'Ожидается', 'st_hidden' => 'Не показывается',
++                'st_final' => 'Утверждён', 'st_preliminary' => 'Предварительный', 'st_waiting' => 'Ожидается', 'st_hidden' => 'Не показывается', 'st_locked' => 'Ожидает выпуска', 'cell_locked' => '',
+                 'step_registered' => 'Принята', 'step_assigned' => 'Передана на анализ', 'step_analysis' => 'Идёт анализ',
+                 'step_review' => 'Результаты проверяются', 'step_done' => 'Результаты готовы', 'step_archived' => 'В архиве',
+                 'tab_active' => 'В работе', 'tab_done' => 'Готовые', 'tab_all' => 'Все',
+@@ -345,7 +351,7 @@
+                 'prelim_col' => 'Preliminary (not approved)', 'element' => 'Symbol', 'element_name' => 'Analyte',
+                 'value' => 'Result', 'unit' => 'Unit', 'status' => 'Status', 'entered' => 'Entered', 'worksheet' => 'Worksheet',
+                 'cell_waiting' => '', 'cell_hidden' => '', 'cell_final' => '', 'cell_preliminary' => '',
+-                'st_final' => 'Approved', 'st_preliminary' => 'Preliminary', 'st_waiting' => 'Pending', 'st_hidden' => 'Not shown',
++                'st_final' => 'Approved', 'st_preliminary' => 'Preliminary', 'st_waiting' => 'Pending', 'st_hidden' => 'Not shown', 'st_locked' => 'Awaiting release', 'cell_locked' => '',
+                 'step_registered' => 'Received', 'step_assigned' => 'Sent for analysis', 'step_analysis' => 'Analysis in progress',
+                 'step_review' => 'Results under review', 'step_done' => 'Results ready', 'step_archived' => 'Archived',
+                 'tab_active' => 'In progress', 'tab_done' => 'Ready', 'tab_all' => 'All',

@@ -2,6 +2,7 @@
  * Buyurtma so'rovlari — umumiy yordamchilar (Vue'siz). [Paket 24]
  */
 import { formatDate, formatDateTime } from '@/lib/format'
+import './i18nGroup' // [P30] guruh tarjimalari (chop etish varaqasida ham)
 
 export const STATUS_TONE = {
   draft: 'bg-surface-sunken text-ink-muted dark:bg-white/5',
@@ -28,7 +29,7 @@ export function nameOf(item, locale) {
 export function blankItem(o = {}) {
   return {
     customer_code: '', state_of_matter: 'solid', test_profile_id: null, element_ids: [],
-    quantity: '', quantity_unit: 'g', notes: '', ...o,
+    quantity: '', quantity_unit: 'g', notes: '', svodka_point_id: '', group_code: '', ...o,
   }
 }
 
@@ -38,6 +39,9 @@ export function toForm(r) {
     department_id: r?.department?.id ?? '',
     delivery_date: r?.delivery_date ?? '',
     delivery_shift_id: r?.delivery_shift_id ?? '', // [P28]
+    svodka_date: r?.svodka_date ?? '', // [P29] faqat buyurtmachi javobida keladi
+    svodka_shift: r?.svodka_shift ?? '',
+    laboratory_group_id: r?.laboratory_group_id ?? '', // [P30]
     contact_name: r?.contact_name ?? '',
     contact_phone: r?.contact_phone ?? '',
     notes: r?.notes ?? '',
@@ -49,6 +53,8 @@ export function toForm(r) {
       quantity: i.quantity ?? '',
       quantity_unit: i.quantity_unit || 'g',
       notes: i.notes ?? '',
+      svodka_point_id: i.svodka_point_id ?? '', // [P29]
+      group_code: i.group_code ?? '', // [P30]
     })),
   }
 }
@@ -59,6 +65,9 @@ export function toPayload(form) {
     department_id: form.department_id || null,
     delivery_date: form.delivery_date || null,
     delivery_shift_id: form.delivery_shift_id || null, // [P28]
+    svodka_date: form.svodka_date || null, // [P29]
+    svodka_shift: form.svodka_shift ? Number(form.svodka_shift) : null,
+    laboratory_group_id: form.laboratory_group_id ? Number(form.laboratory_group_id) : null, // [P30]
     contact_name: form.contact_name || null,
     contact_phone: form.contact_phone || null,
     notes: form.notes || null,
@@ -70,6 +79,8 @@ export function toPayload(form) {
       quantity: i.quantity === '' || i.quantity === null ? null : String(i.quantity).replace(',', '.'),
       quantity_unit: i.quantity === '' || i.quantity === null ? null : i.quantity_unit,
       notes: (i.notes || '').trim() || null,
+      svodka_point_id: i.svodka_point_id ? Number(i.svodka_point_id) : null, // [P29]
+      group_code: (i.group_code || '').trim() || null, // [P30]
     })),
   }
 }
@@ -118,9 +129,10 @@ export function printSlip(r, t, locale) {
     [t('sreq.col.department'), r.department ? `${r.department.name}${r.department.code ? ` (${r.department.code})` : ''}` : ''],
     [t('sreq.info.submitted'), formatDateTime(r.submitted_at)],
     [t('sreq.col.delivery'), deliveryText(r) || '—'],
+    r.laboratory_group && [t('sreq.group.label'), nameOf(r.laboratory_group, locale)], // [P30] guruh shifri varaqaga yozilmaydi
     [t('sreq.col.contact'), [r.contact_name, r.contact_phone].filter(Boolean).join(', ') || '—'],
     [t('sreq.form.notes'), r.notes || ''],
-  ].filter(([, v]) => v)
+  ].filter((x) => x && x[1])
   w.document.write(`<!doctype html><html lang="${locale}"><head><meta charset="utf-8">
 <title>${esc(r.number || '')}</title>
 <style>

@@ -30,7 +30,7 @@ const listRoute = computed(() => ({ name: mode.value === 'lab' ? 'sample-request
 
 const options = ref(null)
 const request = ref(null)
-const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
+const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
 const errors = ref({})
 const loading = ref(true)
 const loadError = ref('')
@@ -74,11 +74,17 @@ async function load() {
       }
       fill(req.data)
     } else {
-      Object.assign(form, { department_id: '', delivery_date: '', delivery_shift_id: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
+      Object.assign(form, { department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
       if (opt.data.departments?.length === 1) form.department_id = opt.data.departments[0].id
       // portal ko'rib chiqish rejimidan tanlangan bo'lim bilan kelgan bo'lsa
       const want = Number(route.query.department_id)
       if (want && opt.data.departments?.some((d) => Number(d.id) === want)) form.department_id = want
+      // [P29] svodka rejimidagi bo'lim: joriy kun va navbatchilik
+      const sv = opt.data.svodka?.[form.department_id]
+      if (sv) Object.assign(form, { svodka_date: sv.current.date, svodka_shift: sv.current.shift })
+      // [P30] guruh: bitta bo'lsa — o'zi; laboratoriya xodimi buyurtmachi nomidan — o'z guruhi
+      if (opt.data.groups?.length === 1) form.laboratory_group_id = opt.data.groups[0].id
+      else if (mode.value === 'lab' && opt.data.own_group) form.laboratory_group_id = opt.data.own_group
       if (mode.value === 'portal' && !opt.data.can_write) loadError.value = t('sreq.readOnly')
       saved.value = snapshot()
     }
@@ -183,7 +189,7 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
       <!-- Tahrirlash: yangi yoki qoralama -->
       <template v-if="editable">
         <RequestInfo v-if="request" :request="request" :audience="mode" class="mb-4" />
-        <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" />
+        <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" :fresh="!id" />
 
         <div class="sticky bottom-0 z-10 mt-4 pb-3">
           <div class="panel shadow-pop px-4 py-3 flex flex-wrap items-center gap-2">

@@ -1,0 +1,19 @@
+--- eski/app/Console/Commands/LimsUpgrade.php
++++ yangi/app/Console/Commands/LimsUpgrade.php
+@@ -19,7 +19,7 @@
+  * Faqat QO'SHADI. Mavjud namuna, natija, varaq, foydalanuvchi, rol sozlamalari va menyu nomlariga tegmaydi:
+  *   - WorksheetModuleSeeder FAQAT ishchi varaqlar moduli hali o'rnatilmagan bo'lsa ishlaydi
+  *     (u qayta ishga tushsa admin o'zgartirgan menyu nomi va rol ruxsatlarini qaytarib yozadi);
+- *   - Interlab / SampleIntake / Insights / SampleRequest seederlari — faqat yo'q ruxsat, menyu, rolni yaratadi;
++ *   - Interlab / SampleIntake / Insights / SampleRequest / Svodka seederlari — faqat yo'q ruxsat, menyu, rolni yaratadi;
+  *   - help:import — yordamchi javoblari (qo'lda tahrirlanganlari o'zgarmaydi);
+  *   - worksheets:add-totals — shablonlarga «varaq bo'yicha jami» (mavjud varaqlarga emas);
+  *   - worksheets:eritish-stages --open — barcha shablonlarda «Eritdi» + «Qaynatib eritdi» (tasdiqlangan varaqlarga emas).
+@@ -42,6 +42,7 @@
+         'SampleIntakeModuleSeeder'  => "Buyurtmachi bo'limlar, portal, namuna miqdori",
+         'InsightsModuleSeeder'      => 'Smenalar, xodimlar faoliyati, audit, savatcha',
+         'SampleRequestModuleSeeder' => 'Qoralama buyurtma',
++        'SvodkaModuleSeeder'        => 'Buyurtmachi svodkasi (chiqarish ruxsati, menyu)',
+     ];
+ 
+     public function handle(): int

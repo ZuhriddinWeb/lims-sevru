@@ -47,6 +47,10 @@ class SampleIntakeServiceProvider extends ServiceProvider
         if (class_exists(\App\Providers\SampleRequestServiceProvider::class)) {
             $this->app->register(\App\Providers\SampleRequestServiceProvider::class);
         }
+        // [P29] Buyurtmachi svodkasi (spravochnik, ko'r bog'lash, boshliq chiqarishi)
+        if (class_exists(\App\Providers\SvodkaServiceProvider::class)) {
+            $this->app->register(\App\Providers\SvodkaServiceProvider::class);
+        }
 
         $this->app->scoped(CustomerPortal::class);
         $this->app->scoped(SampleLedger::class);
@@ -69,8 +73,10 @@ class SampleIntakeServiceProvider extends ServiceProvider
             'received_quantity'      => 'float',
             'retained_quantity'      => 'float',
         ];
-        Sample::retrieved(fn (Sample $sample) => $sample->mergeCasts($casts));
-        Sample::saved(fn (Sample $sample) => $sample->mergeCasts($casts));
+        // [P30] guruh shifri JSON javoblarda hech qachon chiqmaydi (umumiy /api/samples ham) —
+        // faqat ataylab, ruxsat tekshirilib beriladi (SampleIntakeController::show, buyurtma kartochkasi)
+        Sample::retrieved(fn (Sample $sample) => $sample->mergeCasts($casts)->makeHidden('group_code'));
+        Sample::saved(fn (Sample $sample) => $sample->mergeCasts($casts)->makeHidden('group_code'));
 
         // Probalar API'si (/api/samples...): bo'lim nomi doim javobda; ro'yxatda bo'lim va shifr filtri
         Sample::addGlobalScope('sample_intake', function (Builder $query) {

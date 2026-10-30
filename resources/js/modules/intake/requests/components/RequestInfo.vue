@@ -5,21 +5,25 @@ import { useI18n } from 'vue-i18n'
 import { AlertTriangle, Info } from 'lucide-vue-next'
 import { formatDate, formatDateTime } from '@/lib/format'
 import StatusPill from './StatusPill.vue'
-import { deliveryText } from '../shared'
+import { deliveryText, nameOf } from '../shared'
 import '../i18n'
+import '../../svodka/i18n' // [P29]
 
 const props = defineProps({
   request: { type: Object, required: true },
   audience: { type: String, default: 'portal' }, // portal | lab
 })
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const r = computed(() => props.request)
 
 const rows = computed(() => [
   [t('sreq.col.department'), r.value.department ? r.value.department.name + (r.value.department.code ? ` (${r.value.department.code})` : '') : '—'],
+  r.value.laboratory_group && [t('sreq.group.label'), nameOf(r.value.laboratory_group, locale.value)], // [P30]
   [t('sreq.info.created'), `${formatDateTime(r.value.created_at)}${r.value.created_by ? ' · ' + r.value.created_by : ''}`],
   r.value.submitted_at && [t('sreq.info.submitted'), `${formatDateTime(r.value.submitted_at)}${r.value.submitted_by ? ' · ' + r.value.submitted_by : ''}`],
   (r.value.delivery_date || r.value.delivery_shift) && [t('sreq.col.delivery'), deliveryText(r.value)],
+  // [P29] svodka (faqat buyurtmachi javobida)
+  r.value.svodka_date && [t('svodka.form.row'), [formatDate(r.value.svodka_date), r.value.svodka_shift_label].filter(Boolean).join(' · ')],
   r.value.expires_at && ['submitted', 'expired'].includes(r.value.status) && [t('sreq.info.expires'), formatDate(r.value.expires_at)],
   (r.value.contact_name || r.value.contact_phone) && [t('sreq.col.contact'), [r.value.contact_name, r.value.contact_phone].filter(Boolean).join(', ')],
   r.value.received_at && [t('sreq.info.received'), `${formatDateTime(r.value.received_at)}${r.value.received_by ? ' · ' + r.value.received_by : ''}`],

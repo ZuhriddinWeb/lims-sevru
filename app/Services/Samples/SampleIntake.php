@@ -40,21 +40,48 @@ class SampleIntake
                 // Oy — probaning ro'yxatga olingan oyi (period_month): yangi proba uchun joriy oy,
                 // tahrirlashda — probaning o'z oyi.
                 $period = $ignore?->period_month ?: now()->format('Y-m');
-                $dup = Sample::query()
-                    ->where('customer_department_id', (int) $dept)
-                    ->where('customer_code', $value)
-                    ->where('period_month', $period)
-                    ->where('status', '!=', 'archived')
-                    ->when($ignore, fn ($q) => $q->where('id', '!=', $ignore->id))
-                    ->value('code');
+                // [P30] guruh tanlangan bo'lsa — takror faqat shu guruh ichida taqiqlanadi
+                $group = request()->has('assigned_group_id') ? request()->input('assigned_group_id') : $ignore?->assigned_group_id;
+                $group = $group ? (int) $group : null;
+                $dup = self::duplicateCode((int) $dept, $value, $period, $group, $ignore?->id);
                 if ($dup) {
-                    $fail("Bu bo'limning «{$value}» shifrli probasi {$period} oyida allaqachon ro'yxatda bor: {$dup}");
+                    $fail(self::duplicateMessage($value, $period, $dup, $group));
                 }
             }],
             'received_quantity'      => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
             'quantity_unit'          => ['nullable', Rule::in(QuantityUnit::UNITS)],
             'handed_over_by'         => ['nullable', 'string', 'max:191'],
         ];
+    }
+
+    /**
+     * [P26] Shu bo'limning shu oydagi faol probasida bunday shifr bormi.
+     * [P30] Guruh berilsa — faqat shu guruhga biriktirilgan probalar ichida (bir xil namunalar turli guruhlarga
+     * bir xil shifr bilan yuboriladi: Bo'tana va Bo'tana quruq faza). Guruhsiz — avvalgidek, barcha probalar ichida.
+     *
+     * @return string|null topilgan probaning laboratoriya raqami
+     */
+    public static function duplicateCode(int $deptId, string $code, string $period, ?int $groupId = null, ?int $ignoreId = null): ?string
+    {
+        return Sample::query()
+            ->where('customer_department_id', $deptId)
+            ->where('customer_code', $code)
+            ->where('period_month', $period)
+            ->where('status', '!=', 'archived')
+            ->when($groupId, fn ($q) => $q->where('assigned_group_id', $groupId))
+            ->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))
+            ->value('code');
+    }
+
+    public static function duplicateMessage(string $code, string $period, string $dup, ?int $groupId = null): string
+    {
+        if ($groupId) {
+            $name = \Illuminate\Support\Facades\DB::table('laboratory_groups')->where('id', $groupId)->value('name_uz');
+
+            return "Bu bo'limning «{$code}» shifrli probasi {$period} oyida «" . ($name ?: "#$groupId") . "» guruhida allaqachon ro'yxatda bor: {$dup}";
+        }
+
+        return "Bu bo'limning «{$code}» shifrli probasi {$period} oyida allaqachon ro'yxatda bor: {$dup}";
     }
 
     /** Qabul maydonlarini probaga yozadi (faqat so'rovda kelganlarini) */

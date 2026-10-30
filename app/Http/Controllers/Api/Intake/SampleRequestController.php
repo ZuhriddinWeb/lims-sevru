@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Intake;
 use App\Http\Controllers\Controller;
 use App\Models\CustomerDepartment;
 use App\Models\SampleRequest;
+use App\Models\User;
 use App\Services\Samples\SampleRequests;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -21,6 +22,9 @@ use Illuminate\Validation\Rule;
  *   sample_requests.create   — buyurtmachi nomidan so'rov yaratish
  *
  * Buyurtmachining QORALAMALARI laboratoriyaga ko'rinmaydi — faqat yuborilganlari.
+ *
+ * [P30] Guruhga biriktirilgan xodim (admin bo'lmasa) faqat o'z guruhiga yuborilgan buyurtmalarni
+ * (va guruh tanlanmagan eski buyurtmalarni) ko'radi. «Guruh shifri» — faqat o'sha guruh xodimlariga.
  */
 class SampleRequestController extends Controller
 {
@@ -28,14 +32,30 @@ class SampleRequestController extends Controller
     {
     }
 
-    private function visible(Builder $q): Builder
+    private function visible(Builder $q, ?User $user = null): Builder
     {
-        return $q->where(fn ($w) => $w->where('status', '!=', 'draft')->orWhere('origin', 'lab'));
+        $q->where(fn ($w) => $w->where('status', '!=', 'draft')->orWhere('origin', 'lab'));
+        $g = $user ? $this->ownGroup($user) : null;
+        if ($g) {
+            $q->where(fn ($w) => $w->where('laboratory_group_id', $g)->orWhereNull('laboratory_group_id'));
+        }
+
+        return $q;
     }
 
-    private function find(int $id): SampleRequest
+    /** [P30] Xodim faqat o'z guruhini ko'radimi — guruh id (aks holda null) */
+    private function ownGroup(User $user): ?int
     {
-        $r = $this->visible(SampleRequest::query())->whereKey($id)->first();
+        if (! $this->requests->hasGroupColumns() || ! $user->laboratory_group_id || SampleRequests::seesAllGroups($user)) {
+            return null;
+        }
+
+        return (int) $user->laboratory_group_id;
+    }
+
+    private function find(int $id, ?User $user = null): SampleRequest
+    {
+        $r = $this->visible(SampleRequest::query(), $user ?? request()->user())->whereKey($id)->first();
         abort_unless($r, 404, "So'rov topilmadi");
 
         return $r;
@@ -44,7 +64,8 @@ class SampleRequestController extends Controller
     private function payload(SampleRequest $r, Request $request, bool $withItems = true): array
     {
         $user = $request->user();
-        $data = $this->requests->present($r, $withItems);
+        $data = $this->requests->present($r, $withItems,
+            SampleRequests::canSeeGroupCode($user, $r->laboratory_group_id ? (int) $r->laboratory_group_id : null));
         $create = $user->hasPermission('sample_requests.create');
         $receive = $user->hasPermission('sample_requests.receive');
         $labDraft = $r->status === 'draft' && $r->origin === 'lab';
@@ -74,6 +95,9 @@ class SampleRequestController extends Controller
                 ->map(fn ($g) => ['id' => (int) $g->id, 'code' => $g->code, 'name_uz' => $g->name_uz, 'name_ru' => $g->name_ru, 'name_en' => $g->name_en])->values(),
             'can_create'  => $user->hasPermission('sample_requests.create'),
             'can_receive' => $user->hasPermission('sample_requests.receive'),
+            // [P30] xodimning guruhi: faqat o'z guruhini ko'rsa — own_group; hammasini ko'rsa — guruh filtri
+            'my_group'    => $user->laboratory_group_id ? $this->requests->groupInfo((int) $user->laboratory_group_id) : null,
+            'own_group'   => $this->ownGroup($user),
         ]);
     }
 
@@ -88,9 +112,15 @@ class SampleRequestController extends Controller
             'drafts'   => ['draft'],
         ];
 
-        $base = $this->visible(SampleRequest::query());
+        $base = $this->visible(SampleRequest::query(), $request->user());
         if ($request->filled('department_id')) {
             $base->where('customer_department_id', (int) $request->input('department_id'));
+        }
+        // [P30] guruh filtri (hammasini ko'radigan xodim uchun; guruh xodimi baribir faqat o'zinikini ko'radi)
+        if ($request->filled('group_id') && $this->requests->hasGroupColumns()) {
+            $request->input('group_id') === 'none'
+                ? $base->whereNull('laboratory_group_id')
+                : $base->where('laboratory_group_id', (int) $request->input('group_id'));
         }
         if ($search = trim((string) $request->input('search'))) {
             $base->where(function ($w) use ($search) {
@@ -121,6 +151,24 @@ class SampleRequestController extends Controller
 
         $out = $page->toArray();
         $out['tab_counts'] = $tabCounts;
+
+        // [P30] namunalar yig'indisi: har yorliqdagi buyurtmalarning namunalari (kutilayotgan / qabul qilingan)
+        $rows = DB::table('sample_request_items')
+            ->join('sample_requests', 'sample_requests.id', '=', 'sample_request_items.sample_request_id')
+            ->whereIn('sample_requests.id', (clone $base)->select('sample_requests.id'))
+            ->groupBy('sample_requests.status', 'sample_request_items.status')
+            ->select('sample_requests.status as rs', 'sample_request_items.status as st', DB::raw('count(*) as n'))
+            ->get();
+        $tabSamples = [];
+        foreach ($tabs as $k => $statuses) {
+            $in = $rows->whereIn('rs', $statuses);
+            $tabSamples[$k] = [
+                'items'    => (int) $in->sum('n'),
+                'pending'  => (int) $in->where('st', 'pending')->sum('n'),
+                'received' => (int) $in->where('st', 'received')->sum('n'),
+            ];
+        }
+        $out['tab_samples'] = $tabSamples;
 
         return response()->json($out);
     }

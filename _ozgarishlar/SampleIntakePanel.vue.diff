@@ -1,0 +1,30 @@
+--- eski/resources/js/modules/intake/components/SampleIntakePanel.vue
++++ yangi/resources/js/modules/intake/components/SampleIntakePanel.vue
+@@ -9,7 +9,7 @@
+ import { computed, onMounted, reactive, ref, watch } from 'vue'
+ import { useRouter } from 'vue-router'
+ import { useI18n } from 'vue-i18n'
+-import { AlertTriangle, Building2, FileSpreadsheet, Pencil, Plus, Scale, ShieldCheck, Undo2 } from 'lucide-vue-next'
++import { AlertTriangle, Building2, FileSpreadsheet, KeyRound, Pencil, Plus, Scale, ShieldCheck, Undo2 } from 'lucide-vue-next'
+ import api from '@/lib/api'
+ import BaseModal from '@/components/ui/BaseModal.vue'
+ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+@@ -20,6 +20,7 @@
+ import { MOVEMENT_KINDS, STATE_TONE, UNITS, apiErrorMessage, formatQty, templateName, unitLabel } from '../helpers'
+ import '../i18n'
+ import '../requests/i18n' // [P24] «Topshirgan shaxs»
++import '../requests/i18nGroup' // [P30] «Guruh shifri»
+ 
+ const props = defineProps({ sample: { type: Object, required: true } })
+ const emit = defineEmits(['changed'])
+@@ -192,6 +193,10 @@
+         <span v-if="intake.customer_code" class="text-ink-muted">
+           {{ t('intake.customerCode') }}: <b class="text-ink font-semibold" data-ccode>{{ intake.customer_code }}</b>
+         </span>
++        <!-- [P30] guruh shifri: server faqat proba biriktirilgan guruh xodimiga beradi -->
++        <span v-if="intake.group_code" class="inline-flex items-center gap-1 text-ink-muted" data-gcode>
++          <KeyRound :size="13" class="text-assay-500" /> {{ t('intake.panel.groupCode') }}: <b class="font-mono text-ink font-semibold">{{ intake.group_code }}</b>
++        </span>
+         <span v-if="intake.handed_over_by" class="text-ink-muted" data-handed>
+           {{ t('intake.panel.handedOverBy') }}: <b class="text-ink font-semibold">{{ intake.handed_over_by }}</b>
+         </span>

@@ -1,0 +1,66 @@
+--- eski/resources/js/modules/intake/views/PortalSample.vue
++++ yangi/resources/js/modules/intake/views/PortalSample.vue
+@@ -6,7 +6,7 @@
+ import { computed, onMounted, ref, watch } from 'vue'
+ import { useRoute, useRouter } from 'vue-router'
+ import { useI18n } from 'vue-i18n'
+-import { ArrowLeft, CheckCircle2, Clock, FlaskConical, Lock, RotateCcw, Scale, ShieldCheck, Sigma } from 'lucide-vue-next'
++import { ArrowLeft, CheckCircle2, Clock, FlaskConical, Hourglass, Lock, RotateCcw, Scale, ShieldCheck, Sigma } from 'lucide-vue-next'
+ import api from '@/lib/api'
+ import EmptyState from '@/components/ui/EmptyState.vue'
+ import { formatDate, formatDateTime } from '@/lib/format'
+@@ -16,6 +16,7 @@
+ import { apiErrorMessage, formatQty, formatValue, label, templateName, unitLabel } from '../helpers'
+ import { visibilityOf } from '../portalVisibility' // [P27]
+ import '../i18n'
++import '../svodka/i18n' // [P29]
+ 
+ const route = useRoute()
+ const router = useRouter()
+@@ -48,6 +49,7 @@
+ // [P27] admin yopgan qismlar serverdan kelmaydi; bu yerda bo'sh bloklar yashiriladi
+ const vis = computed(() => visibilityOf(data.value))
+ const analyses = computed(() => data.value?.analyses ?? [])
++const svodkaLocked = computed(() => !!data.value?.svodka?.locked) // [P29] laboratoriya boshlig'i hali chiqarmagan
+ const qty = computed(() => data.value?.quantity ?? null)
+ const consumedTotal = computed(() => {
+   const c = qty.value?.consumed
+@@ -106,6 +108,13 @@
+       </div>
+     </div>
+ 
++    <!-- [P29] Svodka: natijalar laboratoriya boshlig'i tasdiqlagandan keyin -->
++    <div v-if="svodkaLocked" class="mb-5 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-aqua-300/70 bg-aqua-50 dark:bg-aqua-800/25 px-3.5 py-2.5 text-[13px] text-aqua-700 dark:text-aqua-200" data-svodka-locked>
++      <Hourglass :size="16" class="shrink-0" />
++      <span class="flex-1 min-w-[220px]">{{ t('svodka.cardLocked') }}</span>
++      <router-link :to="{ name: 'portal-svodka' }" class="font-medium underline underline-offset-2 hover:no-underline">{{ t('svodka.cardLockedLink') }}</router-link>
++    </div>
++
+     <!-- Bosqichlar -->
+     <section v-if="vis.steps && data.steps?.steps?.length" class="panel p-4 mb-5 overflow-x-auto" data-steps>
+       <StageStepper :steps="data.steps.steps" :current="data.steps.current" class="min-w-[520px]" />
+@@ -162,6 +171,14 @@
+                 >
+                   <Lock :size="12" /> {{ t('portalVis.hidden') }}
+                 </span>
++                <span
++                  v-else-if="r.locked"
++                  class="inline-flex items-center gap-1 rounded-full bg-aqua-50 text-aqua-700 dark:bg-aqua-800/30 dark:text-aqua-200 px-2 py-0.5 text-[11.5px] font-medium"
++                  :title="t('svodka.chipLocked')"
++                  data-locked
++                >
++                  <Hourglass :size="12" /> {{ t('svodka.valueLocked') }}
++                </span>
+                 <span v-else class="text-[12px] text-ink-faint">{{ t('intake.portal.waiting') }}</span>
+               </td>
+             </tr>
+@@ -224,6 +241,9 @@
+         >{{ b.status === 'approved' ? t('intake.portal.approvedAt', { d: formatDateTime(b.approved_at) }) : t(`intake.portal.wsStatus.${b.status}`) }}</span>
+       </header>
+ 
++      <p v-if="svodkaLocked" class="flex items-center gap-1.5 px-4 pt-3 text-[12.5px] text-aqua-700 dark:text-aqua-200" data-analyses-locked>
++        <Hourglass :size="13" /> {{ t('svodka.analysesLocked') }}
++      </p>
+       <div v-if="b.member_status === 'retest' || b.stages.length || b.params.length || b.columns.length || b.summary_columns.length || b.totals?.totals?.length" class="px-4 py-3 space-y-3">
+         <p v-if="b.member_status === 'retest'" class="flex items-center gap-1.5 text-[13px] text-warn-dark dark:text-warn-light">
+           <RotateCcw :size="14" /> {{ t('intake.portal.retest') }}

@@ -49,6 +49,9 @@ class SampleIntakeController extends Controller
                 'registered_at'     => $sample->registered_at?->toDateTimeString(),
                 'registered_by'     => $sample->registeredBy?->name,
                 'handed_over_by'    => $sample->getAttribute('handed_over_by'), // [P24]
+                // [P30] guruh shifri — faqat proba biriktirilgan guruh xodimlariga
+                'group_code'        => \App\Services\Samples\SampleRequests::canSeeGroupCode(request()->user(), $sample->assigned_group_id ? (int) $sample->assigned_group_id : null)
+                    ? $sample->getAttribute('group_code') : null,
             ],
             'ledger'     => $this->ledger->detail($sample),
             'comparison' => $this->analyses->comparison($sample),

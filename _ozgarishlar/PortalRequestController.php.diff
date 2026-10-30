@@ -1,0 +1,12 @@
+--- eski/app/Http/Controllers/Api/Intake/PortalRequestController.php
++++ yangi/app/Http/Controllers/Api/Intake/PortalRequestController.php
+@@ -78,7 +78,8 @@
+ 
+     private function payload(SampleRequest $r, array $ctx, bool $withItems = true): array
+     {
+-        $data = $this->requests->present($r, $withItems);
++        // [P30] «guruh shifri» — buyurtmachiga ko'rinadi; laboratoriya xodimining ko'rib chiqish rejimida — yo'q
++        $data = $this->requests->present($r, $withItems, (bool) $ctx['portal']);
+         $data['can'] = $this->can($r, $ctx, $data['counts']['received']);
+ 
+         // [P29] svodka: nuqta nomlari FAQAT buyurtmachiga (laboratoriya xodimining ko'rib chiqish rejimida — yo'q)

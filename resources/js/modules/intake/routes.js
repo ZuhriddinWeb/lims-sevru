@@ -7,6 +7,7 @@
  */
 import './i18n'
 import './portalVisibility' // [P27] tarjimalar
+import './svodka/i18n' // [P29] svodka tarjimalari
 import { installSampleIntakeForm } from './sampleForm'
 export { installPortalGuard } from './guard'
 
@@ -70,6 +71,17 @@ export default [
     path: 'portal-settings', name: 'portal-settings',
     component: () => import('./views/PortalSettings.vue'),
     meta: { permission: 'portal.settings' },
+  },
+  /* ---- [P29] Buyurtmachi svodkasi: buyurtmachi (spravochnik + kunlik svodka) va laboratoriya boshlig'i (chiqarish) ---- */
+  {
+    path: 'portal/svodka/:id(\\d+)?', name: 'portal-svodka',
+    component: () => import('./svodka/views/PortalSvodka.vue'),
+    meta: { permission: ['portal.view', 'portal.request'] },
+  },
+  {
+    path: 'svodka-releases/:id(\\d+)?', name: 'svodka-releases',
+    component: () => import('./svodka/views/SvodkaReleases.vue'),
+    meta: { permission: ['svodka.release', 'customer_departments.manage'] },
   },
   {
     path: 'customer-departments', name: 'customer-departments',

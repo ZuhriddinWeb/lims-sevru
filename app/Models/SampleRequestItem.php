@@ -10,6 +10,8 @@ class SampleRequestItem extends Model
     protected $fillable = [
         'sample_request_id', 'position', 'customer_code', 'state_of_matter', 'test_profile_id', 'element_ids',
         'quantity', 'quantity_unit', 'notes', 'status', 'sample_id',
+        'svodka_point_id', // [P29] buyurtmachi svodkasidagi nuqta — laboratoriyaga ko'rsatilmaydi
+        'group_code',      // [P30] guruh shifri — faqat buyurtmachi va tanlangan guruhga
     ];
 
     protected $casts = [
@@ -18,6 +20,7 @@ class SampleRequestItem extends Model
         'position'          => 'integer',
         'test_profile_id'   => 'integer',
         'sample_id'         => 'integer',
+        'svodka_point_id'   => 'integer',
         'element_ids'       => 'array',
         'quantity'          => 'float',
     ];

@@ -78,10 +78,68 @@ class PortalRequestController extends Controller
 
     private function payload(SampleRequest $r, array $ctx, bool $withItems = true): array
     {
-        $data = $this->requests->present($r, $withItems);
+        // [P30] «guruh shifri» — buyurtmachiga ko'rinadi; laboratoriya xodimining ko'rib chiqish rejimida — yo'q
+        $data = $this->requests->present($r, $withItems, (bool) $ctx['portal']);
         $data['can'] = $this->can($r, $ctx, $data['counts']['received']);
 
+        // [P29] svodka: nuqta nomlari FAQAT buyurtmachiga (laboratoriya xodimining ko'rib chiqish rejimida — yo'q)
+        if ($ctx['portal'] && \Illuminate\Support\Facades\Schema::hasColumn('sample_requests', 'svodka_date')) {
+            $data['svodka_date'] = $r->svodka_date?->toDateString();
+            $data['svodka_shift'] = $r->svodka_shift ? (int) $r->svodka_shift : null;
+            $data['svodka_shift_label'] = $data['svodka_shift'] && class_exists(\App\Services\Svodka\SvodkaService::class)
+                ? app(\App\Services\Svodka\SvodkaService::class)->settings((int) $r->customer_department_id)->{"shift{$data['svodka_shift']}_label"}
+                : null;
+            if ($withItems && isset($data['items'])) {
+                $items = $r->relationLoaded('items') ? $r->items : $r->items()->get();
+                $pointIds = $items->pluck('svodka_point_id')->filter()->unique()->values()->all();
+                $names = $pointIds ? \App\Models\SvodkaPoint::whereIn('id', $pointIds)->pluck('name', 'id') : collect();
+                $byId = $items->keyBy('id');
+                $data['items'] = collect($data['items'])->map(function ($it) use ($byId, $names) {
+                    $pid = $byId->get($it['id'])?->svodka_point_id;
+                    $it['svodka_point_id'] = $pid ? (int) $pid : null;
+                    $it['svodka_point'] = $pid ? ($names[$pid] ?? null) : null;
+
+                    return $it;
+                })->values();
+            }
+        }
+
         return $data;
+    }
+
+    /** [P29] Buyurtma formasi uchun: svodka yoqilgan bo'limlarning spravochnigi (faqat buyurtmachiga) */
+    private function svodkaOptions(array $ctx): array
+    {
+        if (! $ctx['portal'] || ! class_exists(\App\Services\Svodka\SvodkaService::class)) {
+            return [];
+        }
+        $svc = app(\App\Services\Svodka\SvodkaService::class);
+        if (! $svc->available()) {
+            return [];
+        }
+        $out = [];
+        foreach ($ctx['ids'] ?? [] as $deptId) {
+            if (! $svc->enabled($deptId)) {
+                continue;
+            }
+            $set = $svc->settings($deptId);
+            [$date, $shift] = \App\Services\Svodka\SvodkaService::periodOf(now(), $set);
+            $sections = \App\Models\SvodkaSection::where('customer_department_id', $deptId)->where('is_active', true)
+                ->with(['points' => fn ($q) => $q->where('is_active', true)])->orderBy('sort_order')->orderBy('id')->get();
+            $out[(string) $deptId] = [
+                'shift1_label' => $set->shift1_label, 'shift2_label' => $set->shift2_label,
+                'shift1_hours' => $set->shift1_start . '–' . $set->shift2_start,
+                'shift2_hours' => $set->shift2_start . '–' . $set->shift1_start,
+                'current'      => ['date' => $date, 'shift' => $shift],
+                'sections'     => $sections->map(fn ($sec) => [
+                    'id' => (int) $sec->id, 'title' => $sec->title,
+                    'element_ids' => collect($sec->columns ?? [])->pluck('element_id')->map(fn ($v) => (int) $v)->values(),
+                    'points' => $sec->points->map(fn ($p) => ['id' => (int) $p->id, 'name' => $p->name, 'daily' => (bool) $p->daily])->values(),
+                ])->filter(fn ($sec) => count($sec['points']) > 0)->values(),
+            ];
+        }
+
+        return $out;
     }
 
     private function department(Request $request, array $ctx): CustomerDepartment
@@ -110,6 +168,7 @@ class PortalRequestController extends Controller
             'departments' => $departments->map(fn ($d) => ['id' => (int) $d->id, 'code' => $d->code, 'name' => $d->name])->values(),
             'can_write'   => $ctx['write'],
             'preview'     => $ctx['preview'],
+            'svodka'      => (object) $this->svodkaOptions($ctx), // [P29] bo'lim id => spravochnik
         ]);
     }
 

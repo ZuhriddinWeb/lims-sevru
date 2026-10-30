@@ -1,0 +1,15 @@
+--- eski/app/Providers/SampleIntakeServiceProvider.php
++++ yangi/app/Providers/SampleIntakeServiceProvider.php
+@@ -73,8 +73,10 @@
+             'received_quantity'      => 'float',
+             'retained_quantity'      => 'float',
+         ];
+-        Sample::retrieved(fn (Sample $sample) => $sample->mergeCasts($casts));
+-        Sample::saved(fn (Sample $sample) => $sample->mergeCasts($casts));
++        // [P30] guruh shifri JSON javoblarda hech qachon chiqmaydi (umumiy /api/samples ham) —
++        // faqat ataylab, ruxsat tekshirilib beriladi (SampleIntakeController::show, buyurtma kartochkasi)
++        Sample::retrieved(fn (Sample $sample) => $sample->mergeCasts($casts)->makeHidden('group_code'));
++        Sample::saved(fn (Sample $sample) => $sample->mergeCasts($casts)->makeHidden('group_code'));
+ 
+         // Probalar API'si (/api/samples...): bo'lim nomi doim javobda; ro'yxatda bo'lim va shifr filtri
+         Sample::addGlobalScope('sample_intake', function (Builder $query) {

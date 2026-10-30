@@ -20,6 +20,8 @@ class SampleRequest extends Model
         'notes', 'created_by', 'updated_by', 'submitted_at', 'submitted_by', 'expires_at', 'received_at',
         'received_by', 'handed_over_by', 'closed_at', 'closed_by', 'close_reason',
         'delivery_shift_id', 'delivery_shift', // [P28] qaysi smenada olib kelinadi
+        'svodka_date', 'svodka_shift',          // [P29] namuna olingan sana va navbatchilik (buyurtmachi svodkasi uchun)
+        'laboratory_group_id',                  // [P30] buyurtmachi tanlagan laboratoriya guruhi
     ];
 
     // SQL Server butun sonlarni satr qilib qaytaradi — JSON'da doim son bo'lsin
@@ -32,6 +34,9 @@ class SampleRequest extends Model
         'received_by'            => 'integer',
         'closed_by'              => 'integer',
         'delivery_shift_id'      => 'integer',
+        'svodka_date'            => 'date',
+        'svodka_shift'           => 'integer',
+        'laboratory_group_id'    => 'integer',
         'delivery_date'          => 'date',
         'submitted_at'           => 'datetime',
         'expires_at'             => 'datetime',
@@ -67,5 +72,11 @@ class SampleRequest extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by')->withTrashed();
+    }
+
+    /** [P30] Namunani qabul qiladigan laboratoriya guruhi */
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(LaboratoryGroup::class, 'laboratory_group_id');
     }
 }

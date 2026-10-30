@@ -1,0 +1,53 @@
+--- eski/resources/js/modules/intake/views/PortalHome.vue
++++ yangi/resources/js/modules/intake/views/PortalHome.vue
+@@ -6,7 +6,7 @@
+ import { computed, onMounted, reactive, ref, watch } from 'vue'
+ import { useRoute, useRouter } from 'vue-router'
+ import { useI18n } from 'vue-i18n'
+-import { ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Inbox, Loader2, Lock, Search, Sigma, SlidersHorizontal } from 'lucide-vue-next'
++import { ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Hourglass, Inbox, Loader2, Lock, Search, Sigma, SlidersHorizontal } from 'lucide-vue-next'
+ import api from '@/lib/api'
+ import PageHeader from '@/components/ui/PageHeader.vue'
+ import EmptyState from '@/components/ui/EmptyState.vue'
+@@ -17,6 +17,7 @@
+ import { apiErrorMessage, formatValue, label, templateName } from '../helpers'
+ import { downloadPortalExport, visibilityOf } from '../portalVisibility' // [P27]
+ import '../i18n'
++import '../svodka/i18n' // [P29]
+ 
+ const { t, locale } = useI18n()
+ const route = useRoute()
+@@ -97,14 +98,17 @@
+   preliminary: 'bg-warn-light text-warn-dark dark:bg-warn-dark/25 dark:text-warn-light border border-dashed border-warn/50',
+   hidden: 'bg-surface-sunken text-ink-muted',
+   waiting: 'bg-surface-sunken text-ink-muted',
++  locked: 'bg-aqua-50 text-aqua-700 dark:bg-aqua-800/30 dark:text-aqua-200 border border-aqua-300/60', // [P29] svodka tasdig'ini kutmoqda
+ }
+ function chipTitle(r) {
+   if (r.state === 'final') return t('portalVis.chipFinal')
+   if (r.state === 'preliminary') return t('portalVis.chipPrelim', { n: r.worksheet || '' })
+   if (r.state === 'hidden') return t('portalVis.hiddenHint')
++  if (r.state === 'locked') return t('svodka.chipLocked')
+   return t('portalVis.chipWaiting')
+ }
+ const hasPrelim = computed(() => items.value.some((row) => row.results?.some((r) => r.state === 'preliminary')))
++const hasLocked = computed(() => items.value.some((row) => row.results?.some((r) => r.state === 'locked'))) // [P29]
+ 
+ /* [P27] admin belgilagan ko'rinish va Excel */
+ const vis = computed(() => visibilityOf(ctx.value))
+@@ -242,6 +246,7 @@
+                     <span v-if="items.some((row) => row.results)" class="ml-2 inline-flex items-center gap-2 normal-case tracking-normal font-normal text-[11.5px]" data-legend>
+                       <span class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-sm bg-ok-light border border-ok/40" />{{ t('portalVis.legendFinal') }}</span>
+                       <span v-if="hasPrelim" class="inline-flex items-center gap-1"><span class="h-2.5 w-2.5 rounded-sm bg-warn-light border border-dashed border-warn/60" />{{ t('portalVis.legendPrelim') }}</span>
++                      <span v-if="hasLocked" class="inline-flex items-center gap-1" data-legend-locked><Hourglass :size="11" class="text-aqua-600" />{{ t('svodka.legendLocked') }}</span>
+                     </span>
+                   </th>
+                   <th v-if="vis.steps" class="px-4 py-2.5 font-medium min-w-[190px]">{{ t('intake.portal.stageCol') }}</th>
+@@ -274,6 +279,7 @@
+                           <span v-if="r.unit" class="text-[11px] opacity-75">{{ r.unit }}</span>
+                         </template>
+                         <Lock v-else-if="r.state === 'hidden'" :size="11" class="self-center" />
++                        <Hourglass v-else-if="r.state === 'locked'" :size="11" class="self-center" />
+                       </span>
+                     </span>
+                     <span v-else class="flex flex-wrap gap-1">

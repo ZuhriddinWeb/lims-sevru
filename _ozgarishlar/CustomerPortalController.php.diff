@@ -1,0 +1,89 @@
+--- eski/app/Http/Controllers/Api/Intake/CustomerPortalController.php
++++ yangi/app/Http/Controllers/Api/Intake/CustomerPortalController.php
+@@ -9,6 +9,7 @@
+ use App\Services\Samples\PortalVisibility; // [P27] admin belgilagan ko'rinish
+ use App\Services\Samples\SampleAnalyses;
+ use App\Services\Samples\SampleLedger;
++use App\Services\Svodka\SvodkaGate; // [P29]
+ use Illuminate\Http\Request;
+ 
+ /**
+@@ -93,11 +94,12 @@
+         $ids = $page->getCollection()->pluck('id')->map(fn ($v) => (int) $v)->all();
+         $meta = $this->analyses->worksheetMeta($ids);
+         $results = $this->analyses->listResults($page->getCollection()); // [P28]
++        $gates = SvodkaGate::for($page->getCollection());                 // [P29] svodka rejimi: chiqarilmaganlari yopiq
+ 
+-        $page->setCollection($page->getCollection()->map(function (Sample $s) use ($meta, $results) {
++        $page->setCollection($page->getCollection()->map(function (Sample $s) use ($meta, $results, $gates) {
+             $steps = $this->analyses->steps($s, $meta[(int) $s->id] ?? []);
+ 
+-            return $this->visibility->filterListItem([ // [P27]
++            $item = $this->visibility->filterListItem([ // [P27]
+                 'id'              => (int) $s->id,
+                 'code'            => $s->code,
+                 'customer_code'   => $s->customer_code,
+@@ -117,6 +119,11 @@
+                 'worksheets'      => $steps['worksheets'],
+                 'results'         => $results[(int) $s->id] ?? [], // [P28] qiymatlar — kartochkani ochmasdan
+             ]);
++            $g = $gates[(int) $s->id] ?? null;
++            $item['results'] = SvodkaGate::chips($item['results'], $g);
++            $item['svodka_locked'] = $g && $g['enabled'] && ! $g['full'];
++
++            return $item;
+         }));
+ 
+         // [P28] shu sahifadagi namunalar o'tgan varaqlar bo'yicha jami (faqat ko'ruvchining namunalari bo'yicha)
+@@ -126,9 +133,9 @@
+                 $wsIds[] = $m['worksheet_id'];
+             }
+         }
+-        $totals = $this->visibility->filterTotals(array_values(
++        $totals = SvodkaGate::totals($this->visibility->filterTotals(array_values(
+             $this->analyses->worksheetTotals($wsIds, $scope['ids'] ?: null)
+-        ));
++        )));
+ 
+         return response()->json($page->toArray() + ['worksheet_totals' => $totals]);
+     }
+@@ -150,9 +157,10 @@
+         // (ko'rib chiqish rejimi: shu namuna bo'limi — buyurtmachi ko'radigan holat)
+         $scope = $this->portal->scope($request);
+         $deptIds = $scope['ids'] ?: [(int) $sample->customer_department_id];
+-        $wsTotals = $this->analyses->worksheetTotals(array_column($blocks, 'id'), $deptIds);
++        $wsTotals = collect(SvodkaGate::totals(array_values($this->analyses->worksheetTotals(array_column($blocks, 'id'), $deptIds))))
++            ->keyBy('worksheet_id'); // [P29] svodka: to'liq chiqarilmagan namunali varaq jamisi yo'q
+         foreach ($blocks as $i => $b) {
+-            $blocks[$i]['totals'] = $wsTotals[(int) $b['id']] ?? null;
++            $blocks[$i]['totals'] = $wsTotals->get((int) $b['id']);
+         }
+ 
+         // Elementlar bo'yicha natija: yakuniy (probaga yozilgan) yoki varaqdan dastlabki
+@@ -173,8 +181,9 @@
+         }
+ 
+         $ledger = $this->ledger->summary($sample);
++        $gate = SvodkaGate::for(collect([$sample]))[(int) $sample->id] ?? null; // [P29]
+ 
+-        return response()->json($this->visibility->filterSample([ // [P27] admin yopgan qismlar serverda olib tashlanadi
++        return response()->json(SvodkaGate::sample($this->visibility->filterSample([ // [P27] admin yopgan qismlar serverda olib tashlanadi
+             'sample'     => [
+                 'id'              => (int) $sample->id,
+                 'code'            => $sample->code,
+@@ -199,6 +208,7 @@
+                 $final = $se->status === 'done' && $se->result_value !== null;
+ 
+                 return [
++                    'element_id'  => (int) $se->element_id, // [P29]
+                     'element'     => $se->element ? [
+                         'symbol' => $symbol, 'name_uz' => $se->element->name_uz,
+                         'name_ru' => $se->element->name_ru, 'name_en' => $se->element->name_en,
+@@ -219,6 +229,6 @@
+             ],
+             'analyses'   => $blocks,
+             'comparison' => $this->analyses->comparison($sample, $blocks),
+-        ]));
++        ]), $gate));
+     }
+ }

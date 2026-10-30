@@ -1,0 +1,25 @@
+--- eski/resources/js/modules/intake/requests/components/RequestInfo.vue
++++ yangi/resources/js/modules/intake/requests/components/RequestInfo.vue
+@@ -5,7 +5,7 @@
+ import { AlertTriangle, Info } from 'lucide-vue-next'
+ import { formatDate, formatDateTime } from '@/lib/format'
+ import StatusPill from './StatusPill.vue'
+-import { deliveryText } from '../shared'
++import { deliveryText, nameOf } from '../shared'
+ import '../i18n'
+ import '../../svodka/i18n' // [P29]
+ 
+@@ -13,11 +13,12 @@
+   request: { type: Object, required: true },
+   audience: { type: String, default: 'portal' }, // portal | lab
+ })
+-const { t } = useI18n()
++const { t, locale } = useI18n()
+ const r = computed(() => props.request)
+ 
+ const rows = computed(() => [
+   [t('sreq.col.department'), r.value.department ? r.value.department.name + (r.value.department.code ? ` (${r.value.department.code})` : '') : '—'],
++  r.value.laboratory_group && [t('sreq.group.label'), nameOf(r.value.laboratory_group, locale.value)], // [P30]
+   [t('sreq.info.created'), `${formatDateTime(r.value.created_at)}${r.value.created_by ? ' · ' + r.value.created_by : ''}`],
+   r.value.submitted_at && [t('sreq.info.submitted'), `${formatDateTime(r.value.submitted_at)}${r.value.submitted_by ? ' · ' + r.value.submitted_by : ''}`],
+   (r.value.delivery_date || r.value.delivery_shift) && [t('sreq.col.delivery'), deliveryText(r.value)],

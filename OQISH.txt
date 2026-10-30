@@ -1,0 +1,42 @@
+TUZATISH — PORTAL XATOSI: «Call to undefined method DisplayTotals::forWorksheet»
+=================================================================================
+
+SABAB
+   Paket 29 dagi SampleAnalyses.php «tuzatish_shablon» paketidagi DisplayTotals.php ga tayanadi.
+   Sizda DisplayTotals.php ning Paket 28 dagi ESKI versiyasi qolgan (tuzatish_shablon o'rnatilmagan
+   yoki undan keyin Paket 28 zip qayta yoyilgan). Natijada buyurtmachi «Mening namunalarim» ni
+   ochganda server 500 xato beradi. Sinov muhitida aynan shu xato takrorlandi va shu fayl bilan yo'qoldi.
+
+PAKETDA
+   app/Services/Worksheets/DisplayTotals.php            (tuzatish_shablon versiyasi — forWorksheet bor)
+   app/Http/Controllers/Api/WorksheetController.php     (tuzatish_shablon versiyasi — ishchi varaq ekrani
+                                                          ham portal bilan bir xil qoidada: «varaq bo'yicha
+                                                          jami» shablonda siz belgilaganicha)
+   deploy/fayllar_royxati.txt                           (yangilangan)
+   deploy/fayllar_hash.txt + deploy/tekshir_versiyalar.ps1   (YANGI: eski qolgan fayllarni topish)
+
+   Shablonlarga (bosqichlar, ustunlar) TEGILMAYDI — DefaultTemplates.php va bosqich buyrug'i bu paketda yo'q.
+   Migratsiya, seed, npm run build — KERAK EMAS (faqat PHP).
+
+O'RNATISH
+   Lokalda:
+     Expand-Archive -Path "$env:USERPROFILE\Downloads\tuzatish_jami.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+     git add app deploy
+     git commit -m "Tuzatish: DisplayTotals (portal xatosi) + versiya tekshiruvi"
+     git push
+   Serverda (RDP):
+     cd /d C:\xampp\htdocs\LIMS
+     set PATH=C:\xampp\php;%PATH%
+     git pull
+     php artisan optimize:clear
+   Brauzerda Ctrl+F5, buyurtmachi bilan «Mening namunalarim» ni oching.
+
+ESKI QOLGAN FAYLLARNI TOPISH (yangi skript — hech narsani o'zgartirmaydi)
+   Loyiha papkasida (lokalda ham, serverda ham):
+     powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+   Har fayl eng oxirgi paketdagi bilan solishtiriladi (qator oxiri CRLF/LF va BOM hisobga olinmaydi):
+     ESKI/FARQ  — fayl eski yoki qo'lda o'zgartirilgan  <- qaysi paketda to'g'ri versiyasi bor
+     YO'Q       — fayl umuman yo'q
+   Oxirida: «To'g'ri: N   Farq qiladi: N   Yo'q: N». Farq bo'lsa — ro'yxatni menga yuboring.
+   resources\js\router\index.js ni o'rnatish yo'riqnomasi bo'yicha qo'lda tahrirlagan bo'lsangiz,
+   u «farq» chiqishi kutilgan.

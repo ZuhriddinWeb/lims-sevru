@@ -1,20 +1,21 @@
 <script setup>
 /** Laboratoriya — «Buyurtmalar»: kutilayotgan namunalar navbati, qabul qilinganlar, yopilganlar */
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, ChevronRight, ClipboardList, Plus, Search } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, ClipboardList, Plus, Search, UsersRound } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { useUiStore } from '@/stores/ui'
 import { formatDate, formatDateTime } from '@/lib/format'
 import StatusPill from '../components/StatusPill.vue'
-import { apiErrorMessage } from '../shared'
+import { apiErrorMessage, nameOf } from '../shared'
 import '../i18n'
 import '../../i18n'
+import '../i18nGroup' // [P30]
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const ui = useUiStore()
@@ -23,12 +24,14 @@ const TABS = ['waiting', 'expired', 'received', 'closed', 'drafts', 'all']
 const options = ref(null)
 const items = ref([])
 const counts = ref({})
+const samples = ref({})   // [P30] har yorliqdagi namunalar soni
 const meta = reactive({ current_page: 1, last_page: 1, total: 0, from: 0, to: 0 })
 const loading = ref(true)
 const filters = reactive({
   tab: TABS.includes(route.query.tab) ? route.query.tab : 'waiting',
   search: route.query.search ?? '',
   department_id: route.query.department_id ?? '',
+  group_id: route.query.group_id ?? '', // [P30]
 })
 let timer = null
 
@@ -36,12 +39,13 @@ async function load(page = 1) {
   loading.value = true
   try {
     const { data } = await api.get('/sample-requests', {
-      params: { page, tab: filters.tab, search: filters.search || undefined, department_id: filters.department_id || undefined },
+      params: { page, tab: filters.tab, search: filters.search || undefined, department_id: filters.department_id || undefined, group_id: filters.group_id || undefined },
     })
     items.value = data.data
     counts.value = data.tab_counts ?? {}
+    samples.value = data.tab_samples ?? {}
     Object.assign(meta, { current_page: data.current_page, last_page: data.last_page, total: data.total, from: data.from ?? 0, to: data.to ?? 0 })
-    router.replace({ query: { ...(filters.tab !== 'waiting' ? { tab: filters.tab } : {}), ...(filters.search ? { search: filters.search } : {}), ...(filters.department_id ? { department_id: filters.department_id } : {}) } })
+    router.replace({ query: { ...(filters.tab !== 'waiting' ? { tab: filters.tab } : {}), ...(filters.search ? { search: filters.search } : {}), ...(filters.department_id ? { department_id: filters.department_id } : {}), ...(filters.group_id ? { group_id: filters.group_id } : {}) } })
   } catch (e) {
     ui.error(apiErrorMessage(e, t('sreq.loadError')))
   } finally {
@@ -56,7 +60,19 @@ onMounted(async () => {
   load(1)
 })
 
-watch(() => [filters.tab, filters.department_id], () => load(1))
+watch(() => [filters.tab, filters.department_id, filters.group_id], () => load(1))
+
+/* [P30] guruh: guruhdagi xodim — faqat o'z guruhi; guruhsiz xodim/admin — filtr va ustun */
+const ownGroup = computed(() => !!options.value?.own_group)
+const showGroups = computed(() => !ownGroup.value && (options.value?.groups?.length ?? 0) > 0)
+const summary = computed(() => {
+  const s = samples.value?.[filters.tab]
+  if (!s) return ''
+  const r = counts.value?.[filters.tab] ?? 0
+  if (filters.tab === 'waiting' || filters.tab === 'expired') return t('sreq.group.sumPending', { n: s.pending, r })
+  if (filters.tab === 'received') return t('sreq.group.sumReceived', { n: s.received, r })
+  return t('sreq.group.sumItems', { n: s.items, r })
+})
 watch(() => filters.search, () => { clearTimeout(timer); timer = setTimeout(() => load(1), 300) })
 
 function open(row) {
@@ -105,6 +121,19 @@ function onEnter() {
         <option value="">{{ t('intake.portal.allDepartments') }}</option>
         <option v-for="d in options?.departments ?? []" :key="d.id" :value="d.id">{{ d.name }}</option>
       </select>
+      <select v-if="showGroups" v-model="filters.group_id" class="field-input w-auto min-w-[200px]" data-group-filter>
+        <option value="">{{ t('sreq.group.all') }}</option>
+        <option v-for="g in options.groups" :key="g.id" :value="g.id">{{ nameOf(g, locale) }}</option>
+        <option value="none">{{ t('sreq.group.none') }}</option>
+      </select>
+    </div>
+
+    <!-- [P30] guruh va namunalar yig'indisi -->
+    <div v-if="summary" class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[13px]" data-summary>
+      <span v-if="ownGroup && options?.my_group" class="inline-flex items-center gap-1.5 font-medium text-ink" :title="t('sreq.group.onlyMine')" data-my-group>
+        <UsersRound :size="15" class="text-assay-500" /> {{ t('sreq.group.mine', { name: nameOf(options.my_group, locale) }) }}
+      </span>
+      <span class="text-ink-muted tnum" data-sum>{{ summary }}</span>
     </div>
 
     <div class="panel overflow-hidden">
@@ -118,6 +147,7 @@ function onEnter() {
             <tr class="border-b border-line bg-surface-sunken/60 text-left text-[12px] uppercase tracking-wide text-ink-muted">
               <th class="px-4 py-2.5 font-medium">{{ t('sreq.col.number') }}</th>
               <th class="px-4 py-2.5 font-medium">{{ t('sreq.col.department') }}</th>
+              <th v-if="showGroups" class="px-4 py-2.5 font-medium">{{ t('sreq.group.col') }}</th>
               <th class="px-4 py-2.5 font-medium">{{ t('sreq.col.samples') }}</th>
               <th class="px-4 py-2.5 font-medium">{{ t('sreq.col.delivery') }}</th>
               <th class="px-4 py-2.5 font-medium">{{ t('sreq.col.status') }}</th>
@@ -131,6 +161,7 @@ function onEnter() {
                 <span v-if="row.codes?.length" class="block text-[12px] text-ink-faint font-mono truncate max-w-[240px]">{{ row.codes.join(', ') }}</span>
               </td>
               <td class="px-4 py-2.5 text-ink">{{ row.department?.name }}</td>
+              <td v-if="showGroups" class="px-4 py-2.5 text-ink-muted" data-group-cell>{{ row.laboratory_group ? nameOf(row.laboratory_group, locale) : '—' }}</td>
               <td class="px-4 py-2.5 tnum text-ink-muted whitespace-nowrap">
                 {{ t('sreq.nSamples', { n: row.counts.items }) }}
                 <span v-if="row.counts.received" class="block text-[12px] text-ok-dark dark:text-ok-light">{{ t('sreq.progress', { r: row.counts.received, n: row.counts.items }) }}</span>

@@ -19,9 +19,13 @@ use Throwable;
  * Faqat QO'SHADI. Mavjud namuna, natija, varaq, foydalanuvchi, rol sozlamalari va menyu nomlariga tegmaydi:
  *   - WorksheetModuleSeeder FAQAT ishchi varaqlar moduli hali o'rnatilmagan bo'lsa ishlaydi
  *     (u qayta ishga tushsa admin o'zgartirgan menyu nomi va rol ruxsatlarini qaytarib yozadi);
- *   - Interlab / SampleIntake / Insights / SampleRequest seederlari — faqat yo'q ruxsat, menyu, rolni yaratadi;
+ *   - Interlab / SampleIntake / Insights / SampleRequest / Svodka seederlari — faqat yo'q ruxsat, menyu, rolni yaratadi;
  *   - help:import — yordamchi javoblari (qo'lda tahrirlanganlari o'zgarmaydi);
- *   - worksheets:add-totals — shablonlarga «varaq bo'yicha jami» (mavjud varaqlarga emas).
+ *   - worksheets:add-totals — shablonlarga «varaq bo'yicha jami» (mavjud varaqlarga emas);
+ *   - worksheets:eritish-stages --open — barcha shablonlarda «Eritdi» + «Qaynatib eritdi» (tasdiqlangan varaqlarga emas).
+ *   Shablonga tegadigan bu ikki qadam BIR MARTALIK: bajarilgach app_settings da belgi qoladi va keyingi
+ *   yangilashlarda qayta ishlamaydi — admin keyin shablonni qanday tahrirlasa (jamini olib tashlasa,
+ *   bosqichni o'zgartirsa), yangilash uni qaytarib yozmaydi.
  * DatabaseSeeder / UserSeeder HECH QACHON chaqirilmaydi (ular foydalanuvchi parollarini qayta yozadi).
  * Bajarilmagan migratsiya bo'lsa — to'xtaydi: avval  php artisan migrate --force.
  * Qayta ishga tushirish xavfsiz.
@@ -38,6 +42,7 @@ class LimsUpgrade extends Command
         'SampleIntakeModuleSeeder'  => "Buyurtmachi bo'limlar, portal, namuna miqdori",
         'InsightsModuleSeeder'      => 'Smenalar, xodimlar faoliyati, audit, savatcha',
         'SampleRequestModuleSeeder' => 'Qoralama buyurtma',
+        'SvodkaModuleSeeder'        => 'Buyurtmachi svodkasi (chiqarish ruxsati, menyu)',
     ];
 
     public function handle(): int
@@ -110,11 +115,14 @@ class LimsUpgrade extends Command
             $this->warn("  ! Yordamchi: help_entries jadvali yoki database/help/help_qa.json yo'q — o'tkazildi");
         }
 
-        // 4) Varaq bo'yicha jami — faqat shablonlar
-        if ($this->getApplication()->has('worksheets:add-totals')) {
-            $this->line("  + Ishchi varaq shablonlari: «varaq bo'yicha jami» (mavjud varaqlarga emas)");
-            $this->call('worksheets:add-totals', $dry ? ['--dry-run' => true] : []);
-        }
+        // 4) Varaq bo'yicha jami — faqat shablonlar (BIR MARTALIK)
+        $this->once('worksheets_add_totals', "Ishchi varaq shablonlari: «varaq bo'yicha jami» (mavjud varaqlarga emas)",
+            'worksheets:add-totals', [], $dry);
+
+        // 5) Bosqichlar: «Eritdi» + Kupelyatsiyadan keyin «Qaynatib eritdi» — barcha shablon + tasdiqlanmagan varaqlar.
+        //    Faqat standart holatdagi (admin o'zgartirmagan) bosqichlarga; tasdiqlangan varaqlar o'zgarmaydi. (BIR MARTALIK)
+        $this->once('worksheets_eritish_stages', 'Bosqichlar: … → Eritdi → Kupelyatsiya → Qaynatib eritdi → … (barcha shablonlar)',
+            'worksheets:eritish-stages', ['--open' => true], $dry);
 
         // Natija
         $after = $this->counts();
@@ -131,6 +139,33 @@ class LimsUpgrade extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Shablonga tegadigan bir martalik qadam: bajarilgan bo'lsa — o'tkaziladi.
+     * Belgi: app_settings.key = «upgrade.<nom>» (jadval bo'lmasa — har safar ishlaydi, avvalgidek).
+     */
+    private function once(string $name, string $label, string $command, array $args, bool $dry): void
+    {
+        if (! $this->getApplication()->has($command)) {
+            return;
+        }
+        $key = 'upgrade.' . $name;
+        $hasTable = Schema::hasTable('app_settings');
+        $doneAt = $hasTable ? DB::table('app_settings')->where('key', $key)->value('updated_at') : null;
+        if ($doneAt) {
+            $this->line("  = {$label}: bir martalik — bajarilgan ({$doneAt}); shablonlardagi keyingi o'zgarishlar adminniki");
+
+            return;
+        }
+        $this->line("  + {$label}");
+        $code = $this->call($command, $args + ($dry ? ['--dry-run' => true] : []));
+        if (! $dry && $code === 0 && $hasTable) {
+            DB::table('app_settings')->insert([
+                'key' => $key, 'value' => json_encode(['command' => $command]), 'updated_by' => null,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
     }
 
     private function seed(string $class): bool

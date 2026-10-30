@@ -561,8 +561,9 @@ class WorksheetController extends Controller
 
         $out = $worksheet->toArray();
         // [P28] «Varaq bo'yicha jami» nusxada yo'q eski/tasdiqlangan varaqlarda ham ekranda va chop etishda
-        // ko'rinsin — faqat javobdagi nusxaga (bazadagi nusxa va natijalar o'zgarmaydi)
-        $out['template_snapshot'] = DisplayTotals::augment((array) ($out['template_snapshot'] ?? []));
+        // ko'rinsin — faqat javobdagi nusxaga (bazadagi nusxa va natijalar o'zgarmaydi).
+        // Qaysi jami — shablonda admin hozir belgilagani (olib tashlagan bo'lsa — ko'rsatilmaydi).
+        $out['template_snapshot'] = DisplayTotals::forWorksheet($worksheet, (array) ($out['template_snapshot'] ?? []));
 
         return $out;
     }

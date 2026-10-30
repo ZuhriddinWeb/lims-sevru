@@ -1,0 +1,30 @@
+--- eski/resources/js/modules/intake/requests/views/RequestEditor.vue
++++ yangi/resources/js/modules/intake/requests/views/RequestEditor.vue
+@@ -30,7 +30,7 @@
+ 
+ const options = ref(null)
+ const request = ref(null)
+-const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', contact_name: '', contact_phone: '', notes: '', items: [] })
++const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
+ const errors = ref({})
+ const loading = ref(true)
+ const loadError = ref('')
+@@ -74,7 +74,7 @@
+       }
+       fill(req.data)
+     } else {
+-      Object.assign(form, { department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
++      Object.assign(form, { department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [blankItem()] })
+       if (opt.data.departments?.length === 1) form.department_id = opt.data.departments[0].id
+       // portal ko'rib chiqish rejimidan tanlangan bo'lim bilan kelgan bo'lsa
+       const want = Number(route.query.department_id)
+@@ -82,6 +82,9 @@
+       // [P29] svodka rejimidagi bo'lim: joriy kun va navbatchilik
+       const sv = opt.data.svodka?.[form.department_id]
+       if (sv) Object.assign(form, { svodka_date: sv.current.date, svodka_shift: sv.current.shift })
++      // [P30] guruh: bitta bo'lsa — o'zi; laboratoriya xodimi buyurtmachi nomidan — o'z guruhi
++      if (opt.data.groups?.length === 1) form.laboratory_group_id = opt.data.groups[0].id
++      else if (mode.value === 'lab' && opt.data.own_group) form.laboratory_group_id = opt.data.own_group
+       if (mode.value === 'portal' && !opt.data.can_write) loadError.value = t('sreq.readOnly')
+       saved.value = snapshot()
+     }

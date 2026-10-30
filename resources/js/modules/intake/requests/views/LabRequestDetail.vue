@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, CheckCircle2, Inbox, PackageCheck, Printer, XCircle } from 'lucide-vue-next'
+import { ArrowLeft, CheckCircle2, Inbox, KeyRound, PackageCheck, Printer, XCircle } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import { useUiStore } from '@/stores/ui'
@@ -17,6 +17,7 @@ import ReasonDialog from '../components/ReasonDialog.vue'
 import { apiErrorMessage, fieldError, nameOf, printSlip } from '../shared'
 import '../i18n'
 import '../../i18n'
+import '../i18nGroup' // [P30]
 
 const route = useRoute()
 const router = useRouter()
@@ -56,7 +57,8 @@ function buildRows(r) {
     received_quantity: '',
     quantity_unit: i.quantity_unit || 'g',
     planned: i.quantity !== null && i.quantity !== undefined ? `${i.quantity} ${i.quantity_unit || ''}` : '',
-    assigned_group_id: '',
+    assigned_group_id: r.laboratory_group_id ?? '', // [P30] buyurtmachi tanlagan guruh
+    group_code: i.group_code ?? '', // [P30] faqat o'sha guruh xodimiga keladi
     notes: i.notes ?? '',
   }))
   handedOverBy.value = r.handed_over_by || r.contact_name || ''
@@ -216,6 +218,9 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
               <label class="field-label">{{ t('sreq.form.code') }}</label>
               <input v-model="row.customer_code" class="field-input h-[34px] font-mono" :class="rowErr(row, 'customer_code') && 'field-input-error'" :disabled="!row.take">
               <p v-if="rowErr(row, 'customer_code')" class="mt-1 text-[12px] text-crit">{{ rowErr(row, 'customer_code') }}</p>
+              <p v-if="row.group_code" class="mt-1 flex items-center gap-1 font-mono text-[12px] text-assay-700 dark:text-assay-200" :title="t('sreq.group.codeHint')" data-row-gcode>
+                <KeyRound :size="12" class="shrink-0" /> {{ row.group_code }}
+              </p>
             </div>
             <div class="col-start-2 xl:col-start-auto min-w-0">
               <label class="field-label">{{ t('sreq.receive.sampleNumber') }}</label>

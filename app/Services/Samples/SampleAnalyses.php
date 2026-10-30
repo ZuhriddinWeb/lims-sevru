@@ -414,6 +414,7 @@ class SampleAnalyses
                 $p = ! $final && $symbol ? ($prelim[$sid][$symbol] ?? null) : null;
 
                 return [
+                    'element_id' => (int) $se->element_id, // [P29] svodka yopishi element bo'yicha
                     'symbol'    => $symbol,
                     'value'     => $final ? (float) $se->result_value : ($p['value'] ?? null),
                     'unit'      => $final ? $se->result_unit : ($p['unit'] ?? $se->result_unit),
@@ -455,7 +456,7 @@ class SampleAnalyses
         $worksheets = Worksheet::query()->whereIn('id', $worksheetIds)->orderBy('worksheet_date')->orderBy('id')->get();
         $rowsByWs = null;
         foreach ($worksheets as $w) {
-            $def = DisplayTotals::augment($w->definition());
+            $def = DisplayTotals::forWorksheet($w); // shablonda admin belgilagan jami ustuvor
             $totCols = array_values(array_filter($def['columns'] ?? [], fn ($c) => ($c['scope'] ?? 'row') === 'total'));
             if (! $totCols) {
                 continue;
@@ -496,6 +497,7 @@ class SampleAnalyses
                 'template'       => ['code' => $def['code'] ?? null, 'name_uz' => $def['name_uz'] ?? null, 'name_ru' => $def['name_ru'] ?? null],
                 'samples_own'    => count($own),
                 'samples_all'    => count($all),
+                'own_sample_ids' => $own, // [P29] ichki: svodka yopishi uchun (javobdan olib tashlanadi)
                 'partial'        => count($own) < count($all),
                 'totals'         => array_map(fn ($c) => [
                     'key'      => $c['key'],

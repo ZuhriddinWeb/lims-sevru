@@ -10,6 +10,7 @@ import { installSampleDetailPanel } from './sampleDetail'
 export const PORTAL_PAGES = [
   'portal', 'portal-sample', 'profile', 'forbidden', 'not-found', 'login',
   'portal-requests', 'portal-request-new', 'portal-request', // [P24] Buyurtmalarim
+  'portal-svodka', // [P29] Svodka
 ]
 
 export function isPortalUser(user) {
