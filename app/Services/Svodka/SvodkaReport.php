@@ -160,20 +160,41 @@ class SvodkaReport
         ];
     }
 
-    /** Katak: barcha shifrlar; qiymat — oxirgi chiqarilgan namunadan */
+    /**
+     * Katak: barcha shifrlar; qiymat — chiqarilgan namunalardan.
+     * [P31] Har bir ustun alohida: katakdagi namunalardan shu ustun qiymati bor OXIRGISI olinadi
+     * (bitta proba ikki guruhga yuborilsa — Au bir namunada, Ag/Ss boshqasida — hammasi bitta qatorda).
+     * Bir xil shifr bir marta yoziladi.
+     */
     private function cell(array $cols, array $list): array
     {
-        $values = null;
+        $values = array_fill_keys(array_map(fn ($c) => $c['element_id'], $cols), null);
         foreach ($list as $e) {
-            if ($e['values'] !== null) {
-                $values = $e['values'];
+            if ($e['values'] === null) {
+                continue;
             }
+            foreach ($this->pick($cols, $e['values']) as $id => $v) {
+                if ($v !== null) {
+                    $values[$id] = $v;
+                }
+            }
+        }
+        $codes = [];
+        foreach ($list as $e) {
+            $k = mb_strtolower(trim((string) $e['code']));
+            if ($k !== '' && isset($codes[$k])) {
+                $codes[$k]['sample_ids'][] = $e['sample_id'];
+                $codes[$k]['released'] = $codes[$k]['released'] && $e['released'];
+                $codes[$k]['pending'] = $codes[$k]['pending'] && $e['pending'];
+                continue;
+            }
+            $codes[$k !== '' ? $k : '#' . count($codes)] = ['code' => $e['code'], 'pending' => $e['pending'], 'sample_id' => $e['sample_id'],
+                'sample_ids' => [$e['sample_id']], 'released' => $e['released'], 'source' => $e['source']];
         }
 
         return [
-            'codes'   => array_map(fn ($e) => ['code' => $e['code'], 'pending' => $e['pending'], 'sample_id' => $e['sample_id'],
-                'released' => $e['released'], 'source' => $e['source']], $list),
-            'values'  => $this->pick($cols, $values),
+            'codes'   => array_values($codes),
+            'values'  => $values,
         ];
     }
 

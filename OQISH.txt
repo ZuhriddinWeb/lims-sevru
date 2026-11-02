@@ -40,6 +40,13 @@ PAKET 31 — SVODKANI XODIMGA KO'RSATISH VA ISHCHI VARAQ NATIJALARI SVODKAGA
       boshqasida) — katak bo'sh qolardi. Endi: ustun elementi probada bo'lmasa, probadagi shu
       belgili YAGONA natija ko'rsatiladi (Excel'da ham). Blokda ikkala «Au» alohida ustun
       bo'lsa — har biri o'zinikini oladi, qiymat ikki marta chiqmaydi.
+   a2) BITTA KATAKDA BIR NECHTA NAMUNA (skrinshotdagi «424 424», «414 426»): avval katak
+      qiymatlarni faqat OXIRGI namunadan olardi — shuning uchun I-navbatchilikda Au bo'sh,
+      II-navbatchilikda Ag/Ss bo'sh qolardi. Endi har bir ustun alohida: katakdagi namunalardan
+      shu ustun natijasi bor oxirgisi olinadi (bitta proba ikki guruhga yuborilsa — Au birida,
+      Ag/Ss boshqasida — hammasi bitta qatorda). Bir xil shifr bir marta yoziladi («424»).
+      O'rtacha ustun va Excel ham shunga mos. Agar ustunda baribir bo'sh qolsa — o'sha natija
+      probaga yozilmagan yoki hali chiqarilmagan: svodka:tekshir sababni ko'rsatadi.
    b) TASDIQLASHDA: varaq shablonidagi «Ag» probada bo'lmasa, lekin probada boshqa «Ag» bo'lsa —
       avval «probada bu element ko'rsatilmagan» deb o'tkazib yuborilardi. Endi o'sha yagona
       «Ag» ga yoziladi; tasdiqlash hisobotida «(probadagi «Ag» elementiga)» deb yoziladi.
@@ -139,7 +146,8 @@ TEKSHIRISH
    - buyurtmachi: avvalgidek (o'zgarish yo'q)
 
 SINOV (SQLite + SQL Server so'rov tekshiruvi)
-   - Paket 31: 68/68 — «Svodkani ko'ruvchilar»: faqat admin boshqaradi (boshliq — 403, o'ziga
+   - Paket 31: 75/75 — katakda bir nechta namuna (bitta shifr ikki guruhda: Au va Ag birlashdi,
+     shifr bir marta; ikki xil shifr: ikkala natija; o'rtacha va Excel); «Svodkani ko'ruvchilar»: faqat admin boshqaradi (boshliq — 403, o'ziga
      bera olmaydi), ro'yxatda admin va buyurtmachilar yo'q, buyurtmachini qo'shib bo'lmaydi,
      qayta qo'shish — takror yo'q, rollarga tegilmaydi, jurnal; qo'shilgan boshliq: /api/me da
      ruxsat, menyuda «Bo'limlar svodkasi» (tartib saqlangan); xuddi shu roldagi boshqa

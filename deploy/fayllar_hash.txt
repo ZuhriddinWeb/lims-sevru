@@ -232,7 +232,7 @@ app\Models\SvodkaSetting.php | e5e51c63bfd21501dd4c4979d496ab7e2e37881e9dafcfb61
 app\Providers\SvodkaServiceProvider.php | a457801aefecd3d442c39226ca338d810f98c7ea7bca735c602df2f8020313cb | paket29_svodka
 app\Services\Svodka\SvodkaExcel.php | 82bceaf37e70fdab79e5caad25f1bf01548d5e1d1888de82cea30d5fec5a3d2b | paket29_svodka
 app\Services\Svodka\SvodkaGate.php | 3d48d603ae0f7a5c9a40ac1a23479001408296c43bdcba52421c6deb464572ad | paket29_svodka
-app\Services\Svodka\SvodkaReport.php | 58b4f8d172da9003c031cb9d6242d1cbe6446244858f10945700ce492009b72c | paket31_svodka_korish
+app\Services\Svodka\SvodkaReport.php | 0912e78eedfa64468d7ee7abd3d3eafe3969c8964715d8e4a467812691531675 | paket31_svodka_korish
 app\Services\Svodka\SvodkaService.php | 322cc6dca58c24b0bdc03088fc1cf480b1dc5a1107103437ac90365f1545957c | paket31_svodka_korish
 app\Services\Svodka\SvodkaXlsx.php | 73c2eea4355040536d940c3855a0f5091186546ab72209b7aa05711961fa7d7d | paket29_svodka
 database\migrations\2026_10_28_100000_create_svodka_tables.php | d3145d54be4d0d3d7992b9e182ba49b7c3df305e3abdc5e2c3dc81a272323b77 | paket29_svodka
