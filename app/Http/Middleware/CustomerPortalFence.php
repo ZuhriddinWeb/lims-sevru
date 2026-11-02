@@ -66,6 +66,9 @@ class CustomerPortalFence
                 $this->decorateUser($response);
             } elseif ($path === 'api/menu' && $isPortal) {
                 $this->filterMenu($response);
+            } elseif ($path === 'api/menu' && $user) {
+                $this->addViewerMenu($response, $user);
+                $this->dedupeStaffMenu($response);
             }
         } catch (Throwable $e) {
             report($e); // javobni buzmaymiz
@@ -94,6 +97,63 @@ class CustomerPortalFence
         return false;
     }
 
+    private function isSvodkaViewer($user): bool
+    {
+        try {
+            return class_exists(\App\Services\Svodka\SvodkaService::class)
+                && ! $this->portal->isPortalUser($user)
+                && app(\App\Services\Svodka\SvodkaService::class)->isViewer($user);
+        } catch (Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    /** [P31] «Svodkani ko'ruvchilar»dagi xodim menyusiga «Bo'limlar svodkasi» (rolida svodka.view bo'lmasa ham) */
+    private function addViewerMenu(JsonResponse $response, $user): void
+    {
+        $data = $response->getData(true);
+        if (! is_array($data) || ! array_is_list($data) || ! $this->isSvodkaViewer($user)) {
+            return;
+        }
+        foreach ($data as $it) {
+            if (is_array($it) && ($it['key'] ?? null) === 'svodka_view') {
+                return;
+            }
+        }
+        $item = \App\Models\MenuItem::where('key', 'svodka_view')->where('is_active', true)->whereNull('parent_id')->first();
+        if (! $item) {
+            return;
+        }
+        $data[] = $item->setRelation('children', collect())->toArray();
+        usort($data, fn ($a, $b) => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0)));
+        $response->setData($data);
+    }
+
+    /**
+     * [P31] Xodim (admin) menyusida bir sahifaga ikki band bo'lsa (masalan, «Svodka» — portal bandi va
+     * «Bo'limlar svodkasi» — svodka.view), portal.* bandi olib tashlanadi.
+     */
+    private function dedupeStaffMenu(JsonResponse $response): void
+    {
+        $data = $response->getData(true);
+        if (! is_array($data) || ! array_is_list($data)) {
+            return;
+        }
+        $isPortalItem = fn ($it) => is_array($it) && str_starts_with((string) ($it['permission'] ?? ''), 'portal.');
+        $staffRoutes = [];
+        foreach ($data as $it) {
+            if (is_array($it) && ! empty($it['route']) && ! $isPortalItem($it)) {
+                $staffRoutes[$it['route']] = true;
+            }
+        }
+        $out = array_values(array_filter($data, fn ($it) => ! $isPortalItem($it) || empty($it['route']) || ! isset($staffRoutes[$it['route']])));
+        if (count($out) !== count($data)) {
+            $response->setData($out);
+        }
+    }
+
     private function decorateUser(JsonResponse $response): void
     {
         $data = $response->getData(true);
@@ -105,6 +165,11 @@ class CustomerPortalFence
             return;
         }
         $data['user']['portal'] = $this->portal->profile($user);
+        // [P31] admin svodkani ko'rishni shu foydalanuvchiga alohida bergan — rolga tegmasdan ruxsatlar ro'yxatiga qo'shiladi
+        if (isset($data['user']['permissions']) && is_array($data['user']['permissions'])
+            && ! in_array('svodka.view', $data['user']['permissions'], true) && $this->isSvodkaViewer($user)) {
+            $data['user']['permissions'][] = 'svodka.view';
+        }
         $response->setData($data);
     }
 

@@ -44,5 +44,9 @@ Route::middleware('auth:sanctum')->group(function () {
             ->middleware('permission:svodka.release');
         Route::post('/', [SvodkaReleaseController::class, 'release'])
             ->middleware('permission:svodka.release');
+        // [P31] svodkani ko'ruvchilar — har bir foydalanuvchiga alohida (faqat admin; tekshiruv kontrollerda)
+        Route::get('/viewers', [SvodkaReleaseController::class, 'viewers']);
+        Route::post('/viewers', [SvodkaReleaseController::class, 'addViewer']);
+        Route::delete('/viewers/{user}', [SvodkaReleaseController::class, 'removeViewer'])->whereNumber('user');
     });
 });

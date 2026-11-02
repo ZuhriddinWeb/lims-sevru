@@ -1,0 +1,22 @@
+--- asl/resources/js/modules/intake/svodka/views/PortalSvodka.vue
++++ yangi/resources/js/modules/intake/svodka/views/PortalSvodka.vue
+@@ -9,7 +9,7 @@
+ import { useRoute, useRouter } from 'vue-router'
+ import { useI18n } from 'vue-i18n'
+ import {
+-  CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, FileSpreadsheet, Hourglass, Info, Link2, ListOrdered, Loader2, Table2,
++  CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Eye, FileSpreadsheet, Hourglass, Info, Link2, ListOrdered, Loader2, Table2,
+ } from 'lucide-vue-next'
+ import api from '@/lib/api'
+ import PageHeader from '@/components/ui/PageHeader.vue'
+@@ -189,6 +189,10 @@
+   <div>
+     <PageHeader :title="t('svodka.title')" :subtitle="t('svodka.subtitle')">
+       <template #actions>
++        <!-- [P31] xodim svodka.view bilan — faqat ko'rish -->
++        <span v-if="ctx?.viewer" class="inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-2.5 py-1 text-[12px] text-ink-muted" :title="t('svodka.viewOnlyHint')" data-view-only>
++          <Eye :size="13" /> {{ t('svodka.viewOnly') }}
++        </span>
+         <select
+           v-if="(ctx?.departments?.length ?? 0) > 1" v-model="deptId"
+           class="field-input h-9 w-auto min-w-[200px]" data-dept

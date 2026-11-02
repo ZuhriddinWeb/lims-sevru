@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
 use App\Models\CustomerDepartment;
 use App\Models\SvodkaSetting;
+use App\Models\User;
 use App\Services\Svodka\SvodkaService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Throwable;
 
@@ -40,6 +43,7 @@ class SvodkaReleaseController extends Controller
         return response()->json([
             'can_manage'  => $canManage,
             'can_release' => $canRelease,
+            'can_viewers' => (bool) $user->isAdmin(),   // [P31] «Svodkani ko'ruvchilar» — faqat admin
             'departments' => $depts->map(function ($d) {
                 $s = $this->svc->settings((int) $d->id);
 
@@ -184,5 +188,76 @@ class SvodkaReleaseController extends Controller
             'id' => (int) $rel->id, 'revision' => (int) $rel->revision, 'samples' => (int) $rel->samples_count,
             'values' => (int) $rel->values_count, 'released_at' => $rel->released_at?->toDateTimeString(),
         ], 201);
+    }
+
+    // ------------------------------------------------------------------ [P31] svodkani ko'ruvchilar (faqat admin)
+
+    private function adminOnly(Request $request): void
+    {
+        abort_unless($request->user()?->isAdmin(), 403, "Svodkani ko'ruvchilarni faqat administrator belgilaydi");
+    }
+
+    private function viewersData(): array
+    {
+        $portal = app(\App\Services\Samples\CustomerPortal::class);
+        $ids = Schema::hasTable('svodka_viewers') ? DB::table('svodka_viewers')->pluck('user_id')->map(fn ($v) => (int) $v)->all() : [];
+        $loc = in_array(app()->getLocale(), ['uz', 'ru', 'en'], true) ? app()->getLocale() : 'uz';
+        $users = User::with('role.permissions')->where('is_active', true)->orderBy('name')->get()
+            ->reject(fn ($u) => $u->isAdmin() || $portal->isPortalUser($u))
+            ->map(fn ($u) => [
+                'id'       => (int) $u->id,
+                'name'     => $u->name,
+                'username' => $u->username,
+                'role'     => $u->role ? ($u->role->{'display_name_' . $loc} ?: $u->role->name) : null,
+                'viewer'   => in_array((int) $u->id, $ids, true),
+                'via_role' => $u->role && $u->role->permissions->contains('name', 'svodka.view'),
+            ])->values();
+
+        return ['users' => $users];
+    }
+
+    public function viewers(Request $request)
+    {
+        $this->adminOnly($request);
+
+        return response()->json($this->viewersData());
+    }
+
+    public function addViewer(Request $request)
+    {
+        $this->adminOnly($request);
+        $data = $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
+        $u = User::findOrFail((int) $data['user_id']);
+        abort_if(app(\App\Services\Samples\CustomerPortal::class)->isPortalUser($u), 422, "Buyurtmachi foydalanuvchisi o'z svodkasini allaqachon ko'radi");
+        if (! DB::table('svodka_viewers')->where('user_id', $u->id)->exists()) {
+            DB::table('svodka_viewers')->insert(['user_id' => $u->id, 'granted_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now()]);
+            $this->logViewer($request, $u, true);
+        }
+
+        return response()->json($this->viewersData());
+    }
+
+    public function removeViewer(Request $request, int $user)
+    {
+        $this->adminOnly($request);
+        $u = User::find($user);
+        if (DB::table('svodka_viewers')->where('user_id', $user)->delete() && $u) {
+            $this->logViewer($request, $u, false);
+        }
+
+        return response()->json($this->viewersData());
+    }
+
+    private function logViewer(Request $request, User $u, bool $on): void
+    {
+        try {
+            \App\Models\ActivityLog::create([
+                'user_id' => $request->user()->id, 'action' => 'updated', 'model_type' => 'User', 'model_id' => $u->id,
+                'description' => ($on ? "Svodkani ko'rish berildi: " : "Svodkani ko'rish olib tashlandi: ") . "{$u->name} ({$u->username})",
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 }

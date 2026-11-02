@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
  */
 class SvodkaReport
 {
+    /** @var array<int, string> element id => belgi (kichik harf) — [P31] */
+    private array $sym = [];
+
     public function __construct(private SvodkaService $svc)
     {
     }
@@ -20,6 +23,7 @@ class SvodkaReport
     public function day(int $deptId, string $date): array
     {
         $date = Carbon::parse($date)->toDateString();
+        $this->sym = SvodkaService::symbolMap();
         $set = $this->svc->settings($deptId);
         $sections = SvodkaSection::where('customer_department_id', $deptId)->with('points')
             ->orderBy('sort_order')->orderBy('id')->get();
@@ -173,11 +177,24 @@ class SvodkaReport
         ];
     }
 
+    /**
+     * [P31] Ustun elementi probada bo'lmasa (katalogda «Au» ikki xil: svodka ustuni birida, natija boshqasida) —
+     * probaning shu belgili YAGONA natijasi olinadi. O'sha element bu blokda alohida ustun bo'lsa — olinmaydi.
+     */
     private function pick(array $cols, ?array $values): array
     {
         $out = [];
+        $colIds = array_fill_keys(array_map(fn ($c) => (int) $c['element_id'], $cols), true);
         foreach ($cols as $c) {
-            $out[$c['element_id']] = $values[(string) $c['element_id']] ?? null;
+            $id = (int) $c['element_id'];
+            if ($values === null || array_key_exists((string) $id, $values)) {
+                $out[$id] = $values[(string) $id] ?? null;
+                continue;
+            }
+            $symbol = $this->sym[$id] ?? null;
+            $same = $symbol === null ? [] : array_values(array_filter(array_keys($values),
+                fn ($k) => ! isset($colIds[(int) $k]) && ($this->sym[(int) $k] ?? null) === $symbol));
+            $out[$id] = count($same) === 1 ? $values[(string) $same[0]] : null;
         }
 
         return $out;

@@ -959,6 +959,38 @@ class WorksheetService
     // ------------------------------------------------------------- tasdiqlash
 
     /**
+     * [P31] Natija yoziladigan proba elementi.
+     *   1) shablon ustunidagi aniq element (element_id) probada bo'lsa — o'sha;
+     *   2) bo'lmasa — probadagi shu belgili (masalan, «Au») elementlar ichidan YAGONASI
+     *      (katalogda bir xil belgili ikki element bo'lsa: shablonda biri, probada boshqasi);
+     *   3) bir nechta yoki hech biri — yozilmaydi, sababi qaytariladi (taxmin qilinmaydi).
+     *
+     * @return array{0: ?SampleElement, 1: ?string}  [element, izoh/sabab]
+     */
+    public static function resolveSampleElement(int $sampleId, int $elementId, ?string $symbol = null): array
+    {
+        $exact = SampleElement::where('sample_id', $sampleId)->where('element_id', $elementId)->first();
+        if ($exact) {
+            return [$exact, null];
+        }
+        $symbol = $symbol ?: \App\Models\Element::whereKey($elementId)->value('symbol');
+        if (! $symbol) {
+            return [null, "probada bu element ko'rsatilmagan"];
+        }
+        $same = SampleElement::query()->where('sample_id', $sampleId)
+            ->whereIn('element_id', fn ($q) => $q->select('id')->from('elements')->where('symbol', $symbol))
+            ->get();
+        if ($same->count() === 1) {
+            return [$same->first(), "probadagi «{$symbol}» elementiga"];
+        }
+        if ($same->count() > 1) {
+            return [null, "probada «{$symbol}» bir nechta (" . $same->count() . " ta) — qaysi biriga yozish noaniq, qo'lda kiriting"];
+        }
+
+        return [null, "probada bu element ko'rsatilmagan"];
+    }
+
+    /**
      * Varaqni tasdiqlaydi; ixtiyoriy ravishda har bir faol probaning yakuniy natijasini o'ziga yozadi.
      *
      * @return array{pushed: array, skipped: array}
@@ -1010,9 +1042,10 @@ class WorksheetService
                         continue;
                     }
 
-                    $se = SampleElement::where('sample_id', $sample->id)->where('element_id', $c['element_id'])->first();
+                    // [P31] aniq element bo'lmasa — probadagi bir xil belgili YAGONA elementga (katalogda Au ikki xil bo'lsa)
+                    [$se, $why] = self::resolveSampleElement((int) $sample->id, (int) $c['element_id'], $c['element_symbol'] ?? null);
                     if (! $se) {
-                        $report['skipped'][] = "{$prefix}{$label}: probada bu element ko'rsatilmagan";
+                        $report['skipped'][] = "{$prefix}{$label}: {$why}";
                         continue;
                     }
 
@@ -1026,7 +1059,7 @@ class WorksheetService
                         'notes'             => "Ishchi varaqdan avtomatik: {$worksheet->number}",
                     ])->save();
 
-                    $report['pushed'][] = "{$prefix}{$label} = {$value}" . ($c['unit'] ? " {$c['unit']}" : '');
+                    $report['pushed'][] = "{$prefix}{$label} = {$value}" . ($c['unit'] ? " {$c['unit']}" : '') . ($why ? " ({$why})" : '');
                     $pushedHere = true;
                 }
 

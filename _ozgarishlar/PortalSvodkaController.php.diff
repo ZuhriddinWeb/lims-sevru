@@ -1,0 +1,48 @@
+--- asl/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php
++++ yangi/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php
+@@ -43,19 +43,33 @@
+     ) {
+     }
+ 
+-    /** @return array{ids:int[], write:bool} */
++    /** @return array{ids:int[], write:bool, viewer:bool} */
+     private function ctx(Request $request): array
+     {
+         $user = $request->user();
+         abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
+-        abort_unless($this->portal->isPortalUser($user), 403, 'Svodka faqat buyurtmachi bo\'limiga ochiq');
++        if ($this->portal->isPortalUser($user)) {
++            return [
++                'ids'    => $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all(),
++                'write'  => $user->hasPermission(SampleRequests::PORTAL_PERMISSION),
++                'viewer' => false,
++            ];
++        }
++        // [P31] admin «Svodkani ko'ruvchilar»ga qo'shgan xodim (yoki rolida svodka.view) — buyurtmachidek ko'radi,
++        // lekin hech narsani o'zgartirmaydi. Bo'limlarga biriktirilgan bo'lsa — o'sha bo'limlar, aks holda barcha faol bo'limlar.
++        abort_unless($this->svc->canView($user), 403,
++            "Svodka faqat buyurtmachi bo'limiga va admin svodkani ko'rishga ruxsat bergan xodimlarga ochiq");
++        $linked = $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all();
+ 
+         return [
+-            'ids'   => $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all(),
+-            'write' => $user->hasPermission(SampleRequests::PORTAL_PERMISSION),
++            'ids'    => $linked ?: CustomerDepartment::where('is_active', true)->pluck('id')->map(fn ($v) => (int) $v)->all(),
++            'write'  => false,
++            'viewer' => true,
+         ];
+     }
+ 
++    public const VIEW_PERMISSION = 'svodka.view';
++
+     private function dept(Request $request, array $ctx, bool $mustBeEnabled = false): int
+     {
+         $id = (int) $request->input('department_id');
+@@ -84,6 +98,7 @@
+ 
+         return response()->json([
+             'can_write'   => $ctx['write'],
++            'viewer'      => $ctx['viewer'], // [P31] xodim — faqat ko'rish
+             'departments' => $depts->map(function ($d) {
+                 $s = $this->svc->settings((int) $d->id);
+                 [$date, $shift] = SvodkaService::periodOf(now(), $s);

@@ -1,42 +1,160 @@
-TUZATISH — PORTAL XATOSI: «Call to undefined method DisplayTotals::forWorksheet»
-=================================================================================
+PAKET 31 — SVODKANI XODIMGA KO'RSATISH VA ISHCHI VARAQ NATIJALARI SVODKAGA
+===========================================================================
 
-SABAB
-   Paket 29 dagi SampleAnalyses.php «tuzatish_shablon» paketidagi DisplayTotals.php ga tayanadi.
-   Sizda DisplayTotals.php ning Paket 28 dagi ESKI versiyasi qolgan (tuzatish_shablon o'rnatilmagan
-   yoki undan keyin Paket 28 zip qayta yoyilgan). Natijada buyurtmachi «Mening namunalarim» ni
-   ochganda server 500 xato beradi. Sinov muhitida aynan shu xato takrorlandi va shu fayl bilan yo'qoldi.
+1) SVODKANI ADMIN ISTALGAN FOYDALANUVCHIGA BERADI (BUYURTMACHIDEK KO'RADI)
+   Rol yaratish yoki o'zgartirish SHART EMAS — har bir foydalanuvchiga alohida beriladi.
+   Qanday berish (faqat admin):
+     «Svodkalar» sahifasi → tepada «Svodkani ko'ruvchilar» tugmasi → foydalanuvchini tanlang
+     (ism yoki login bo'yicha qidirish bor) → «Qo'shish». Olib tashlash — ro'yxatda «Olib tashlash».
+   Masalan: laboratoriya boshlig'i o'z hisobi bilan kiradi, admin uni ro'yxatga qo'shadi —
+   unga yangi foydalanuvchi ochish kerak emas. Xuddi shu roldagi boshqa xodimlarga ta'sir qilmaydi.
+   Ro'yxatda: barcha faol xodimlar (admin va buyurtmachi bo'lim foydalanuvchilari — yo'q,
+   ular svodkani allaqachon ko'radi). Har bir berish/olib tashlash audit jurnaliga yoziladi.
+   Foydalanuvchida sahifa yangilangandan keyin (F5) ishlaydi.
+   Nima ko'rinadi:
+     - menyuda «Bo'limlar svodkasi» (buyurtmachidagi «Svodka» sahifasining o'zi);
+     - bo'limlar tanlovi: barcha faol bo'limlar. Xodim «Foydalanuvchilar»da biror bo'limga
+       biriktirilgan bo'lsa — faqat o'sha bo'lim(lar);
+     - kunlik svodka, nuqta nomlari, spravochnik, Excel'ga yuklash — buyurtmachi ko'rganidek;
+     - tepada «Faqat ko'rish» belgisi.
+   Nima QILA OLMAYDI: spravochnikni tahrirlash, namunani nuqtaga bog'lash, buyurtma yuborish
+   (server ham 403 qaytaradi).
+   Qiymatlar buyurtmachidagi kabi faqat laboratoriya boshlig'i «Chiqarish» qilgandan keyin chiqadi.
+   Qo'shimcha (ixtiyoriy): «Rollar va ruxsat»da «Buyurtmachi svodkasi — Ko'rish» ruxsati ham bor —
+   butun rolga berish kerak bo'lsa. U hech bir rolga avtomatik berilmagan; bunday xodimlar
+   ro'yxatda «rol orqali» deb ko'rinadi.
+   E'tibor:
+     - nuqta nomlari ko'r tahlilni buzmasligi uchun natija kirituvchi laborantlarni qo'shmaslik
+       tavsiya etiladi;
+     - admin ham svodkani shu tarzda ko'radi (faqat ko'rish). Admin menyusida «Svodka» bandi bitta.
 
-PAKETDA
-   app/Services/Worksheets/DisplayTotals.php            (tuzatish_shablon versiyasi — forWorksheet bor)
-   app/Http/Controllers/Api/WorksheetController.php     (tuzatish_shablon versiyasi — ishchi varaq ekrani
-                                                          ham portal bilan bir xil qoidada: «varaq bo'yicha
-                                                          jami» shablonda siz belgilaganicha)
-   deploy/fayllar_royxati.txt                           (yangilangan)
-   deploy/fayllar_hash.txt + deploy/tekshir_versiyalar.ps1   (YANGI: eski qolgan fayllarni topish)
+2) ISHCHI VARAQ NATIJALARI SVODKAGA CHIQMASLIGI — SABABLAR VA TUZATISH
+   Natija yo'li: ishchi varaq «Tasdiqlash» → shablondagi ELEMENTGA BOG'LANGAN yakuniy ustun
+   qiymati probaga yoziladi → svodka probadagi natijani oladi → boshliq «Chiqarish» qiladi.
+   Qo'lda kiritilgan natija ishlayotgani bu zanjirning probadan keyingi qismi to'g'ri ekanini
+   ko'rsatadi. Demak uzilish varaqdan probaga yoki probadan svodka ustuniga bo'lgan joyda.
+   Skrinshotdagi probalarda «Au, Ag, Ag, Au» bor — katalogda bir xil belgili ikkitadan element
+   bor. Asosiy gumon shu, shuning uchun quyidagilar tuzatildi:
 
-   Shablonlarga (bosqichlar, ustunlar) TEGILMAYDI — DefaultTemplates.php va bosqich buyrug'i bu paketda yo'q.
-   Migratsiya, seed, npm run build — KERAK EMAS (faqat PHP).
+   a) SVODKA USTUNI BOSHQA «Au» GA BOG'LANGAN bo'lsa (spravochnikda biri, varaq natijasi
+      boshqasida) — katak bo'sh qolardi. Endi: ustun elementi probada bo'lmasa, probadagi shu
+      belgili YAGONA natija ko'rsatiladi (Excel'da ham). Blokda ikkala «Au» alohida ustun
+      bo'lsa — har biri o'zinikini oladi, qiymat ikki marta chiqmaydi.
+   b) TASDIQLASHDA: varaq shablonidagi «Ag» probada bo'lmasa, lekin probada boshqa «Ag» bo'lsa —
+      avval «probada bu element ko'rsatilmagan» deb o'tkazib yuborilardi. Endi o'sha yagona
+      «Ag» ga yoziladi; tasdiqlash hisobotida «(probadagi «Ag» elementiga)» deb yoziladi.
+      Probada bir xil belgili bir nechta element bo'lsa — taxmin qilinmaydi, hisobotda sababi
+      chiqadi, natijani qo'lda kiriting.
+   c) «Hammasi tayyor» hisobi belgi bo'yicha: probada ikkita «Au» bo'lib, varaq bittasiga
+      yozsa ham namuna tayyor hisoblanadi (avval boshliqqa «svodka tayyor» xabari kelmasdi).
+   d) Avval tasdiqlangan, lekin probaga yozilmay qolgan natijalarni o'tkazish — yangi buyruq
+      (pastda). U mavjud natijaning ustidan HECH QACHON yozmaydi.
 
-O'RNATISH
-   Lokalda:
-     Expand-Archive -Path "$env:USERPROFILE\Downloads\tuzatish_jami.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
-     git add app deploy
-     git commit -m "Tuzatish: DisplayTotals (portal xatosi) + versiya tekshiruvi"
-     git push
-   Serverda (RDP):
-     cd /d C:\xampp\htdocs\LIMS
-     set PATH=C:\xampp\php;%PATH%
-     git pull
-     php artisan optimize:clear
-   Brauzerda Ctrl+F5, buyurtmachi bilan «Mening namunalarim» ni oching.
+   Boshqa sabablar (dastur emas, ish tartibi — diagnostika ko'rsatadi):
+     - varaq faqat «Yakunlangan», «Tasdiqlash» bosilmagan — natija probaga yozilmaydi;
+     - shablonda yakuniy ustun elementga bog'lanmagan. Masalan, 627-2025 «Ko'mir maydasi»:
+       «O'rtacha» ustuni hech qaysi elementga bog'lanmagan. Uni «Ishchi varaq shablonlari»da
+       elementga (Au) bog'lash kerak. Qaysi natija rasmiy ekanini aytsangiz, aniq ko'rsataman;
+     - natija probada bor, lekin svodka hali «Chiqarilmagan» yoki chiqarilgandan keyin
+       o'zgargan — boshliq qayta «Chiqarish» qiladi.
 
-ESKI QOLGAN FAYLLARNI TOPISH (yangi skript — hech narsani o'zgartirmaydi)
-   Loyiha papkasida (lokalda ham, serverda ham):
-     powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
-   Har fayl eng oxirgi paketdagi bilan solishtiriladi (qator oxiri CRLF/LF va BOM hisobga olinmaydi):
-     ESKI/FARQ  — fayl eski yoki qo'lda o'zgartirilgan  <- qaysi paketda to'g'ri versiyasi bor
-     YO'Q       — fayl umuman yo'q
-   Oxirida: «To'g'ri: N   Farq qiladi: N   Yo'q: N». Farq bo'lsa — ro'yxatni menga yuboring.
-   resources\js\router\index.js ni o'rnatish yo'riqnomasi bo'yicha qo'lda tahrirlagan bo'lsangiz,
-   u «farq» chiqishi kutilgan.
+3) SERVERDA AVVAL SABABNI ANIQLANG (hech narsani o'zgartirmaydi)
+   cd /d C:\xampp\htdocs\LIMS
+   set PATH=C:\xampp\php;%PATH%
+   php artisan svodka:tekshir TNBGMZ3 --kun=30
+       (bo'lim kodi; noto'g'ri bo'lsa — bo'limlar ro'yxatini chiqaradi)
+   php artisan svodka:tekshir TNBGMZ3 --shifr=349       — bitta shifr bo'yicha
+   Chiqadi:
+     - katalogdagi bir xil belgili elementlar (id va nomlari bilan);
+     - svodka ustunlari qaysi element id ga bog'langani;
+     - har namuna: elementlari va natijalari, qaysi varaqlarda, varaq holati, shablonning
+       yakuniy ustunlari (elementga bog'langanmi) va SABAB.
+   Chiqishni (yoki skrinshotini) menga yuboring — keyingi qadamni aniq aytaman.
+
+4) YOZILMAY QOLGAN NATIJALARNI O'TKAZISH
+   php artisan worksheets:natija-otkaz --dry-run     — nima o'tkazilishini ko'rsatadi, yozmaydi
+   php artisan worksheets:natija-otkaz               — o'tkazadi
+   php artisan worksheets:natija-otkaz --varaq=9     — faqat «9 k/m» kabi varaq(lar) (90 emas)
+   php artisan worksheets:natija-otkaz --kun=30      — oxirgi 30 kunda tasdiqlanganlar
+   Xavfsizlik:
+     - faqat «Tasdiqlangan» varaqlar (nazorat varag'i va «takroriy tahlil» probalari — yo'q);
+     - probada natija bo'lsa (qo'lda kiritilgan ham) — tegilmaydi;
+     - qiymat varaqda saqlangan hisobdan olinadi, varaq o'zgarmaydi;
+     - har bir o'tkazish faoliyat jurnaliga yoziladi («[worksheets:natija-otkaz]»).
+   Avval doim --dry-run. O'tkazilgandan keyin boshliq svodkani qayta «Chiqarish» qiladi.
+
+FAYLLAR
+   Yangi:
+     app/Console/Commands/SvodkaTekshir.php          (svodka:tekshir)
+     app/Console/Commands/WorksheetPushResults.php   (worksheets:natija-otkaz)
+     database/migrations/2026_11_02_100000_create_svodka_viewers_table.php
+         (svodka_viewers — kimga berilgani; faqat yangi jadval, mavjud ma'lumotga tegmaydi)
+     resources/js/modules/intake/svodka/components/ViewersDialog.vue
+   O'zgargan (eng oxirgi versiyalar asosida; farqlar — _ozgarishlar/ da):
+     app/Http/Controllers/Api/Svodka/PortalSvodkaController.php   (Paket 29)
+     app/Http/Controllers/Api/Svodka/SvodkaReleaseController.php  (Paket 29)
+     routes/svodka.php                                            (Paket 29)
+     resources/js/modules/intake/svodka/views/SvodkaReleases.vue  (Paket 29)
+     app/Services/Svodka/SvodkaReport.php                         (Paket 29)
+     app/Services/Svodka/SvodkaService.php                        (Paket 29)
+     app/Services/Worksheets/WorksheetService.php                 (Paket 16)
+     app/Http/Middleware/CustomerPortalFence.php                  (Paket 15)
+     database/seeders/SvodkaModuleSeeder.php                      (Paket 29)
+     resources/js/modules/intake/routes.js                        (Paket 29)
+     resources/js/modules/intake/svodka/i18n.js                   (Paket 29)
+     resources/js/modules/intake/svodka/views/PortalSvodka.vue    (Paket 29)
+     deploy/fayllar_royxati.txt, deploy/fayllar_hash.txt          (255 fayl)
+   Siz lokalda o'zgartirgan fayllar (Help*, AppLayout.vue, router/index.js, PortalRequests.vue,
+   SampleRequestModuleSeeder, routes/insights.php) — bu paketda YO'Q, ularga tegilmaydi.
+   Migratsiya: 1 ta (yangi bo'sh jadval).
+
+O'RNATISH — LOKALDA
+   1. Zipni loyiha ildiziga yoying (ustidan yozing):
+        Expand-Archive -Path "$env:USERPROFILE\Downloads\paket31_svodka_korish.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+      _ozgarishlar/ — faqat ko'rish uchun.
+   2. php artisan migrate
+      php artisan db:seed --class=SvodkaModuleSeeder
+      (yangi jadval, ruxsat va menyu; faqat shu seeder — --class siz db:seed QILMANG)
+   3. npm run build
+   4. git add app database resources deploy
+      git add -f public/build
+      git commit -m "Paket 31: svodkani ko'rish ruxsati, varaq natijalari svodkaga"
+      git push
+
+SERVERDA — RDP orqali
+   cd /d C:\xampp\htdocs\LIMS
+   set PATH=C:\xampp\php;%PATH%
+   git pull
+   deploy\server_yangilash.bat
+   (migrate: svodka_viewers jadvali; lims:upgrade: «Bo'limlar svodkasi» menyusi va ixtiyoriy
+    ruxsat — menyu +1, ruxsat +1, rollarga tegilmaydi)
+   Brauzerda Ctrl+F5.
+   Keyin: 3-banddagi svodka:tekshir → natijasini yuboring → kerak bo'lsa 4-band.
+
+TEKSHIRISH
+   - admin: «Svodkalar» → «Svodkani ko'ruvchilar» → laboratoriya boshlig'ini qo'shing
+   - laboratoriya boshlig'i (o'z hisobi, F5): menyuda «Bo'limlar svodkasi», bo'lim tanlovi,
+     «Faqat ko'rish» belgisi, bog'lash tugmalari yo'q
+   - ro'yxatdan olib tashlang → F5 → menyuda yo'q
+   - buyurtmachi: avvalgidek (o'zgarish yo'q)
+
+SINOV (SQLite + SQL Server so'rov tekshiruvi)
+   - Paket 31: 68/68 — «Svodkani ko'ruvchilar»: faqat admin boshqaradi (boshliq — 403, o'ziga
+     bera olmaydi), ro'yxatda admin va buyurtmachilar yo'q, buyurtmachini qo'shib bo'lmaydi,
+     qayta qo'shish — takror yo'q, rollarga tegilmaydi, jurnal; qo'shilgan boshliq: /api/me da
+     ruxsat, menyuda «Bo'limlar svodkasi» (tartib saqlangan); xuddi shu roldagi boshqa
+     foydalanuvchida — yo'q (403); olib tashlansa — yopiladi; rol orqali ham ishlaydi
+     («rol orqali»); xodim faqat ko'radi (blok/bog'lash — 403; kun, spravochnik, Excel — 200;
+     bo'limga biriktirilgan — faqat o'sha bo'lim); buyurtmachi o'zgarmadi; admin menyusida bitta band;
+     haqiqiy varaq yaratish → to'ldirish → yakunlash → tasdiqlash: takror «Ag» ga yozildi,
+     ikkala Ag bo'lsa — aniq biriga, 2 ta boshqa Ag — o'tkazilmadi (sababi bilan);
+     natija-otkaz: --dry-run hech narsa yozmaydi, qo'lda kiritilgan 99 o'zgarmadi, jurnal,
+     qayta ishga tushirish — 0, --varaq aniq; svodka ustuni boshqa «Au» da — qiymat ko'rinadi,
+     ikkala Au alohida ustun — qiymat takrorlanmaydi; svodka:tekshir — barcha sabablar
+   - Interfeys: 116/116 («Svodkani ko'ruvchilar»: tugma faqat adminda, qidirish, qo'shish,
+     olib tashlash, «rol orqali»; «Faqat ko'rish», buyurtmachi, 403 matni; Paket 29 sahifalari)
+   - Eski sinovlar: Paket 30 — 37/37, Paket 29 — 68/69 (yagona farq kutilgan: «admin —
+     svodka yopiq» endi admin ko'radi), Paket 28 — 42/42, Paket 27 — 72/72, Paket 15 — 123/123,
+     Paket 16–19 — 88/41/27/14, buyurtmalar va oylar — xatosiz, shablon — 15/15, eritish — 31/31
+   - Eski holatdan yangilash: namuna, foydalanuvchi, natija, rol-ruxsat soni o'zgarmadi;
+     yangi jadval, ruxsat +1, menyu +1; ikkinchi marta — o'zgarishsiz

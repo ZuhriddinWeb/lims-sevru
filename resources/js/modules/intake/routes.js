@@ -76,7 +76,7 @@ export default [
   {
     path: 'portal/svodka/:id(\\d+)?', name: 'portal-svodka',
     component: () => import('./svodka/views/PortalSvodka.vue'),
-    meta: { permission: ['portal.view', 'portal.request'] },
+    meta: { permission: ['portal.view', 'portal.request', 'svodka.view'] }, // [P31] svodka.view — xodim, faqat ko'rish
   },
   {
     path: 'svodka-releases/:id(\\d+)?', name: 'svodka-releases',

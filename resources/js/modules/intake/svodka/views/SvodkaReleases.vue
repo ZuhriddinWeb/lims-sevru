@@ -9,11 +9,12 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowRight, ChevronLeft, ChevronRight, ClipboardCheck, EyeOff, Save, Send, Settings2 } from 'lucide-vue-next'
+import { ArrowRight, ChevronLeft, ChevronRight, ClipboardCheck, EyeOff, Save, Send, Settings2, Users } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import ViewersDialog from '../components/ViewersDialog.vue'
 import { useUiStore } from '@/stores/ui'
 import { formatDateTime } from '@/lib/format'
 import { formatValue } from '../../helpers'
@@ -168,6 +169,7 @@ const differs = (e) => e.released_value !== null && e.value !== null && Math.abs
 
 /* ---- sozlama (customer_departments.manage) ---- */
 const settingsOpen = ref(false)
+const viewersOpen = ref(false)   // [P31] svodkani ko'ruvchilar (faqat admin)
 const sform = reactive({ enabled: false, release_mode: 'day', shift1_label: '', shift2_label: '', shift1_start: '20:00', shift2_start: '08:00', title: '' })
 const sbusy = ref(false)
 const serr = ref('')
@@ -210,6 +212,9 @@ async function saveSettings() {
         </select>
         <button v-if="info?.can_manage && dept" type="button" class="btn-outline btn-sm" :class="settingsOpen && 'bg-surface-sunken'" data-settings-toggle @click="openSettings">
           <Settings2 :size="15" /> {{ t('svodka.settings.button') }}
+        </button>
+        <button v-if="info?.can_viewers" type="button" class="btn-outline btn-sm" data-viewers-open @click="viewersOpen = true">
+          <Users :size="15" /> {{ t('svodka.viewers.button') }}
         </button>
       </template>
     </PageHeader>
@@ -427,5 +432,6 @@ async function saveSettings() {
         <button class="btn-primary" :disabled="releaseDialog.busy" data-release-go @click="doRelease"><Send :size="16" /> {{ t('svodka.rel.release') }}</button>
       </template>
     </BaseModal>
+    <ViewersDialog v-model="viewersOpen" />
   </div>
 </template>

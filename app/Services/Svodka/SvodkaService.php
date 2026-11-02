@@ -178,6 +178,46 @@ class SvodkaService
 
     // ------------------------------------------------------------------ natijalar nusxasi
 
+    /** @var array<int, bool> */
+    private array $viewerCache = [];
+
+    /** [P31] Admin svodkani ko'rishni shu foydalanuvchiga alohida berganmi («Svodkani ko'ruvchilar») */
+    public function isViewer(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+        $id = (int) $user->id;
+        if (! array_key_exists($id, $this->viewerCache)) {
+            try {
+                $this->viewerCache[$id] = Schema::hasTable('svodka_viewers')
+                    && DB::table('svodka_viewers')->where('user_id', $id)->exists();
+            } catch (Throwable $e) {
+                $this->viewerCache[$id] = false;
+            }
+        }
+
+        return $this->viewerCache[$id];
+    }
+
+    public function forgetViewer(int $userId): void
+    {
+        unset($this->viewerCache[$userId]);
+    }
+
+    /** [P31] Svodkani buyurtmachidek ko'ra oladimi: alohida berilgan yoki rol orqali svodka.view (admin — doim) */
+    public function canView(?User $user): bool
+    {
+        return $user && ($user->hasPermission('svodka.view') || $this->isViewer($user));
+    }
+
+    /** [P31] element id => belgi (kichik harf, bo'shliqsiz) */
+    public static function symbolMap(): array
+    {
+        return \App\Models\Element::query()->pluck('symbol', 'id')
+            ->map(fn ($s) => mb_strtolower(trim((string) $s)))->filter(fn ($s) => $s !== '')->all();
+    }
+
     /** Namunaning tasdiqlangan natijalari: element_id => [qiymat, birlik] */
     public static function finals($sample): array
     {
@@ -231,10 +271,16 @@ class SvodkaService
         $complete = 0;
         $values = 0;
         $changed = 0;
+        $sym = self::symbolMap();
         foreach ($samples as $s) {
             $f = self::finals($s);
             $values += count($f);
-            if ($s->sampleElements->count() && count($f) === $s->sampleElements->count()) {
+            // [P31] to'liqlik — belgilar bo'yicha: katalogda «Au» ikki xil bo'lib, probada ikkalasi tanlangan bo'lsa,
+            // ishchi varaq bittasiga yozadi — ikkinchisi bo'sh qolsa ham namuna tayyor hisoblanadi
+            $key = fn ($se) => isset($sym[(int) $se->element_id]) ? 's:' . $sym[(int) $se->element_id] : 'e:' . (int) $se->element_id;
+            $need = $s->sampleElements->map($key)->unique()->count();
+            $have = $s->sampleElements->filter(fn ($se) => isset($f[(string) (int) $se->element_id]))->map($key)->unique()->count();
+            if ($need && $have >= $need) {
                 $complete++;
             }
             if ($rel && $f != ($payload[(string) (int) $s->id] ?? null) && ! ($f === [] && ! isset($payload[(string) (int) $s->id]))) {

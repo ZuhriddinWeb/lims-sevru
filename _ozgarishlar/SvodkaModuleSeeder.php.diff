@@ -1,0 +1,34 @@
+--- asl/database/seeders/SvodkaModuleSeeder.php
++++ yangi/database/seeders/SvodkaModuleSeeder.php
+@@ -14,6 +14,8 @@
+  *
+  *  - ruxsat (faqat yo'q bo'lsa): svodka.release — svodkani chiqarish (laboratoriya boshlig'iga, faqat yangi yaratilganda)
+  *  - menyu (faqat yo'q bo'lsa): «Svodka» (buyurtmachi, portal.view) va «Svodkalar» (laboratoriya, svodka.release)
++ *  - [P31] ruxsat svodka.view (hech kimga berilmaydi) va menyu «Bo'limlar svodkasi» — xodim svodkani buyurtmachidek
++ *    ko'radi (faqat ko'rish); admin «Rollar va ruxsat» da kerakli rolga beradi
+  *  - svodka rejimi har bo'lim uchun alohida yoqiladi: «Svodkalar» → bo'lim → Sozlama (customer_departments.manage)
+  */
+ class SvodkaModuleSeeder extends Seeder
+@@ -34,6 +36,22 @@
+                 $head->permissions()->syncWithoutDetaching([$p->id]);
+             }
+ 
++            // [P31] svodkani ko'rish (faqat ko'rish, buyurtmachidek) — admin istalgan rolga beradi; standart: hech kimga
++            Permission::firstOrCreate(['name' => 'svodka.view'], [
++                'module'     => 'svodka',
++                'ability'    => 'view',
++                'group'      => 'lab',
++                'label_ru'   => 'Сводка заказчика — Просмотр (как заказчик, с названиями точек)',
++                'label_uz'   => "Buyurtmachi svodkasi — Ko'rish (buyurtmachidek, nuqta nomlari bilan)",
++                'label_en'   => 'Customer summary — View (as the customer, with point names)',
++                'sort_order' => (int) Permission::max('sort_order') + 1,
++            ]);
++            MenuItem::firstOrCreate(['key' => 'svodka_view'], [
++                'title_ru' => 'Сводки подразделений', 'title_uz' => "Bo'limlar svodkasi", 'title_en' => 'Department summaries',
++                'icon' => 'table', 'route' => 'portal-svodka', 'permission' => 'svodka.view',
++                'parent_id' => null, 'sort_order' => 2, 'is_active' => true,
++            ]);
++
+             MenuItem::firstOrCreate(['key' => 'portal_svodka'], [
+                 'title_ru' => 'Сводка', 'title_uz' => 'Svodka', 'title_en' => 'Summary',
+                 'icon' => 'table', 'route' => 'portal-svodka', 'permission' => 'portal.view',
