@@ -16,6 +16,7 @@ import RequestForm from '../components/RequestForm.vue'
 import RequestInfo from '../components/RequestInfo.vue'
 import ItemsTable from '../components/ItemsTable.vue'
 import ReasonDialog from '../components/ReasonDialog.vue'
+import TemplateBar from '../components/TemplateBar.vue' // [P33] shablon tugmalari
 import { apiErrorMessage, blankItem, printSlip, toForm, toPayload } from '../shared'
 import '../i18n'
 
@@ -189,6 +190,8 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
       <!-- Tahrirlash: yangi yoki qoralama -->
       <template v-if="editable">
         <RequestInfo v-if="request" :request="request" :audience="mode" class="mb-4" />
+        <!-- [P33] Shablondan to'ldirish — faqat buyurtmachi (o'z bo'linmasi shablonlari) -->
+        <TemplateBar v-if="mode === 'portal' && options?.can_write" :form="form" :options="options" />
         <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" :fresh="!id" />
 
         <div class="sticky bottom-0 z-10 mt-4 pb-3">

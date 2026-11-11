@@ -95,6 +95,9 @@ class SampleRequestController extends Controller
                 ->map(fn ($g) => ['id' => (int) $g->id, 'code' => $g->code, 'name_uz' => $g->name_uz, 'name_ru' => $g->name_ru, 'name_en' => $g->name_en])->values(),
             'can_create'  => $user->hasPermission('sample_requests.create'),
             'can_receive' => $user->hasPermission('sample_requests.receive'),
+            // [P33] «Kim qabul qilib oldi» — ro'yxat va sukut bo'yicha joriy xodim
+            'receivers'   => $user->hasPermission('sample_requests.receive') ? \App\Services\Samples\SampleIntake::receivers($user) : [],
+            'me'          => (int) $user->id,
             // [P30] xodimning guruhi: faqat o'z guruhini ko'rsa — own_group; hammasini ko'rsa — guruh filtri
             'my_group'    => $user->laboratory_group_id ? $this->requests->groupInfo((int) $user->laboratory_group_id) : null,
             'own_group'   => $this->ownGroup($user),
@@ -230,6 +233,8 @@ class SampleRequestController extends Controller
     {
         $data = $request->validate([
             'handed_over_by'            => ['nullable', 'string', 'max:191'],
+            'handed_over_phone'         => ['nullable', 'string', 'max:64'],   // [P33]
+            'received_by'               => ['nullable', 'integer'],             // [P33] qabul qilib olgan xodim
             'items'                     => ['required', 'array', 'min:1'],
             'items.*.id'                => ['required', 'integer'],
             'items.*.sample_number'     => ['nullable', 'string', 'max:191'],

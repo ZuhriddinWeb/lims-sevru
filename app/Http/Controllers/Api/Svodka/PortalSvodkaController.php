@@ -47,7 +47,7 @@ class PortalSvodkaController extends Controller
     private function ctx(Request $request): array
     {
         $user = $request->user();
-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
+        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
         if ($this->portal->isPortalUser($user)) {
             return [
                 'ids'    => $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all(),
@@ -58,7 +58,7 @@ class PortalSvodkaController extends Controller
         // [P31] admin «Svodkani ko'ruvchilar»ga qo'shgan xodim (yoki rolida svodka.view) — buyurtmachidek ko'radi,
         // lekin hech narsani o'zgartirmaydi. Bo'limlarga biriktirilgan bo'lsa — o'sha bo'limlar, aks holda barcha faol bo'limlar.
         abort_unless($this->svc->canView($user), 403,
-            "Svodka faqat buyurtmachi bo'limiga va admin svodkani ko'rishga ruxsat bergan xodimlarga ochiq");
+            "Jamlanma hisobot faqat buyurtmachi bo'limiga va admin jamlanma hisobotni ko'rishga ruxsat bergan xodimlarga ochiq");
         $linked = $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all();
 
         return [
@@ -78,7 +78,7 @@ class PortalSvodkaController extends Controller
         }
         abort_unless($id && in_array($id, $ctx['ids'], true), 403, "Bu bo'lim sizga biriktirilmagan");
         if ($mustBeEnabled) {
-            abort_unless($this->svc->enabled($id), 422, "Bu bo'lim uchun svodka laboratoriya tomonidan yoqilmagan");
+            abort_unless($this->svc->enabled($id), 422, "Bu bo'lim uchun jamlanma hisobot laboratoriya tomonidan yoqilmagan");
         }
 
         return $id;
@@ -365,14 +365,14 @@ class PortalSvodkaController extends Controller
         $sample = Sample::with('sampleElements:id,sample_id,element_id,result_value,result_unit,status')->find((int) $data['sample_id']);
         abort_unless($sample && in_array((int) $sample->customer_department_id, $ctx['ids'], true), 404, 'Namuna topilmadi');
         $deptId = (int) $sample->customer_department_id;
-        abort_unless($this->svc->enabled($deptId), 422, "Bu bo'lim uchun svodka yoqilmagan");
+        abort_unless($this->svc->enabled($deptId), 422, "Bu bo'lim uchun jamlanma hisobot yoqilmagan");
         if (! empty($data['point_id']) && ! SvodkaPoint::where('id', $data['point_id'])->where('customer_department_id', $deptId)->exists()) {
             throw ValidationException::withMessages(['point_id' => ['Nuqta topilmadi']]);
         }
 
         $gate = $this->svc->gate(collect([$sample]))[(int) $sample->id] ?? null;
         if ($gate && $gate['released']) {
-            throw ValidationException::withMessages(['sample_id' => ["Bu namuna laboratoriya tomonidan chiqarilgan svodkada — bog'lanishni o'zgartirib bo'lmaydi"]]);
+            throw ValidationException::withMessages(['sample_id' => ["Bu namuna laboratoriya tomonidan chiqarilgan jamlanma hisobotda — bog'lanishni o'zgartirib bo'lmaydi"]]);
         }
 
         $date = Carbon::parse($data['date'])->toDateString();
@@ -400,7 +400,7 @@ class PortalSvodkaController extends Controller
 
         $dept = CustomerDepartment::find($deptId);
         $path = app(SvodkaExcel::class)->build($deptId, $from->toDateString(), $to->toDateString(), $dept?->name ?? '');
-        $name = 'svodka_' . ($dept?->code ?: $deptId) . '_' . $from->format('Y-m-d') . ($from->eq($to) ? '' : '_' . $to->format('Y-m-d'));
+        $name = 'jamlanma_hisobot_' . ($dept?->code ?: $deptId) . '_' . $from->format('Y-m-d') . ($from->eq($to) ? '' : '_' . $to->format('Y-m-d'));
 
         return response()->download($path, preg_replace('/[^\w\-\.]+/u', '_', $name) . '.xlsx', [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

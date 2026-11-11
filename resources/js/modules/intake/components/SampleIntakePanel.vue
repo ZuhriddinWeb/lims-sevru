@@ -200,8 +200,9 @@ const kindSign = (m) => (m.delta > 0 ? '+' : '−')
         <span v-if="intake.handed_over_by" class="text-ink-muted" data-handed>
           {{ t('intake.panel.handedOverBy') }}: <b class="text-ink font-semibold">{{ intake.handed_over_by }}</b>
         </span>
-        <span v-if="intake.registered_by" class="text-[12.5px] text-ink-faint">
-          {{ t('intake.panel.receivedBy') }}: {{ intake.registered_by }}, {{ formatDateTime(intake.registered_at) }}
+        <!-- [P33] qabul qilib olgan xodim (tanlangan); bo'lmasa — ro'yxatga olgan xodim -->
+        <span v-if="intake.received_by || intake.registered_by" class="text-[12.5px] text-ink-faint" data-received-by>
+          {{ t('intake.panel.receivedBy') }}: {{ intake.received_by || intake.registered_by }}, {{ formatDateTime(intake.registered_at) }}
         </span>
       </div>
 

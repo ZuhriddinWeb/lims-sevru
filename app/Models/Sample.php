@@ -96,4 +96,10 @@ class Sample extends Model
         }
         $this->save();
     }
+
+    /** [P33] Namunani qabul qilib olgan laboratoriya xodimi */
+    public function receivedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(User::class, 'received_by')->withTrashed();
+    }
 }

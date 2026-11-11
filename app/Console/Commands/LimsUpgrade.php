@@ -42,7 +42,7 @@ class LimsUpgrade extends Command
         'SampleIntakeModuleSeeder'  => "Buyurtmachi bo'limlar, portal, namuna miqdori",
         'InsightsModuleSeeder'      => 'Smenalar, xodimlar faoliyati, audit, savatcha',
         'SampleRequestModuleSeeder' => 'Qoralama buyurtma',
-        'SvodkaModuleSeeder'        => 'Buyurtmachi svodkasi (chiqarish ruxsati, menyu)',
+        'SvodkaModuleSeeder'        => 'Jamlanma hisobot (svodka), natijalar tahlili, buyurtma shablonlari — ruxsat va menyu',
     ];
 
     public function handle(): int

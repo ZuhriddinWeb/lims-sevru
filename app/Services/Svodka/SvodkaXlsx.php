@@ -78,7 +78,7 @@ class SvodkaXlsx
             throw new RuntimeException('PHP zip kengaytmasi yoqilmagan');
         }
         if (! $this->sheets) {
-            $this->sheet('Svodka');
+            $this->sheet('Jamlanma hisobot');
         }
         $path ??= tempnam(sys_get_temp_dir(), 'svx');
         $zip = new ZipArchive();

@@ -22,36 +22,54 @@ use Illuminate\Validation\Rule;
 class SampleIntake
 {
     // [P24] handed_over_by — namunani topshirgan shaxs (reyestr: «topshirgan FIO»)
-    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit', 'handed_over_by'];
+    // [P33] received_by — namunani qabul qilib olgan laboratoriya xodimi (ro'yxatdan tanlanadi)
+    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit', 'handed_over_by', 'received_by'];
 
     public static function rules(?Sample $ignore = null): array
     {
         return [
             'customer_department_id' => ['nullable', 'integer',
                 Rule::exists('customer_departments', 'id')->whereNull('deleted_at')],
-            'customer_code'          => ['nullable', 'string', 'max:64', function ($attribute, $value, $fail) use ($ignore) {
-                $value = trim((string) $value);
-                $dept = request()->input('customer_department_id');
-                if ($value === '' || ! $dept) {
-                    return;
-                }
-                // [P26] Bo'lim shifri har oy qaytadan boshlanishi mumkin (908 — oktyabrda ham, noyabrda ham).
-                // Takror faqat SHU OYDA taqiqlanadi: bitta bo'limning shu oydagi faol (arxivlanmagan) probalari ichida.
-                // Oy — probaning ro'yxatga olingan oyi (period_month): yangi proba uchun joriy oy,
-                // tahrirlashda — probaning o'z oyi.
-                $period = $ignore?->period_month ?: now()->format('Y-m');
-                // [P30] guruh tanlangan bo'lsa — takror faqat shu guruh ichida taqiqlanadi
-                $group = request()->has('assigned_group_id') ? request()->input('assigned_group_id') : $ignore?->assigned_group_id;
-                $group = $group ? (int) $group : null;
-                $dup = self::duplicateCode((int) $dept, $value, $period, $group, $ignore?->id);
-                if ($dup) {
-                    $fail(self::duplicateMessage($value, $period, $dup, $group));
-                }
-            }],
+            // [P33] shifr cheklovsiz takrorlanadi (har kuni bir xil nuqta — bir xil shifr). Probani laboratoriya
+            // raqami (PR-YYYYMM-NNNN) ajratib turadi. duplicateCode() endi faqat ogohlantirish uchun ishlatiladi.
+            'customer_code'          => ['nullable', 'string', 'max:64'],
             'received_quantity'      => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
             'quantity_unit'          => ['nullable', Rule::in(QuantityUnit::UNITS)],
             'handed_over_by'         => ['nullable', 'string', 'max:191'],
+            'received_by'            => ['nullable', 'integer', function ($attribute, $value, $fail) {
+                if ($value && ! self::isReceiver((int) $value, request()->user())) {
+                    $fail("Qabul qilib olgan xodim ro'yxatda yo'q");
+                }
+            }],
         ];
+    }
+
+    /**
+     * [P33] «Kim qabul qilib oldi» ro'yxati: faol laboratoriya xodimlari (buyurtmachi hisoblari emas).
+     * Xodim laboratoriyaga biriktirilgan bo'lsa — o'sha laboratoriya xodimlari (laboratoriyasiz admin ham).
+     *
+     * @return array<int, array{id:int, name:string, position:?string}>
+     */
+    public static function receivers(?\App\Models\User $for): array
+    {
+        $portal = app(CustomerPortal::class);
+        $labId = $for?->laboratory_id ? (int) $for->laboratory_id : null;
+
+        return \App\Models\User::query()
+            ->with('role.permissions')
+            ->where('is_active', true)
+            ->when($labId, fn ($q) => $q->where(fn ($w) => $w->where('laboratory_id', $labId)->orWhereNull('laboratory_id')))
+            ->orderBy('name')
+            ->get(['id', 'name', 'position', 'role_id', 'laboratory_id'])
+            ->filter(fn ($u) => ! $portal->isPortalUser($u) && ($u->isAdmin() || $u->hasPermission('samples.view')))
+            ->map(fn ($u) => ['id' => (int) $u->id, 'name' => (string) $u->name, 'position' => $u->position])
+            ->values()
+            ->all();
+    }
+
+    public static function isReceiver(int $userId, ?\App\Models\User $for): bool
+    {
+        return in_array($userId, array_column(self::receivers($for), 'id'), true);
     }
 
     /**
@@ -105,6 +123,13 @@ class SampleIntake
                 unset($attrs['handed_over_by']); // migratsiya hali bajarilmagan — boshqa maydonlar saqlansin
             } elseif ($attrs['handed_over_by'] !== null) {
                 $attrs['handed_over_by'] = trim((string) $attrs['handed_over_by']) ?: null;
+            }
+        }
+        if (array_key_exists('received_by', $attrs)) { // [P33]
+            if (! \Illuminate\Support\Facades\Schema::hasColumn('samples', 'received_by')) {
+                unset($attrs['received_by']);
+            } elseif ($attrs['received_by'] !== null) {
+                $attrs['received_by'] = (int) $attrs['received_by'] ?: null;
             }
         }
         if (! $attrs) {

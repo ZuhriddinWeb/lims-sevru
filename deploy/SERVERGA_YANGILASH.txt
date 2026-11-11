@@ -1,0 +1,316 @@
+===========================================================================
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 33)
+ Holat: 2026-11-04
+===========================================================================
+
+Bu yo'riqnoma ma'lumotli, ishlab turgan serverlar uchun. Yangi (bo'sh) server uchun —
+deploy\SERVERGA_NOLDAN_ORNATISH.txt.
+
+Server qaysi versiyada turganini bilish shart emas. Oraliq paketlar o'tkazib yuborilgan
+(«ba'zilari yuklangan, ba'zilari qolib ketgan») server ham shu tartib bilan to'liq bo'ladi:
+skript bajarilmagan migratsiyalarni o'zi topadi, yo'q ruxsat/menyu/modulni qo'shadi,
+bor narsaga tegmaydi.
+
+TARTIB
+  A) Lokal kompyuterda — bir marta: to'liq to'plam, tekshiruv, build, push
+  B) Har bir serverda — git pull → deploy\server_yangilash.bat → Apache qayta ishga tushirish
+  C) Har bir serverda — keyin bir marta sozlash va tekshirish
+  D) Muammo bo'lsa — ortga qaytish
+  E) Xatolar jadvali
+
+
+---------------------------------------------------------------------------
+ 1. NIMA KIRADI VA BAZAGA NIMA QO'SHILADI
+---------------------------------------------------------------------------
+  Paket                                      bazaga
+  13  Ishchi varaqlar (partiya)              4 jadval + varaq qatorlariga ustunlar, 5 shablon
+  14  Laboratoriyalararo tekshiruv           6 jadval
+  15  Buyurtmachi bo'limlar, portal, miqdor  3 jadval, samples ga 5 bo'sh ustun, «Buyurtmachi» roli
+  16  Rahbariyat paneli, smenalar            1 jadval, imzoga soat ustuni
+  17  Xodimlar faoliyati, Excel              — (faqat ruxsat va menyu)
+  18  Ish stoli (bosh sahifa)                —
+  19  Audit jurnali, Savatcha                faqat 2 indeks
+  21  Yordamchi (offline)                    3 jadval + 223 savol-javob
+  22  Noldan o'rnatish, lims:set-password    —
+  23  Varaq bo'yicha jami                    shablonlarga 1 tadan «jami» ustuni (bir martalik)
+  24  Qoralama buyurtma                      2 jadval, samples ga 1 bo'sh ustun
+  25  Element belgisi / birlik konstruktori  —
+  26  Bir xil shifr har oy                   —
+  27  Portal sozlamalari, natijalar Excel'ga 1 jadval (app_settings), ruxsat + menyu
+  28  Buyurtmada smena, varaq bo'yicha jami  sample_requests ga 2 ustun
+  29  Buyurtmachi svodkasi                   5 jadval + 3 bo'sh ustun, ruxsat + 2 menyu
+  30  Buyurtma guruhga, guruh shifri         3 bo'sh ustun
+  31  Svodkani ko'ruvchilar, natija o'tkazish 1 jadval (svodka_viewers), ruxsat + 1 menyu
+  32  Natijalar tahlili («AI tahlil» o'rniga) — (ruxsat; «AI tahlil» menyu bandi yangi sahifaga)
+  Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
+  natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
+
+  Composer paketlari va .env — o'zgarmaydi. PHP kengaytmasi «zip» endi SHART (Excel, svodka).
+
+
+---------------------------------------------------------------------------
+ 2. MA'LUMOT XAVFSIZLIGI
+---------------------------------------------------------------------------
+  Yangilash FAQAT QO'SHADI:
+    - migratsiyalar: yangi jadval, yangi bo'sh ustun, indeks. Hech bir jadval, ustun yoki qator
+      o'chirilmaydi. Mavjud qiymat o'zgartirilmaydi. Har migratsiya tranzaksiyada.
+    - php artisan lims:upgrade: faqat YO'Q ruxsat, menyu bandi va rolni yaratadi.
+        • admin o'zgartirgan menyu nomi/tartibi, rol ruxsatlari — saqlanadi;
+        • admin roldan olib tashlagan ruxsat qaytarilmaydi;
+        • foydalanuvchilar va PAROLLAR — tegilmaydi;
+        • namunalar, natijalar, ishchi varaqlar, uskunalar — tegilmaydi;
+        • yordamchi javoblari: qo'lda tahrirlanganlari o'zgarmaydi;
+        • shablonga tegadigan 2 qadam (jami, «Eritdi» bosqichlari) har serverda faqat BIR MARTA
+          bajariladi; keyin admin shablonni qanday tahrirlasa — qayta yozilmaydi.
+    - Tasdiqlangan ishchi varaqlar hech qachon o'zgartirilmaydi.
+    - worksheets:natija-otkaz (ixtiyoriy) faqat probada natija YO'Q joyga yozadi.
+
+  Serverda HECH QACHON ishlatmang:
+    php artisan db:seed            (--class siz!)  — parollarni admin123 / lims12345 ga qaytaradi
+    php artisan migrate:fresh | migrate:refresh | migrate:reset | migrate:rollback | db:wipe
+    php artisan help:import --force                — qo'lda tahrirlangan javoblar ustidan yozadi
+    php artisan key:generate                       — APP_KEY almashsa hamma tizimdan chiqadi
+    git clean                                      — .env, yuklangan fayllar o'chishi mumkin
+    .env ni repodagi namunadan ustidan yozish
+
+  Men tomonda sinaldi (SQLite, Paket 31 to'liq to'plami bilan):
+    1) Uch xil eski baza — juda eski (8 migratsiya kam), Paket 29 (1 kam), Paket 30 (4 kam) →
+       migrate + lims:upgrade: uchalasi bir xil yakuniy holatga keldi (31 migratsiya, 65 ruxsat,
+       34 menyu, 223 yordamchi javobi); namuna, natija, foydalanuvchi, varaq soni o'zgarmadi.
+    2) Ikkinchi marta ishga tushirish — bazada hech narsa o'zgarmadi.
+    3) Skript ishlatadigan barcha buyruqlar va 11 ta API yo'li tekshirildi.
+    SQL Server: yangi migratsiyalar SQL Server grammatikasida yasalib tekshirildi. Skript (.bat)
+    Windows'da bu yerda ishga tushirilmagan — birinchi serverda kuzatib turing.
+
+
+---------------------------------------------------------------------------
+ A) LOKAL KOMPYUTERDA — bir marta
+---------------------------------------------------------------------------
+  1. To'liq to'plamni loyiha ildiziga yoying (ustidan yozing):
+        Expand-Archive -Path "$env:USERPROFILE\Downloads\paket33_shablon_qabul.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+     To'plamda Paket 11 … 33 va barcha tuzatishlarning ENG OXIRGI versiyalari bor.
+     Siz lokalda o'zgartirgan 10 ta fayl to'plamga KIRITILMAGAN — ular sizdagicha qoladi:
+        app/Http/Controllers/Api/Help/HelpController.php, app/Models/HelpEntry.php,
+        app/Services/Help/HelpAssistant.php, resources/js/components/help/HelpAssistant.vue,
+        resources/js/modules/help/i18n.js, resources/js/layouts/AppLayout.vue,
+        resources/js/modules/intake/requests/views/PortalRequests.vue,
+        database/seeders/SampleRequestModuleSeeder.php, routes/insights.php,
+        app/Services/Worksheets/DefaultTemplates.php
+     resources/js/router/index.js ga ham tegilmaydi.
+
+  2. Lokal bazada sinab ko'ring:
+        php artisan migrate
+        php artisan lims:upgrade --dry-run
+        php artisan lims:upgrade
+        php artisan optimize:clear
+
+  3. npm run build
+
+  4. Tekshiruv — hamma fayl eng oxirgi versiyada va build yangi:
+        powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+     Natija: «Farq qiladi: 0    Yo'q: 0», «public\build: Paket 33 bilan yig'ilgan».
+     «MAHALLIY» qatorlar — yuqoridagi 10 ta faylingiz, bu xato emas.
+     Boshqa «ESKI/FARQ» yoki «YO'Q» chiqsa — ro'yxatni menga yuboring, push QILMANG.
+
+  5. Git:
+        git status
+        git add app config database resources routes deploy
+        git add -f public/build
+        git commit -m "Paket 13-31: to'liq to'plam, server skriptlari"
+        git push
+
+
+---------------------------------------------------------------------------
+ B) HAR BIR SERVERDA
+---------------------------------------------------------------------------
+  Xodimlarni ogohlantiring: ~10–15 daqiqa tizim yopiq bo'ladi.
+  Hamma buyruq — RDP orqali, serverning O'ZIDA, «Administrator sifatida» ochilgan cmd da
+  (\\192.168.26.8\... tarmoq yo'lidan EMAS).
+
+  1. Holatni yozib qo'ying (ortga qaytish uchun):
+        cd /d C:\xampp\htdocs\LIMS            (o'zingizdagi yo'l; IIS: C:\inetpub\lims)
+        set PATH=C:\xampp\php;%PATH%
+        git log -1 --oneline                  → commit raqamini yozing
+        git status                            → o'zgarish bo'lmasligi kerak
+          faqat storage/logs/... bo'lsa — e'tibor bermang
+          boshqa fayl o'zgargan bo'lsa — TO'XTANG: serverda kimdir kodni o'zgartirgan.
+          git diff chiqishini yuboring; yoki zaxiraga olib, majburiy yuklang:
+             git stash push -m "server zaxira"
+             git fetch origin
+             git reset --hard origin/main      (git branch --show-current boshqa nom bersa — o'shani)
+
+  2. Kodni oling:
+        git pull
+        git log -1 --oneline                  → lokaldagi oxirgi commit bilan BIR XIL bo'lsin
+
+  3. Yangilash:
+        deploy\server_yangilash.bat
+
+     Skript qadamlari:
+       1  kod to'liqligi: Paket 13–32 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
+          eng oxirgi versiyadami, public\build Paket 33 bilanmi). Farq bo'lsa so'raydi.
+       2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
+       3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
+          (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)
+       4  ZAXIRA NUSXA — skript sqlcmd bilan o'zi oladi yoki qo'lda olinganini tasdiqlatadi
+       5  php artisan down
+       6  bajarilmagan migratsiyalarni ko'rsatadi → tasdiq → migrate --force
+       7  php artisan lims:upgrade (barcha modullar, ruxsat, menyu, yordamchi, shablon — bir martalik)
+       8  ixtiyoriy: ochiq varaqlarga «varaq bo'yicha jami» — so'raydi
+       9  ixtiyoriy: tasdiqlangan, lekin probaga yozilmay qolgan natijalarni o'tkazish — so'raydi
+      10  optimize:clear → php artisan up
+      11  tekshiradi: migratsiyalar, 11 ta API yo'li, rejalashtirgich
+      12  eslatma: Apache (yoki IIS) ni qayta ishga tushiring
+
+     Skriptsiz — xuddi shu buyruqlar qo'lda (avval zaxira nusxa!):
+        php artisan down --retry=60
+        php artisan migrate:status
+        php artisan migrate --force
+        php artisan lims:upgrade
+        php artisan worksheets:add-totals --open             (ixtiyoriy)
+        php artisan worksheets:natija-otkaz --dry-run        (ixtiyoriy; keyin --dry-run siz)
+        php artisan optimize:clear
+        php artisan up
+
+  4. XAMPP Control Panel → Apache → Stop → Start   (IIS: iisreset).
+     Usiz PHP eski kodni xotirada ushlab qolishi mumkin («serverda hali eskisi chiqyapti»).
+  5. Brauzerda Ctrl+F5.
+
+
+  4-JADVAL. migrate:status da kutiladigan «Pending» — server holatiga qarab
+     server oxirgi qaysi paketda      bajariladi
+     Paket 12 yoki undan oldin        hammasi, 17 ta
+     Paket 13                         2026_10_12_… dan boshlab 15 ta
+     Paket 14                         2026_10_13_… dan boshlab 13 ta
+     Paket 15                         2026_10_14_100000 dan boshlab 11 ta
+     Paket 16–18                      2026_10_14_120000 dan boshlab 10 ta
+     Paket 19–20                      9 ta
+     Paket 21–23                      7 ta (2026_10_20_100000 dan)
+     Paket 24–26                      6 ta (2026_10_22_100000 dan)
+     Paket 27                         5 ta
+     Paket 28                         4 ta
+     Paket 29                         3 ta
+     Paket 30                         2 ta (2026_11_02_100000 dan)
+     Paket 31–32                      1 ta (2026_11_11_100000)
+     Oraliq paketlar o'tkazib yuborilgan bo'lsa — ro'yxatdagi yo'qlari bajariladi, tartib muhim emas.
+
+     2026_10_08_100000_create_worksheet_tables                 Paket 13
+     2026_10_09_100000_worksheet_batches                       Paket 13
+     2026_10_12_100000_create_interlab_tables                  Paket 14
+     2026_10_12_110000_create_interlab_invites_table           Paket 14
+     2026_10_13_100000_create_customer_departments_and_sample_quantity   Paket 15
+     2026_10_13_110000_worksheet_kind_and_sample_consumption   Paket 15
+     2026_10_14_100000_create_lab_shifts_and_signoff_time      Paket 16
+     2026_10_14_120000_add_activity_log_indexes                Paket 19
+     2026_10_14_180000_create_help_tables                      Paket 21
+     2026_10_15_080000_add_is_page_to_help_entries             Paket 21
+     2026_10_20_100000_create_sample_requests_tables           Paket 24
+     2026_10_22_100000_create_app_settings_table               Paket 27
+     2026_10_23_100000_add_delivery_shift_to_sample_requests   Paket 28
+     2026_10_28_100000_create_svodka_tables                    Paket 29
+     2026_10_29_100000_add_group_to_sample_requests            Paket 30
+     2026_11_02_100000_create_svodka_viewers_table             Paket 31
+     2026_11_11_100000_portal_templates_and_receipt_fields     Paket 33
+     Bu ro'yxatda yo'q nom «Pending» bo'lsa — o'zingiz yozgan migratsiya: ichini ko'ring.
+
+  SEEDERLAR — qo'lda ishga tushirish SHART EMAS. lims:upgrade quyidagilarni xavfsiz chaqiradi
+  (faqat yo'q ruxsat/menyu/rolni yaratadi):
+     WorksheetModuleSeeder      — FAQAT ishchi varaqlar moduli hali yo'q bo'lsa
+     InterlabModuleSeeder, SampleIntakeModuleSeeder, InsightsModuleSeeder,
+     SampleRequestModuleSeeder, SvodkaModuleSeeder
+  + help:import (yordamchi), worksheets:add-totals va worksheets:eritish-stages (bir martalik).
+  Qo'lda kerak bo'lsa — faqat --class bilan:  php artisan db:seed --class=SvodkaModuleSeeder --force
+
+
+---------------------------------------------------------------------------
+ C) KEYIN — har bir serverda bir marta
+---------------------------------------------------------------------------
+  1. PHP «zip» kengaytmasi (Excel'ga yuklash, svodka) — skript 2-qadamda «[!] zip» desa:
+        C:\xampp\php\php.ini  →  ;extension=zip  →  extension=zip  →  saqlang → Apache Stop/Start
+        tekshirish:  php -m | findstr /i zip
+
+  2. Rejalashtirgich (skript 11-qadamda «[!] LIMS Scheduler yo'q» desa):
+        schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"C:\xampp\php\php.exe\" \"C:\xampp\htdocs\LIMS\artisan\" schedule:run"
+     Tekshirish:  php artisan schedule:list  → interlab:sync, sample-requests:expire, lims:check-reminders
+
+  3. Rollar va ruxsatlar (admin) — yangi ruxsatlar faqat yangi yaratilganda rollarga beriladi.
+     Sizdagi rollar boshqacha bo'lsa — «Rollar va ruxsatlar» sahifasida moslang.
+
+  4. Buyurtmachi bo'limlar va portal (Paket 15, 24, 27):
+     Foydalanuvchilar → rol «Buyurtmachi (bo'lim)» → Kataloglar → Buyurtmachi bo'limlar → biriktirish.
+     Boshqaruv → «Portal sozlamalari» — buyurtmachi nimani ko'radi.
+
+  5. Guruhlar (Paket 30): «Foydalanuvchilar»da qabul qiluvchi xodimlarning «Guruh» maydoni
+     to'g'ri bo'lsin (har guruh faqat o'z buyurtmalarini ko'radi; guruhsiz xodim — hammasini).
+
+  6. Svodka (Paket 29–31):
+     a) «Svodkalar» → bo'limni tanlang → «Sozlama» → svodkani yoqing, navbatchilik vaqtlari.
+     b) Spravochnik (bloklar va nuqtalar) — buyurtmachi o'zi kiritadi. NKMK GMZ-3 TNB uchun
+        tayyor ro'yxat bor:
+           php artisan svodka:spravochnik TNBGMZ3 --dry-run
+           php artisan svodka:spravochnik TNBGMZ3
+        (bo'lim kodi — Kataloglar → Buyurtmachi bo'limlar; noto'g'ri kod bo'lsa ro'yxatni chiqaradi)
+     c) Svodkani ko'rish (masalan, laboratoriya boshlig'iga): admin → «Svodkalar» →
+        «Svodkani ko'ruvchilar» → foydalanuvchini qo'shish. Rol yaratish shart emas.
+     d) Natija svodkaga chiqmasa — sabab:  php artisan svodka:tekshir TNBGMZ3 --kun=30
+     e) «Natijalar tahlili (AI)» — laboratoriya boshlig'i rolida avtomatik; boshqa xodimga — «Svodkani
+        ko'ruvchilar» ro'yxati orqali yoki rolga «Natijalar tahlili (AI) — Ko'rish» ruxsati.
+
+  7. Smenalar (Rahbariyat paneli) — avval sozlanmagan bo'lsa.
+
+  8. Ixtiyoriy .env sozlamalari (o'zgartirgach: php artisan optimize:clear):
+        HELP_ENABLED=false               yordamchini butun tizimda o'chirish
+        SAMPLE_REQUEST_EXPIRE_DAYS=14    buyurtma muddati, kun
+        CORS_ALLOWED_ORIGINS=...         sayt manzili (yangi domen/port/HTTPS bo'lsa)
+
+  9. Tekshirish ro'yxati (brauzerda, Ctrl+F5):
+     [ ] kirish, chap menyu to'liq; admin o'zgartirgan menyu nomlari joyida
+     [ ] eski namuna kartochkasi ochiladi, natijalar joyida; natija kiritish ishlaydi
+     [ ] Ishchi varaqlar: eski tasdiqlangan varaq ochiladi; yangi varaqda «Varaq bo'yicha jami»
+     [ ] Yordamchi tugmasi (o'ng pastda) javob beradi
+     [ ] Buyurtmalar: buyurtmachi «Yangi buyurtma» da guruh tanlaydi; guruh xodimi o'zinikini ko'radi
+     [ ] Svodka: buyurtmachida kunlik svodka; «Svodkalar» da chiqarish; Excel yuklanadi
+     [ ] Audit jurnali, Savatcha, Ish stoli, Smenalar ochiladi
+     [ ] storage\logs\laravel-*.log da yangi xato yo'q
+
+
+---------------------------------------------------------------------------
+ D) MUAMMO BO'LSA — ORTGA QAYTISH
+---------------------------------------------------------------------------
+  Avval xato matnini yuboring — ko'p hollarda tuzatib, skriptni qayta ishga tushirish kifoya
+  (bajarilgan qadamlar takrorlanmaydi). To'liq ortga qaytish kerak bo'lsa:
+
+     php artisan down
+     sqlcmd -S localhost -E -Q "ALTER DATABASE [BAZA] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; RESTORE DATABASE [BAZA] FROM DISK = N'BAZA_2026-11-03_1630.bak' WITH REPLACE; ALTER DATABASE [BAZA] SET MULTI_USER"
+        (baza nomi va fayl — 4-qadamda skript ko'rsatgan; yoki SSMS: Restore Database…)
+     git checkout <B-1 da yozilgan commit>
+     php artisan optimize:clear
+     php artisan up
+  Keyinroq qayta yangilash:  git checkout main  (yoki master)  →  git pull  →  B-bo'lim.
+
+  Ishlab turgan bazada  php artisan migrate:rollback  ISHLATMANG — zaxiradan tiklang.
+
+
+---------------------------------------------------------------------------
+ E) XATOLAR JADVALI
+---------------------------------------------------------------------------
+  «[X] … yo'q» (1-qadam)           kod to'liq kelmagan: lokalda A-bo'lim, push; serverda git pull
+  «ESKI/FARQ» / «YO'Q» (1-qadam)   tekshir_versiyalar.ps1 ro'yxatini yuboring; lokalda to'liq
+                                   to'plamni qayta yoying, push, serverda git pull
+  «public\build: eski»             lokalda npm run build va git add -f public/build unutilgan
+  git pull xato («would be overwritten»)   serverda fayl o'zgargan — B-1 (stash / reset --hard)
+  yangilangandan keyin ham eski ko'rinish   Apache Stop/Start (IIS: iisreset), Ctrl+F5;
+                                   findstr bilan faylni tekshiring (masalan
+                                   findstr /C:"sample_ids" app\Services\Svodka\SvodkaReport.php)
+  «Bajarilmagan migratsiyalar bor» (lims:upgrade)   avval php artisan migrate --force
+  migratsiyada «already exists»    jadval qo'lda yaratilgan bo'lishi mumkin — xato matnini yuboring,
+                                   o'zingiz o'chirmang
+  «Serverda PHP zip kengaytmasi yoqilmagan»   C-1
+  «could not find driver»          php.ini da pdo_sqlsrv; Apache/IIS boshqa php.ini ishlatishi mumkin
+  sqlcmd zaxira xatosi             SSMS orqali qo'lda oling, skript «olindimi?» deb so'raydi
+  natija kiritishda 404            .env da DB_INTEGER_IDS=false — o'chiring, optimize:clear
+  «svodka:... There are no commands»  zip yoyilmagan / git pull bo'lmagan — 1-qadam
+  «Bo'lim topilmadi» (svodka:…)    bo'lim KODINI yozing (Kataloglar → Buyurtmachi bo'limlar)
+  svodkada natija yo'q             svodka:tekshir — sababini ko'rsatadi (C-6d)
+  buyurtmachi «Buyurtmalarim» ni ko'rmaydi   rolida portal.request yo'q yoki qayta kirmagan
+  «Muddati o'tgan» hech qachon chiqmaydi     Task Scheduler (C-2)

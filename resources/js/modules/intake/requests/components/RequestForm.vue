@@ -17,10 +17,22 @@ const props = defineProps({
   errors: { type: Object, default: () => ({}) },
   showDepartment: { type: Boolean, default: true },
   fresh: { type: Boolean, default: false },     // [P29] yangi buyurtma (tahrirlash uchun yuklash emas)
+  templateMode: { type: Boolean, default: false }, // [P33] shablon tahriri: sanalar (olib kelish, svodka) yo'q
 })
 const { t, locale } = useI18n()
 
 const err = (k) => fieldError(props.errors, k)
+
+/* [P33] Bir buyurtmada takrorlangan shifr — xato emas, faqat ogohlantirish (bir xil shifr turli guruh/nuqtaga) */
+const dupCodes = computed(() => {
+  const seen = {}
+  props.form.items.forEach((i) => {
+    const c = (i.customer_code || '').trim()
+    if (c) seen[c] = (seen[c] || 0) + 1
+  })
+  return seen
+})
+const isDup = (item) => (dupCodes.value[(item.customer_code || '').trim()] || 0) > 1
 const groups = computed(() => props.options.groups ?? []) // [P30]
 
 /* [P29] Svodka: bo'lim svodka rejimida bo'lsa — sana/navbatchilik va har namunaga nuqta (faqat buyurtmachiga keladi) */
@@ -28,6 +40,10 @@ const sv = computed(() => props.options.svodka?.[props.form.department_id] ?? nu
 const svPoints = computed(() => Object.fromEntries((sv.value?.sections ?? []).flatMap((s) => s.points.map((p) => [p.id, s]))))
 watch(() => props.form.department_id, (v, old) => {
   if (v === old || (!old && !props.fresh)) return   // tahrirlash uchun yuklash — tegilmaydi
+  if (props.templateMode) {                         // [P33] shablonda sana yo'q — faqat nuqtalar tozalanadi
+    if (old) props.form.items.forEach((i) => { i.svodka_point_id = '' })
+    return
+  }
   const s = props.options.svodka?.[v]
   if (old) props.form.items.forEach((i) => { i.svodka_point_id = '' })
   if (old || !props.form.svodka_date) {
@@ -89,7 +105,7 @@ function remove(i) {
         <label class="field-label">{{ t('sreq.form.delivery') }}</label>
         <!-- [P28] sana + smena -->
         <div class="flex gap-2">
-          <input v-model="form.delivery_date" type="date" class="field-input min-w-0 flex-1" data-f="delivery">
+          <input v-if="!templateMode" v-model="form.delivery_date" type="date" class="field-input min-w-0 flex-1" data-f="delivery">
           <select
             v-if="options.shifts?.length"
             v-model="form.delivery_shift_id" class="field-input w-auto min-w-[200px]"
@@ -116,7 +132,7 @@ function remove(i) {
       </div>
 
       <!-- [P29] Svodka: qaysi kun va navbatchilik (laboratoriya ko'rmaydi) -->
-      <div v-if="sv" class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-end gap-x-4 gap-y-3 rounded-md border border-aqua-300/70 bg-aqua-50/50 dark:bg-aqua-800/15 px-3 py-3" data-svodka-head>
+      <div v-if="sv && !templateMode" class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-end gap-x-4 gap-y-3 rounded-md border border-aqua-300/70 bg-aqua-50/50 dark:bg-aqua-800/15 px-3 py-3" data-svodka-head>
         <div class="min-w-[220px] flex-1">
           <p class="text-[13px] font-semibold text-ink">{{ t('svodka.form.title') }}</p>
           <p class="flex items-center gap-1.5 text-[12px] text-ink-muted"><EyeOff :size="13" class="shrink-0" /> {{ t('svodka.form.hint') }}</p>
@@ -167,6 +183,7 @@ function remove(i) {
               :class="err(`items.${i}.customer_code`) && 'field-input-error'" :placeholder="t('sreq.form.codeHint')" data-f="code"
             >
             <p v-if="err(`items.${i}.customer_code`)" class="mt-1 text-[12px] text-crit">{{ err(`items.${i}.customer_code`) }}</p>
+            <p v-else-if="isDup(item)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
             <!-- [P29] svodka nuqtasi — faqat buyurtmachiga -->
             <template v-if="sv">
               <label class="field-label lg:sr-only mt-2">{{ t('svodka.form.point') }}</label>

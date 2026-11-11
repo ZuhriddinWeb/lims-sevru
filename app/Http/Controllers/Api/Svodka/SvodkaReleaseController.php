@@ -34,7 +34,7 @@ class SvodkaReleaseController extends Controller
 
     public function departments(Request $request)
     {
-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
+        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
         $user = $request->user();
         $canManage = $user->hasPermission('customer_departments.manage');
         $canRelease = $user->hasPermission(SvodkaService::RELEASE_PERMISSION);
@@ -63,7 +63,7 @@ class SvodkaReleaseController extends Controller
 
     public function updateSettings(Request $request, int $department)
     {
-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
+        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
         $dept = CustomerDepartment::findOrFail($department);
         $time = ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'];
         $data = $request->validate([
@@ -81,7 +81,7 @@ class SvodkaReleaseController extends Controller
         try {
             ActivityLog::create([
                 'user_id' => $request->user()->id, 'action' => 'updated', 'model_type' => 'SvodkaSetting', 'model_id' => $s->id,
-                'description' => "Svodka sozlamasi: {$dept->name} — " . ($s->enabled ? 'yoqilgan' : "o'chirilgan") . ", chiqarish: " . ($s->release_mode === 'shift' ? 'navbatchilik' : 'sutka'),
+                'description' => "Jamlanma hisobot sozlamasi: {$dept->name} — " . ($s->enabled ? 'yoqilgan' : "o'chirilgan") . ", chiqarish: " . ($s->release_mode === 'shift' ? 'navbatchilik' : 'sutka'),
                 'properties' => $data, 'ip_address' => $request->ip(), 'created_at' => now(),
             ]);
         } catch (Throwable $e) {
@@ -94,9 +94,9 @@ class SvodkaReleaseController extends Controller
 
     private function enabledDept(Request $request): int
     {
-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
+        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
         $id = (int) $request->input('department_id');
-        abort_unless($id && $this->svc->enabled($id), 422, "Bu bo'lim uchun svodka rejimi yoqilmagan");
+        abort_unless($id && $this->svc->enabled($id), 422, "Bu bo'lim uchun jamlanma hisobot rejimi yoqilmagan");
 
         return $id;
     }
@@ -194,7 +194,7 @@ class SvodkaReleaseController extends Controller
 
     private function adminOnly(Request $request): void
     {
-        abort_unless($request->user()?->isAdmin(), 403, "Svodkani ko'ruvchilarni faqat administrator belgilaydi");
+        abort_unless($request->user()?->isAdmin(), 403, "Jamlanma hisobotni ko'ruvchilarni faqat administrator belgilaydi");
     }
 
     private function viewersData(): array
@@ -228,7 +228,7 @@ class SvodkaReleaseController extends Controller
         $this->adminOnly($request);
         $data = $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
         $u = User::findOrFail((int) $data['user_id']);
-        abort_if(app(\App\Services\Samples\CustomerPortal::class)->isPortalUser($u), 422, "Buyurtmachi foydalanuvchisi o'z svodkasini allaqachon ko'radi");
+        abort_if(app(\App\Services\Samples\CustomerPortal::class)->isPortalUser($u), 422, "Buyurtmachi foydalanuvchisi o'z jamlanma hisobotini allaqachon ko'radi");
         if (! DB::table('svodka_viewers')->where('user_id', $u->id)->exists()) {
             DB::table('svodka_viewers')->insert(['user_id' => $u->id, 'granted_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now()]);
             $this->logViewer($request, $u, true);
@@ -253,7 +253,7 @@ class SvodkaReleaseController extends Controller
         try {
             \App\Models\ActivityLog::create([
                 'user_id' => $request->user()->id, 'action' => 'updated', 'model_type' => 'User', 'model_id' => $u->id,
-                'description' => ($on ? "Svodkani ko'rish berildi: " : "Svodkani ko'rish olib tashlandi: ") . "{$u->name} ({$u->username})",
+                'description' => ($on ? "Jamlanma hisobotni ko'rish berildi: " : "Jamlanma hisobotni ko'rish olib tashlandi: ") . "{$u->name} ({$u->username})",
                 'created_at' => now(),
             ]);
         } catch (\Throwable $e) {

@@ -1,0 +1,348 @@
+===========================================================================
+ LIMS — YANGI SERVERGA NOLDAN O'RNATISH   (Windows + IIS yoki XAMPP/Apache + SQL Server)
+ Holat: Paket 31 gacha barcha o'zgarishlar, 2026-11-03
+===========================================================================
+
+Bu yo'riqnoma dastur BIRINCHI MARTA qo'yiladigan server uchun (bo'sh baza).
+Dastur allaqachon ishlab turgan server uchun — deploy\SERVERGA_YANGILASH.txt.
+Bu fayl va skriptlar deploy\ papkasida.
+
+TARTIB
+   1  Server dasturlari: IIS, PHP, ODBC + pdo_sqlsrv, Composer, Git   (bir marta)
+   2  SQL Server: BO'SH baza va login                deploy\baza_yaratish.sql
+   3  Kodni olish: git clone
+   4  .env sozlash                                   deploy\env.production.example
+   5  O'rnatish skripti                              deploy\server_yangi_ornatish.bat
+   6  Parollar
+   7  IIS sayt, ruxsatlar, web.config                deploy\web.config.example
+   7A yoki XAMPP / Apache
+   8  Rejalashtirgich (Task Scheduler)
+   9  Tekshirish ro'yxati
+  10  Xatolar jadvali
+  11  Keyingi yangilashlar
+
+Hamma buyruq «Administrator sifatida» ochilgan cmd da, loyiha papkasida
+(masalan C:\inetpub\lims) bajariladi.
+
+XAVFSIZLIK: o'rnatish skripti bazaning holatini o'zi aniqlaydi (php artisan lims:install-state).
+Bazada foydalanuvchilar bo'lsa — bu ishlab turgan server: skript HECH NARSA qilmay to'xtaydi.
+Bazada boshqa dasturning jadvallari bo'lsa — to'xtaydi. Shuning uchun skriptni adashib eski
+serverda ishga tushirish ma'lumotga zarar yetkazmaydi.
+
+Men tomonda sinaldi (SQLite, toza baza, Paket 31 to'liq to'plami): skriptdagi buyruqlar
+ketma-ketligi ikkala variantda — 31 migratsiya → boshlang'ich ma'lumot → administrator →
+lims:upgrade → 5 ishchi varaq shabloni, 223 yordamchi javobi, 65 ruxsat, 34 menyu bandi,
+3 rejalashtirilgan vazifa, 9 ta API yo'li; ikkinchi marta ishga tushirish hech narsani
+o'zgartirmadi; o'rnatilgandan keyin baza holati «ishlab turgan» deb aniqlanadi.
+SQL Server, IIS va Task Scheduler qadamlarini bu yerda ishga tushira olmadim: ular standart
+Microsoft/Laravel amallari — birinchi serverda skriptni kuzatib turing.
+
+
+---------------------------------------------------------------------------
+ 1. SERVER DASTURLARI  (bir marta)
+---------------------------------------------------------------------------
+ 1.1  IIS  (PowerShell, Administrator):
+        Install-WindowsFeature Web-Server, Web-CGI, Web-Static-Content, Web-Default-Doc, Web-Http-Errors, Web-Filtering, Web-Mgmt-Console
+      (Windows 10/11 da:  Dism /online /Enable-Feature /FeatureName:IIS-WebServerRole /FeatureName:IIS-CGI /All)
+      URL Rewrite moduli — ALOHIDA yuklab o'rnatiladi (iis.net → URL Rewrite). Usiz sayt ishlamaydi.
+
+ 1.2  PHP 8.2 yoki 8.3, x64, Non-Thread-Safe (NTS) — windows.php.net/download
+      Masalan C:\php ga yoyiladi. php.ini:
+        copy C:\php\php.ini-production C:\php\php.ini
+      php.ini da yoqing / o'zgartiring:
+        extension_dir = "ext"
+        extension=curl
+        extension=fileinfo
+        extension=gd
+        extension=mbstring
+        extension=openssl
+        extension=zip                               <- SHART: Excel'ga yuklash, svodka
+        extension=php_pdo_sqlsrv_83_nts_x64.dll     <- 1.3 dan keyin
+        extension=php_sqlsrv_83_nts_x64.dll         <- 1.3 dan keyin
+        upload_max_filesize = 50M
+        post_max_size = 55M
+        max_execution_time = 120
+        memory_limit = 512M
+        date.timezone = Asia/Tashkent
+        cgi.fix_pathinfo = 1
+      PATH ga C:\php ni qo'shing, yangi cmd oching:   php -v    php -m
+
+ 1.3  SQL Server uchun drayverlar:
+        a) Microsoft ODBC Driver 18 for SQL Server (yoki 17) — msi
+        b) Microsoft Drivers for PHP for SQL Server (learn.microsoft.com) — zipdan PHP
+           versiyangizga mos, x64, nts ikki fayl: php_pdo_sqlsrv_83_nts_x64.dll, php_sqlsrv_83_nts_x64.dll
+           (83 = PHP 8.3; 82 = PHP 8.2) → C:\php\ext\
+        tekshirish:   php -m | findstr /i sqlsrv      (pdo_sqlsrv va sqlsrv)
+
+ 1.4  IIS ga PHP (FastCGI):
+        %windir%\system32\inetsrv\appcmd set config /section:system.webServer/fastCgi /+[fullPath='C:\php\php-cgi.exe']
+        %windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /+[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='C:\php\php-cgi.exe',resourceType='Either']
+
+ 1.5  Composer: getcomposer.org → Composer-Setup.exe      (composer -V)
+ 1.6  Git: git-scm.com                                      (git --version)
+ 1.7  Node.js KERAK EMAS: interfeys public\build ichida tayyor holda repoda turadi.
+
+
+---------------------------------------------------------------------------
+ 2. SQL SERVER: BO'SH BAZA VA LOGIN
+---------------------------------------------------------------------------
+ SQL Server «Mixed Mode» (SQL Server and Windows Authentication) va TCP/IP yoqilgan bo'lsin
+ (SQL Server Configuration Manager; o'zgargach xizmatni qayta ishga tushiring).
+
+ deploy\baza_yaratish.sql ni oching, 3 qiymatni almashtiring:
+      lims_yangi   baza nomi          lims_user   login          KUCHLI_PAROL   parol (12+ belgi)
+ Ishga tushirish:
+      sqlcmd -S localhost -E -C -i deploy\baza_yaratish.sql
+ (SSMS da ochib Execute ham bo'ladi. Nomlangan nusxa:  -S localhost\SQLEXPRESS)
+ Tekshirish:
+      sqlcmd -S localhost -U lims_user -P KUCHLI_PAROL -d lims_yangi -C -Q "SELECT DB_NAME()"
+
+ Baza collation'i boshqa serverlardagi bilan bir xil bo'lsin:
+      SELECT name, collation_name FROM sys.databases;
+ Mavjud bazani ishlatmang — LIMS uchun alohida bo'sh baza.
+
+
+---------------------------------------------------------------------------
+ 3. KODNI OLISH
+---------------------------------------------------------------------------
+      cd C:\inetpub
+      git clone https://github.com/SIZNING-AKKAUNT/lims.git lims
+      cd lims
+      git log -1 --oneline
+ («dubious ownership» xatosi:  git config --global --add safe.directory C:/inetpub/lims)
+
+ Repoda bo'lishi kerak (lokal kompyuterdan commit qilingan — SERVERGA_YANGILASH.txt, A-bo'lim):
+      toliq_yangilash_p31 to'plami — Paket 11 … 31 va barcha tuzatishlar
+      public\build — Paket 31 bilan yig'ilgan (npm run build; git add -f public/build)
+ Skript 1-qadamda shularni tekshiradi (deploy\tekshir_versiyalar.ps1 — har bir fayl eng oxirgi
+ versiyadami); biror narsa yo'q bo'lsa hech narsa qilmay to'xtaydi.
+
+
+---------------------------------------------------------------------------
+ 4. .env
+---------------------------------------------------------------------------
+ Skript .env yo'q bo'lsa deploy\env.production.example dan yaratib, Notepad'da ochadi.
+ Qo'lda:   copy deploy\env.production.example .env   →   notepad .env
+ To'ldiriladi:
+      APP_URL                       sayt manzili
+      DB_HOST / DB_PORT             SQL Server (nomlangan nusxada DB_PORT qatorini o'chiring)
+      DB_DATABASE / DB_USERNAME / DB_PASSWORD     2-bo'limdagi qiymatlar
+      CORS_ALLOWED_ORIGINS          brauzer ochadigan manzil(lar), vergul bilan. Standarti faqat
+                                    localhost — sayt manzili yozilmasa API xato beradi.
+      HELP_ENABLED                  true — yordamchi yoqilgan
+      SAMPLE_REQUEST_EXPIRE_DAYS    buyurtma muddati, kun (14)
+ APP_KEY ni bo'sh qoldiring — skript key:generate qiladi (bir marta; keyin HECH QACHON o'zgartirmang).
+ DB_INTEGER_IDS ni YOZMANG (false bo'lsa SQL Server'da natija kiritish 404).
+ APP_DEBUG=false.  .env git ga qo'shilmaydi — nusxasini xavfsiz joyda saqlang.
+
+
+---------------------------------------------------------------------------
+ 5. O'RNATISH SKRIPTI
+---------------------------------------------------------------------------
+      cd C:\inetpub\lims                 (XAMPP: cd /d C:\xampp\htdocs\LIMS)
+      deploy\server_yangi_ornatish.bat
+
+ Skript qadamlari (har birida xato bo'lsa — to'xtaydi va sababini yozadi):
+   1  PHP versiyasi va kengaytmalar; kod to'liqligi (Paket 13–31); tekshir_versiyalar.ps1
+   2  composer install --no-dev --optimize-autoloader
+   3  .env (yo'q bo'lsa yaratadi va ochadi); APP_KEY (faqat bo'sh bo'lsa)
+   4  bazaga ulanish + BAZA HOLATI:
+        bo'sh          → «o'rnatilsinmi? [ha]» → davom
+        chala qolgan   → davom (oldingi urinishdan qolgan jadvallar bilan)
+        ishlab turgan  → TO'XTAYDI (server_yangilash.bat ga yo'naltiradi)
+        begona jadvallar → TO'XTAYDI
+   5  migrate --force (31 migratsiya)
+   6  boshlang'ich ma'lumot — ikki variantdan biri (skript so'raydi):
+        1 — TO'LIQ: NKMK GMZ-3 markaziy laboratoriyasi nusxasi — ruxsat, rol, laboratoriya va
+            4 guruh, elementlar, menyu, 10 xodim hisobi, sinov profillari.
+            Shu laboratoriya yana bir joyda ishlasa.
+            Eslatma: xodimlarning guruhlarga bo'linishi «dastlabki ma'lumotlar reyestri»dan farq
+            qiladi (Fazali nazorat / Namuna tahlil guruhlari) — o'rnatgach «Foydalanuvchilar»
+            sahifasida tekshiring.
+        2 — FAQAT TIZIM: ruxsat, rol, laboratoriya, elementlar, menyu. Foydalanuvchi va profillar
+            bo'sh; administratorni skript yaratadi. Boshqa korxona/laboratoriya uchun —
+            laboratoriya, guruh va elementlarni keyin «Kataloglar»da o'zingizga moslaysiz.
+   7  administrator paroli (lims:set-password; parol ekranda ko'rinmaydi)
+   8  php artisan lims:upgrade — barcha modullar (ishchi varaqlar, laboratoriyalararo,
+      buyurtmachi bo'limlar va portal, smenalar, audit, qoralama buyurtma, svodka),
+      yordamchi javoblari, shablon jamilari va bosqichlari
+   9  storage:link, optimize:clear
+  10  Task Scheduler vazifasi (so'raydi)
+  11  tekshirish: migratsiyalar, 9 ta API yo'li, yordamchi, rejalashtirgich
+
+ Skriptsiz — aynan shu tartibda:
+    composer install --no-dev --optimize-autoloader --no-interaction
+    copy deploy\env.production.example .env           (4-bo'lim: to'ldiring)
+    php artisan key:generate --force
+    php artisan lims:install-state                    → «empty» bo'lishi SHART
+    php artisan migrate --force
+    — 1-variant:
+        php artisan db:seed --force
+        php artisan lims:set-password admin
+    — 2-variant:
+        php artisan db:seed --class=PermissionSeeder --force
+        php artisan db:seed --class=RoleSeeder --force
+        php artisan db:seed --class=LaboratorySeeder --force
+        php artisan db:seed --class=LaboratoryGroupExtraSeeder --force
+        php artisan db:seed --class=ElementSeeder --force
+        php artisan db:seed --class=MenuSeeder --force
+        php artisan lims:set-password admin --create
+    php artisan lims:upgrade
+    php artisan storage:link                          (xato bo'lsa: mklink /J public\storage storage\app\public)
+    php artisan optimize:clear
+
+ «php artisan db:seed --force» (1-variant) FAQAT shu yerda, bo'sh bazada ishlatiladi.
+ Ishlab turgan serverda uni HECH QACHON ishlatmang — parollarni qayta yozadi.
+
+ Ishlatilmaydi (ataylab): config:cache, route:cache — modul yo'llari provayderlar orqali
+ yuklanadi, kesh bilan sinalmagan. .env o'zgarsa:  php artisan optimize:clear
+
+
+---------------------------------------------------------------------------
+ 6. PAROLLAR
+---------------------------------------------------------------------------
+ 1-variantda standart parollar hammaga ma'lum — skript admin parolini almashtiradi va
+ qolgan 9 tasini ham so'raydi:
+      mirzoyeva, shamsiyev, xolmurodova, ishnazarova, urinov, xomatova,
+      qobilov, haydarov, saydullayev  /  lims12345
+ Keyinroq:
+      php artisan lims:set-password LOGIN        (parolni ko'rsatmay so'raydi)
+      php artisan lims:set-password --list       (hamma foydalanuvchilar)
+ Kerak bo'lmagan hisobni «Foydalanuvchilar» sahifasidan faolsizlantiring.
+
+
+---------------------------------------------------------------------------
+ 7. IIS: SAYT, RUXSATLAR, web.config
+---------------------------------------------------------------------------
+ Sayt papkasi = loyihaning  public  papkasi (loyiha ildizi emas!).
+
+      %windir%\system32\inetsrv\appcmd add apppool /name:LIMS /managedRuntimeVersion:""
+      %windir%\system32\inetsrv\appcmd add site /name:LIMS /bindings:http/*:80: /physicalPath:C:\inetpub\lims\public
+      %windir%\system32\inetsrv\appcmd set app "LIMS/" /applicationPool:LIMS
+ (Default Web Site 80-portni egallagan bo'lsa — to'xtating yoki LIMS ga boshqa port/host bering.)
+
+ web.config:
+      if not exist public\web.config copy deploy\web.config.example public\web.config
+
+ Yozish ruxsatlari (usiz «500» yoki bo'sh sahifa):
+      icacls storage         /grant "IIS AppPool\LIMS":(OI)(CI)M /T
+      icacls bootstrap\cache /grant "IIS AppPool\LIMS":(OI)(CI)M /T
+
+ HTTPS: IIS Manager → sayt → Bindings → https. So'ng .env da APP_URL va CORS_ALLOWED_ORIGINS
+ ni https ga o'zgartirib: php artisan optimize:clear.   Firewall: 80/443 ochiq bo'lsin.
+
+
+---------------------------------------------------------------------------
+ 7A. XAMPP / APACHE  (IIS o'rniga — hozirgi serverlardagidek)
+---------------------------------------------------------------------------
+ Sayt papkasi = loyihaning  public  papkasi. Mavjud ishlab turgan serverdagi Apache sozlamasini
+ (C:\xampp\apache\conf\extra\httpd-vhosts.conf va httpd.conf dagi Listen) nusxalash eng oson.
+ Namuna (port 3010):
+      httpd.conf:          Listen 3010
+      httpd-vhosts.conf:
+         <VirtualHost *:3010>
+             DocumentRoot "C:/xampp/htdocs/LIMS/public"
+             <Directory "C:/xampp/htdocs/LIMS/public">
+                 AllowOverride All
+                 Require all granted
+             </Directory>
+         </VirtualHost>
+ mod_rewrite yoqilgan bo'lsin (httpd.conf: LoadModule rewrite_module …, XAMPP'da odatda yoqilgan);
+ public\.htaccess repoda bor. php.ini — C:\xampp\php\php.ini (1.2 dagi qatorlar, ayniqsa zip va
+ pdo_sqlsrv). Apache'ni xizmat sifatida o'rnating (XAMPP Control Panel → «Svc» belgisi) — server
+ qayta yonganda o'zi ishga tushadi. O'zgartirishdan keyin: Apache Stop → Start.
+ Firewall: tanlangan port ochiq bo'lsin. .env da APP_URL va CORS_ALLOWED_ORIGINS — shu port bilan.
+
+
+---------------------------------------------------------------------------
+ 8. REJALASHTIRGICH (Task Scheduler)
+---------------------------------------------------------------------------
+ Har daqiqada  php artisan schedule:run. Usiz ishlamaydi: laboratoriyalararo sinxronlash
+ (har daqiqa), buyurtma muddati (har soat), kalibrovka eslatmalari (07:00). Qolgani ishlaydi.
+
+ Skript so'raganda «ha» — o'zi yaratadi. Qo'lda (Administrator cmd):
+      schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"C:\php\php.exe\" \"C:\inetpub\lims\artisan\" schedule:run"
+ XAMPP:
+      schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"C:\xampp\php\php.exe\" \"C:\xampp\htdocs\LIMS\artisan\" schedule:run"
+ Tekshirish:
+      schtasks /Query /TN "LIMS Scheduler"
+      php artisan schedule:list      → interlab:sync, sample-requests:expire, lims:check-reminders
+
+
+---------------------------------------------------------------------------
+ 9. TEKSHIRISH RO'YXATI
+---------------------------------------------------------------------------
+ Buyruqlar (skript 11-qadamda o'zi bajaradi):
+   [ ] php artisan lims:install-state    → existing (… foydalanuvchi)
+   [ ] php artisan migrate:status        → «Pending» yo'q
+   [ ] php artisan help:ask "namunani qanday royxatga olaman"   → javob
+   [ ] php artisan schedule:list         → 3 ta vazifa
+
+ Brauzerda (Ctrl+F5):
+   [ ] Login, admin bilan kirish; chap menyu to'liq: Namunalar, Buyurtmalar, Ishchi varaqlar,
+       Laboratoriyalararo, Ish stoli, Kataloglar, Administratsiya…
+   [ ] Namunani ro'yxatga olish → natija kiritish (SQL Server id turi tuzatishi)
+   [ ] Ishchi varaq yaratish; «Varaq bo'yicha jami» ko'rinadi
+   [ ] Fayl yuklash: uskuna yoki sinov obyektiga hujjat qo'shib, qayta ochish (storage:link)
+   [ ] Yordamchi tugmasi (o'ng pastda) javob beradi
+   [ ] Buyurtmachi: Foydalanuvchilar → yangi foydalanuvchi, rol «Buyurtmachi (bo'lim)» →
+       Kataloglar → Buyurtmachi bo'limlar → bo'limga biriktirish → shu hisob bilan kirish:
+       faqat «Mening probalarim» va «Buyurtmalarim»; «Yangi buyurtma» → yuborish →
+       laborant «Buyurtmalar» da ko'radi va qabul qiladi
+   [ ] Excel'ga yuklash (masalan, svodka yoki natijalar) — fayl yuklanadi (zip kengaytmasi)
+   [ ] storage\logs\laravel-*.log da xato yo'q
+
+ Birinchi sozlash (admin):
+   [ ] Laboratoriyalar / guruhlar / elementlar / profillar — korxonangizga mos
+   [ ] Smenalar (Rahbariyat paneli)   [ ] Buyurtmachi bo'limlar   [ ] Rollar va ruxsatlar
+   [ ] Foydalanuvchilarning «Guruh» maydoni (har guruh o'z buyurtmalarini ko'radi — Paket 30)
+   [ ] Boshqaruv → «Portal sozlamalari» (buyurtmachi nimani ko'radi — Paket 27)
+   [ ] Svodka: «Svodkalar» → bo'lim → «Sozlama» → yoqish; spravochnik — buyurtmachi kiritadi
+       (yoki: php artisan svodka:spravochnik BOLIM_KODI --dry-run); «Svodkani ko'ruvchilar»
+   [ ] Zaxira nusxa jadvali: SQL Server Agent yoki Task Scheduler + sqlcmd BACKUP DATABASE
+
+
+---------------------------------------------------------------------------
+ 10. XATOLAR JADVALI
+---------------------------------------------------------------------------
+ «Bu bazada foydalanuvchilar bor — ISHLAB TURGAN server»
+      .env boshqa (ishlab turgan) bazaga qarab turibdi — DB_DATABASE ni tekshiring.
+      Haqiqatan ham shu server bo'lsa — SERVERGA_YANGILASH.txt.
+ «Bazada boshqa dasturning jadvallari bor»
+      LIMS uchun alohida bo'sh baza yarating (2-bo'lim), DB_DATABASE ni o'zgartiring.
+ «could not find driver»
+      pdo_sqlsrv yoqilmagan yoki PHP versiyasiga mos emas (nts/x64/83). IIS boshqa php.ini
+      ishlatishi mumkin: php --ini va phpinfo() ni solishtiring.
+ «SQLSTATE[08001] … certificate» / SSL
+      .env: DB_TRUST_SERVER_CERTIFICATE=true
+ «Login failed for user»
+      Mixed Mode yoqilmagan, parol xato yoki login bazaga biriktirilmagan (2-bo'lim).
+ ulanish vaqti tugadi
+      TCP/IP yoqilmagan, 1433 yopiq, DB_HOST xato; nomlangan nusxada DB_PORT ni o'chiring.
+ «public\build yo'q yoki eski»
+      lokalda npm run build va git add -f public/build unutilgan.
+ IIS «500» yoki bo'sh sahifa
+      storage va bootstrap\cache ruxsati (7-bo'lim); storage\logs\laravel-*.log; APP_KEY.
+ IIS «404» har sahifada
+      URL Rewrite moduli yoki public\web.config yo'q.
+ API «CORS» / tarmoq xatosi
+      .env: CORS_ALLOWED_ORIGINS ga sayt manzili; php artisan optimize:clear.
+ Rasm/fayl ochilmaydi (404)
+      php artisan storage:link  (yoki mklink /J public\storage storage\app\public).
+ Natija kiritishda 404
+      .env da DB_INTEGER_IDS=false — o'chiring, optimize:clear.
+ «Serverda PHP zip kengaytmasi yoqilmagan» (Excel)
+      php.ini: extension=zip ; Apache Stop/Start (IIS: iisreset). php -m | findstr /i zip
+ Yordamchi javob bermaydi
+      lims:upgrade bajarilganmi (help:import); HELP_ENABLED=true; optimize:clear; Ctrl+F5.
+ Skript o'rtada xato bilan to'xtadi
+      Xatoni tuzatib, skriptni qayta ishga tushiring — chala o'rnatish davom ettiriladi.
+      Hali hech narsa kiritilmagan bo'lsa, bazani DROP/CREATE qilib boshidan boshlash ham mumkin.
+
+
+---------------------------------------------------------------------------
+ 11. KEYINGI YANGILASHLAR
+---------------------------------------------------------------------------
+ O'rnatilgan server keyingi yangilanishlarda «ishlab turgan server» hisoblanadi:
+      zaxira → git pull → deploy\server_yangilash.bat → Apache Stop/Start      (SERVERGA_YANGILASH.txt)
+ Yordamchini vaqtincha o'chirish: .env  HELP_ENABLED=false ; php artisan optimize:clear

@@ -1,0 +1,2491 @@
+diff --git a/app/Console/Commands/LimsUpgrade.php b/app/Console/Commands/LimsUpgrade.php
+index c950683..46e0bf3 100644
+--- a/app/Console/Commands/LimsUpgrade.php
++++ b/app/Console/Commands/LimsUpgrade.php
+@@ -42,7 +42,7 @@ class LimsUpgrade extends Command
+         'SampleIntakeModuleSeeder'  => "Buyurtmachi bo'limlar, portal, namuna miqdori",
+         'InsightsModuleSeeder'      => 'Smenalar, xodimlar faoliyati, audit, savatcha',
+         'SampleRequestModuleSeeder' => 'Qoralama buyurtma',
+-        'SvodkaModuleSeeder'        => 'Buyurtmachi svodkasi (chiqarish ruxsati, menyu)',
++        'SvodkaModuleSeeder'        => 'Jamlanma hisobot (svodka), natijalar tahlili, buyurtma shablonlari — ruxsat va menyu',
+     ];
+ 
+     public function handle(): int
+diff --git a/app/Http/Controllers/Api/Intake/PortalTemplateController.php b/app/Http/Controllers/Api/Intake/PortalTemplateController.php
+new file mode 100644
+index 0000000..371875b
+--- /dev/null
++++ b/app/Http/Controllers/Api/Intake/PortalTemplateController.php
+@@ -0,0 +1,252 @@
++<?php
++
++namespace App\Http\Controllers\Api\Intake;
++
++use App\Http\Controllers\Controller;
++use App\Models\CustomerDepartment;
++use App\Models\PortalRequestTemplate;
++use App\Services\Samples\CustomerPortal;
++use App\Services\Samples\QuantityUnit;
++use App\Services\Samples\SampleRequests;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Validation\Rule;
++use Illuminate\Validation\ValidationException;
++
++/**
++ * [Paket 33] «Shablonlarim» — buyurtmachi bo'linmasining doimiy buyurtma shablonlari.
++ *
++ *   GET    /api/portal/request-templates?department_id=   ro'yxat (faqat o'z bo'linmalari)
++ *   POST   /api/portal/request-templates                  yangi (portal.request)
++ *   PUT    /api/portal/request-templates/{id}             tahrirlash
++ *   DELETE /api/portal/request-templates/{id}             o'chirish
++ *   POST   /api/portal/request-templates/order            tartib (ids[])
++ *
++ * Shablon bo'linmaga tegishli: bo'linmaning barcha vakillari ko'radi va ishlatadi, boshqa bo'linma ko'rmaydi.
++ * Laboratoriya xodimi (ko'rib chiqish rejimi) faqat ko'radi. Sana saqlanmaydi — har buyurtmada yangidan.
++ */
++class PortalTemplateController extends Controller
++{
++    private const MAX_ITEMS = 200;
++
++    public function __construct(private CustomerPortal $portal)
++    {
++    }
++
++    /** @return array{write: bool, ids: int[]|null} */
++    private function ctx(Request $request): array
++    {
++        abort_unless(Schema::hasTable('portal_request_templates'), 503, "Shablonlar jadvali yo'q — php artisan migrate");
++        $user = $request->user();
++        if ($this->portal->isPortalUser($user)) {
++            return [
++                'write' => $user->hasPermission(SampleRequests::PORTAL_PERMISSION),
++                'ids'   => $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all(),
++            ];
++        }
++        abort_unless($user && $this->portal->canPreview($user), 403, "Buyurtmachi portalini ko'rish uchun ruxsat yo'q");
++
++        return ['write' => false, 'ids' => null];
++    }
++
++    private function find(int $id, array $ctx): PortalRequestTemplate
++    {
++        $tpl = PortalRequestTemplate::query()
++            ->when($ctx['ids'] !== null, fn ($q) => $q->whereIn('customer_department_id', $ctx['ids'] ?: [0]))
++            ->find($id);
++        abort_unless($tpl, 404, 'Shablon topilmadi');
++
++        return $tpl;
++    }
++
++    private function present(PortalRequestTemplate $t): array
++    {
++        $p = is_array($t->payload) ? $t->payload : [];
++
++        return [
++            'id'            => (int) $t->id,
++            'department_id' => (int) $t->customer_department_id,
++            'name'          => $t->name,
++            'sort_order'    => (int) $t->sort_order,
++            'payload'       => $p,
++            'items_count'   => count($p['items'] ?? []),
++            'updated_at'    => $t->updated_at?->toDateTimeString(),
++        ];
++    }
++
++    public function index(Request $request)
++    {
++        $ctx = $this->ctx($request);
++        $q = PortalRequestTemplate::query()
++            ->when($ctx['ids'] !== null, fn ($w) => $w->whereIn('customer_department_id', $ctx['ids'] ?: [0]));
++        if ($request->filled('department_id')) {
++            $q->where('customer_department_id', (int) $request->input('department_id'));
++        }
++
++        return response()->json([
++            'can_write' => $ctx['write'],
++            'data'      => $q->orderBy('customer_department_id')->orderBy('sort_order')->orderBy('id')->get()
++                ->map(fn ($t) => $this->present($t))->values(),
++        ]);
++    }
++
++    public function store(Request $request)
++    {
++        $ctx = $this->ctx($request);
++        abort_unless($ctx['write'], 403, "Shablon yaratish uchun ruxsat yo'q");
++        [$deptId, $name, $payload] = $this->validated($request, $ctx, null);
++
++        $tpl = PortalRequestTemplate::create([
++            'customer_department_id' => $deptId,
++            'name'                   => $name,
++            'sort_order'             => (int) PortalRequestTemplate::where('customer_department_id', $deptId)->max('sort_order') + 1,
++            'payload'                => $payload,
++            'created_by'             => $request->user()->id,
++            'updated_by'             => $request->user()->id,
++        ]);
++        $this->log($request, 'created', $tpl, "Buyurtma shabloni yaratildi: {$tpl->name}");
++
++        return response()->json($this->present($tpl), 201);
++    }
++
++    public function update(Request $request, int $id)
++    {
++        $ctx = $this->ctx($request);
++        abort_unless($ctx['write'], 403, "Shablonni o'zgartirish uchun ruxsat yo'q");
++        $tpl = $this->find($id, $ctx);
++        [$deptId, $name, $payload] = $this->validated($request, $ctx, $tpl);
++
++        $tpl->update(['customer_department_id' => $deptId, 'name' => $name, 'payload' => $payload, 'updated_by' => $request->user()->id]);
++        $this->log($request, 'updated', $tpl, "Buyurtma shabloni o'zgartirildi: {$tpl->name}");
++
++        return response()->json($this->present($tpl->fresh()));
++    }
++
++    public function destroy(Request $request, int $id)
++    {
++        $ctx = $this->ctx($request);
++        abort_unless($ctx['write'], 403, "Shablonni o'chirish uchun ruxsat yo'q");
++        $tpl = $this->find($id, $ctx);
++        $name = $tpl->name;
++        $tpl->delete();
++        $this->log($request, 'deleted', $tpl, "Buyurtma shabloni o'chirildi: {$name}");
++
++        return response()->json(['ok' => true]);
++    }
++
++    /** Tugmalar tartibi: ids — bitta bo'linma shablonlari, kerakli tartibda */
++    public function order(Request $request)
++    {
++        $ctx = $this->ctx($request);
++        abort_unless($ctx['write'], 403, "Ruxsat yo'q");
++        $ids = array_values(array_unique(array_map('intval', (array) $request->input('ids', []))));
++        $tpls = PortalRequestTemplate::whereIn('id', $ids ?: [0])
++            ->whereIn('customer_department_id', $ctx['ids'] ?: [0])->get()->keyBy('id');
++        DB::transaction(function () use ($ids, $tpls) {
++            foreach ($ids as $i => $id) {
++                if ($tpls->has($id)) {
++                    $tpls[$id]->forceFill(['sort_order' => $i + 1])->save();
++                }
++            }
++        });
++
++        return response()->json(['ok' => true]);
++    }
++
++    /* ------------------------------------------------------------------ */
++
++    /** @return array{0:int, 1:string, 2:array} */
++    private function validated(Request $request, array $ctx, ?PortalRequestTemplate $tpl): array
++    {
++        $data = $request->validate([
++            'department_id'               => ['nullable', 'integer'],
++            'name'                        => ['required', 'string', 'max:120'],
++            'payload'                     => ['required', 'array'],
++            'payload.laboratory_group_id' => ['nullable', 'integer'],
++            'payload.delivery_shift_id'   => ['nullable', 'integer'],
++            'payload.contact_name'        => ['nullable', 'string', 'max:191'],
++            'payload.contact_phone'       => ['nullable', 'string', 'max:64'],
++            'payload.notes'               => ['nullable', 'string', 'max:2000'],
++            'payload.items'               => ['nullable', 'array', 'max:' . self::MAX_ITEMS],
++            'payload.items.*.customer_code'   => ['nullable', 'string', 'max:64'],
++            'payload.items.*.state_of_matter' => ['nullable', Rule::in(['solid', 'liquid'])],
++            'payload.items.*.test_profile_id' => ['nullable', 'integer'],
++            'payload.items.*.element_ids'     => ['nullable', 'array'],
++            'payload.items.*.element_ids.*'   => ['integer'],
++            'payload.items.*.quantity'        => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
++            'payload.items.*.quantity_unit'   => ['nullable', Rule::in(QuantityUnit::UNITS)],
++            'payload.items.*.notes'           => ['nullable', 'string', 'max:500'],
++            'payload.items.*.svodka_point_id' => ['nullable', 'integer'],
++            'payload.items.*.group_code'      => ['nullable', 'string', 'max:64'],
++        ]);
++
++        $deptId = (int) ($data['department_id'] ?? 0) ?: (int) ($tpl?->customer_department_id ?? 0);
++        if (! $deptId && count($ctx['ids'] ?? []) === 1) {
++            $deptId = $ctx['ids'][0];
++        }
++        if (! $deptId || ! in_array($deptId, $ctx['ids'] ?? [], true)) {
++            throw ValidationException::withMessages(['department_id' => ["Bo'limni tanlang"]]);
++        }
++        abort_unless(CustomerDepartment::where('is_active', true)->whereKey($deptId)->exists(), 422, "Bo'lim faol emas");
++
++        $name = trim($data['name']);
++        if ($name === '') {
++            throw ValidationException::withMessages(['name' => ['Shablon nomini kiriting']]);
++        }
++        $dup = PortalRequestTemplate::where('customer_department_id', $deptId)->where('name', $name)
++            ->when($tpl, fn ($q) => $q->where('id', '!=', $tpl->id))->exists();
++        if ($dup) {
++            throw ValidationException::withMessages(['name' => ["«{$name}» nomli shablon bu bo'limda allaqachon bor"]]);
++        }
++
++        $p = $data['payload'];
++        $str = fn ($v, $max) => ($v = trim((string) ($v ?? ''))) === '' ? null : mb_substr($v, 0, $max);
++        $int = fn ($v) => (int) ($v ?? 0) ?: null;
++        // [P29] nuqta — faqat shu bo'limning nuqtasi (boshqa bo'limniki saqlanmaydi)
++        $pointIds = Schema::hasTable('svodka_points')
++            ? DB::table('svodka_points')->where('customer_department_id', $deptId)->pluck('id')->map(fn ($v) => (int) $v)->flip()
++            : collect();
++        $items = [];
++        foreach (array_values($p['items'] ?? []) as $it) {
++            $point = $int($it['svodka_point_id'] ?? null);
++            $qty = $it['quantity'] ?? null;
++            $items[] = [
++                'customer_code'   => $str($it['customer_code'] ?? null, 64),
++                'state_of_matter' => in_array($it['state_of_matter'] ?? null, ['solid', 'liquid'], true) ? $it['state_of_matter'] : 'solid',
++                'test_profile_id' => $int($it['test_profile_id'] ?? null),
++                'element_ids'     => array_values(array_unique(array_map('intval', (array) ($it['element_ids'] ?? [])))),
++                'quantity'        => $qty === null || $qty === '' ? null : (float) $qty,
++                'quantity_unit'   => $qty === null || $qty === '' ? null : ($it['quantity_unit'] ?? 'g'),
++                'notes'           => $str($it['notes'] ?? null, 500),
++                'svodka_point_id' => $point && $pointIds->has($point) ? $point : null,
++                'group_code'      => $str($it['group_code'] ?? null, 64),
++            ];
++        }
++        if (! $items) {
++            throw ValidationException::withMessages(['payload.items' => ["Shablonda kamida bitta namuna bo'lsin"]]);
++        }
++
++        return [$deptId, mb_substr($name, 0, 120), [
++            'laboratory_group_id' => $int($p['laboratory_group_id'] ?? null),
++            'delivery_shift_id'   => $int($p['delivery_shift_id'] ?? null),
++            'contact_name'        => $str($p['contact_name'] ?? null, 191),
++            'contact_phone'       => $str($p['contact_phone'] ?? null, 64),
++            'notes'               => $str($p['notes'] ?? null, 2000),
++            'items'               => $items,
++        ]];
++    }
++
++    private function log(Request $request, string $action, PortalRequestTemplate $tpl, string $text): void
++    {
++        try {
++            \App\Models\ActivityLog::create([
++                'user_id' => $request->user()?->id, 'action' => $action, 'model_type' => 'PortalRequestTemplate',
++                'model_id' => $tpl->id, 'description' => mb_substr($text, 0, 255), 'properties' => null,
++                'ip_address' => $request->ip(), 'created_at' => now(),
++            ]);
++        } catch (\Throwable $e) {
++            report($e);
++        }
++    }
++}
+diff --git a/app/Http/Controllers/Api/Intake/SampleIntakeController.php b/app/Http/Controllers/Api/Intake/SampleIntakeController.php
+index 1430c4a..dc59f15 100644
+--- a/app/Http/Controllers/Api/Intake/SampleIntakeController.php
++++ b/app/Http/Controllers/Api/Intake/SampleIntakeController.php
+@@ -26,6 +26,15 @@ class SampleIntakeController extends Controller
+     {
+     }
+ 
++    /** [P33] «Kim qabul qilib oldi» ro'yxati (proba ro'yxatga olish formasi uchun) */
++    public function receivers(Request $request)
++    {
++        return response()->json([
++            'receivers' => \App\Services\Samples\SampleIntake::receivers($request->user()),
++            'me'        => (int) $request->user()->id,
++        ]);
++    }
++
+     /** Proba kartochkasidagi panel uchun hammasi bitta so'rovda */
+     public function show(Sample $sample)
+     {
+@@ -49,6 +58,7 @@ class SampleIntakeController extends Controller
+                 'registered_at'     => $sample->registered_at?->toDateTimeString(),
+                 'registered_by'     => $sample->registeredBy?->name,
+                 'handed_over_by'    => $sample->getAttribute('handed_over_by'), // [P24]
++                'received_by'       => $sample->getAttribute('received_by') ? $sample->receivedBy?->name : null, // [P33]
+                 // [P30] guruh shifri — faqat proba biriktirilgan guruh xodimlariga
+                 'group_code'        => \App\Services\Samples\SampleRequests::canSeeGroupCode(request()->user(), $sample->assigned_group_id ? (int) $sample->assigned_group_id : null)
+                     ? $sample->getAttribute('group_code') : null,
+diff --git a/app/Http/Controllers/Api/Intake/SampleRequestController.php b/app/Http/Controllers/Api/Intake/SampleRequestController.php
+index dcb949c..c367a5e 100644
+--- a/app/Http/Controllers/Api/Intake/SampleRequestController.php
++++ b/app/Http/Controllers/Api/Intake/SampleRequestController.php
+@@ -95,6 +95,9 @@ class SampleRequestController extends Controller
+                 ->map(fn ($g) => ['id' => (int) $g->id, 'code' => $g->code, 'name_uz' => $g->name_uz, 'name_ru' => $g->name_ru, 'name_en' => $g->name_en])->values(),
+             'can_create'  => $user->hasPermission('sample_requests.create'),
+             'can_receive' => $user->hasPermission('sample_requests.receive'),
++            // [P33] «Kim qabul qilib oldi» — ro'yxat va sukut bo'yicha joriy xodim
++            'receivers'   => $user->hasPermission('sample_requests.receive') ? \App\Services\Samples\SampleIntake::receivers($user) : [],
++            'me'          => (int) $user->id,
+             // [P30] xodimning guruhi: faqat o'z guruhini ko'rsa — own_group; hammasini ko'rsa — guruh filtri
+             'my_group'    => $user->laboratory_group_id ? $this->requests->groupInfo((int) $user->laboratory_group_id) : null,
+             'own_group'   => $this->ownGroup($user),
+@@ -230,6 +233,8 @@ class SampleRequestController extends Controller
+     {
+         $data = $request->validate([
+             'handed_over_by'            => ['nullable', 'string', 'max:191'],
++            'handed_over_phone'         => ['nullable', 'string', 'max:64'],   // [P33]
++            'received_by'               => ['nullable', 'integer'],             // [P33] qabul qilib olgan xodim
+             'items'                     => ['required', 'array', 'min:1'],
+             'items.*.id'                => ['required', 'integer'],
+             'items.*.sample_number'     => ['nullable', 'string', 'max:191'],
+diff --git a/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php b/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php
+index 825b127..b3c2b00 100644
+--- a/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php
++++ b/app/Http/Controllers/Api/Svodka/PortalSvodkaController.php
+@@ -47,7 +47,7 @@ class PortalSvodkaController extends Controller
+     private function ctx(Request $request): array
+     {
+         $user = $request->user();
+-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
++        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
+         if ($this->portal->isPortalUser($user)) {
+             return [
+                 'ids'    => $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all(),
+@@ -58,7 +58,7 @@ class PortalSvodkaController extends Controller
+         // [P31] admin «Svodkani ko'ruvchilar»ga qo'shgan xodim (yoki rolida svodka.view) — buyurtmachidek ko'radi,
+         // lekin hech narsani o'zgartirmaydi. Bo'limlarga biriktirilgan bo'lsa — o'sha bo'limlar, aks holda barcha faol bo'limlar.
+         abort_unless($this->svc->canView($user), 403,
+-            "Svodka faqat buyurtmachi bo'limiga va admin svodkani ko'rishga ruxsat bergan xodimlarga ochiq");
++            "Jamlanma hisobot faqat buyurtmachi bo'limiga va admin jamlanma hisobotni ko'rishga ruxsat bergan xodimlarga ochiq");
+         $linked = $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all();
+ 
+         return [
+@@ -78,7 +78,7 @@ class PortalSvodkaController extends Controller
+         }
+         abort_unless($id && in_array($id, $ctx['ids'], true), 403, "Bu bo'lim sizga biriktirilmagan");
+         if ($mustBeEnabled) {
+-            abort_unless($this->svc->enabled($id), 422, "Bu bo'lim uchun svodka laboratoriya tomonidan yoqilmagan");
++            abort_unless($this->svc->enabled($id), 422, "Bu bo'lim uchun jamlanma hisobot laboratoriya tomonidan yoqilmagan");
+         }
+ 
+         return $id;
+@@ -365,14 +365,14 @@ class PortalSvodkaController extends Controller
+         $sample = Sample::with('sampleElements:id,sample_id,element_id,result_value,result_unit,status')->find((int) $data['sample_id']);
+         abort_unless($sample && in_array((int) $sample->customer_department_id, $ctx['ids'], true), 404, 'Namuna topilmadi');
+         $deptId = (int) $sample->customer_department_id;
+-        abort_unless($this->svc->enabled($deptId), 422, "Bu bo'lim uchun svodka yoqilmagan");
++        abort_unless($this->svc->enabled($deptId), 422, "Bu bo'lim uchun jamlanma hisobot yoqilmagan");
+         if (! empty($data['point_id']) && ! SvodkaPoint::where('id', $data['point_id'])->where('customer_department_id', $deptId)->exists()) {
+             throw ValidationException::withMessages(['point_id' => ['Nuqta topilmadi']]);
+         }
+ 
+         $gate = $this->svc->gate(collect([$sample]))[(int) $sample->id] ?? null;
+         if ($gate && $gate['released']) {
+-            throw ValidationException::withMessages(['sample_id' => ["Bu namuna laboratoriya tomonidan chiqarilgan svodkada — bog'lanishni o'zgartirib bo'lmaydi"]]);
++            throw ValidationException::withMessages(['sample_id' => ["Bu namuna laboratoriya tomonidan chiqarilgan jamlanma hisobotda — bog'lanishni o'zgartirib bo'lmaydi"]]);
+         }
+ 
+         $date = Carbon::parse($data['date'])->toDateString();
+@@ -400,7 +400,7 @@ class PortalSvodkaController extends Controller
+ 
+         $dept = CustomerDepartment::find($deptId);
+         $path = app(SvodkaExcel::class)->build($deptId, $from->toDateString(), $to->toDateString(), $dept?->name ?? '');
+-        $name = 'svodka_' . ($dept?->code ?: $deptId) . '_' . $from->format('Y-m-d') . ($from->eq($to) ? '' : '_' . $to->format('Y-m-d'));
++        $name = 'jamlanma_hisobot_' . ($dept?->code ?: $deptId) . '_' . $from->format('Y-m-d') . ($from->eq($to) ? '' : '_' . $to->format('Y-m-d'));
+ 
+         return response()->download($path, preg_replace('/[^\w\-\.]+/u', '_', $name) . '.xlsx', [
+             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+diff --git a/app/Http/Controllers/Api/Svodka/ResultAnalysisController.php b/app/Http/Controllers/Api/Svodka/ResultAnalysisController.php
+index 3845dd1..16b82da 100644
+--- a/app/Http/Controllers/Api/Svodka/ResultAnalysisController.php
++++ b/app/Http/Controllers/Api/Svodka/ResultAnalysisController.php
+@@ -29,7 +29,7 @@ class ResultAnalysisController extends Controller
+     private function guard(Request $request): void
+     {
+         $u = $request->user();
+-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
++        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
+         abort_if(! $u || $this->portal->isPortalUser($u), 403, 'Natijalar tahlili faqat laboratoriya rahbariyatiga ochiq');
+         abort_unless($u->isAdmin() || $u->hasPermission(self::PERMISSION) || $this->svc->isViewer($u), 403,
+             "Natijalar tahlili faqat laboratoriya rahbariyatiga ochiq — ruxsatni admin beradi");
+diff --git a/app/Http/Controllers/Api/Svodka/SvodkaReleaseController.php b/app/Http/Controllers/Api/Svodka/SvodkaReleaseController.php
+index f49d94b..a91428b 100644
+--- a/app/Http/Controllers/Api/Svodka/SvodkaReleaseController.php
++++ b/app/Http/Controllers/Api/Svodka/SvodkaReleaseController.php
+@@ -34,7 +34,7 @@ class SvodkaReleaseController extends Controller
+ 
+     public function departments(Request $request)
+     {
+-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
++        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
+         $user = $request->user();
+         $canManage = $user->hasPermission('customer_departments.manage');
+         $canRelease = $user->hasPermission(SvodkaService::RELEASE_PERMISSION);
+@@ -63,7 +63,7 @@ class SvodkaReleaseController extends Controller
+ 
+     public function updateSettings(Request $request, int $department)
+     {
+-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
++        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
+         $dept = CustomerDepartment::findOrFail($department);
+         $time = ['required', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'];
+         $data = $request->validate([
+@@ -81,7 +81,7 @@ class SvodkaReleaseController extends Controller
+         try {
+             ActivityLog::create([
+                 'user_id' => $request->user()->id, 'action' => 'updated', 'model_type' => 'SvodkaSetting', 'model_id' => $s->id,
+-                'description' => "Svodka sozlamasi: {$dept->name} — " . ($s->enabled ? 'yoqilgan' : "o'chirilgan") . ", chiqarish: " . ($s->release_mode === 'shift' ? 'navbatchilik' : 'sutka'),
++                'description' => "Jamlanma hisobot sozlamasi: {$dept->name} — " . ($s->enabled ? 'yoqilgan' : "o'chirilgan") . ", chiqarish: " . ($s->release_mode === 'shift' ? 'navbatchilik' : 'sutka'),
+                 'properties' => $data, 'ip_address' => $request->ip(), 'created_at' => now(),
+             ]);
+         } catch (Throwable $e) {
+@@ -94,9 +94,9 @@ class SvodkaReleaseController extends Controller
+ 
+     private function enabledDept(Request $request): int
+     {
+-        abort_unless($this->svc->available(), 404, "Svodka moduli o'rnatilmagan");
++        abort_unless($this->svc->available(), 404, "Jamlanma hisobot moduli o'rnatilmagan");
+         $id = (int) $request->input('department_id');
+-        abort_unless($id && $this->svc->enabled($id), 422, "Bu bo'lim uchun svodka rejimi yoqilmagan");
++        abort_unless($id && $this->svc->enabled($id), 422, "Bu bo'lim uchun jamlanma hisobot rejimi yoqilmagan");
+ 
+         return $id;
+     }
+@@ -194,7 +194,7 @@ class SvodkaReleaseController extends Controller
+ 
+     private function adminOnly(Request $request): void
+     {
+-        abort_unless($request->user()?->isAdmin(), 403, "Svodkani ko'ruvchilarni faqat administrator belgilaydi");
++        abort_unless($request->user()?->isAdmin(), 403, "Jamlanma hisobotni ko'ruvchilarni faqat administrator belgilaydi");
+     }
+ 
+     private function viewersData(): array
+@@ -228,7 +228,7 @@ class SvodkaReleaseController extends Controller
+         $this->adminOnly($request);
+         $data = $request->validate(['user_id' => ['required', 'integer', 'exists:users,id']]);
+         $u = User::findOrFail((int) $data['user_id']);
+-        abort_if(app(\App\Services\Samples\CustomerPortal::class)->isPortalUser($u), 422, "Buyurtmachi foydalanuvchisi o'z svodkasini allaqachon ko'radi");
++        abort_if(app(\App\Services\Samples\CustomerPortal::class)->isPortalUser($u), 422, "Buyurtmachi foydalanuvchisi o'z jamlanma hisobotini allaqachon ko'radi");
+         if (! DB::table('svodka_viewers')->where('user_id', $u->id)->exists()) {
+             DB::table('svodka_viewers')->insert(['user_id' => $u->id, 'granted_by' => $request->user()->id, 'created_at' => now(), 'updated_at' => now()]);
+             $this->logViewer($request, $u, true);
+@@ -253,7 +253,7 @@ class SvodkaReleaseController extends Controller
+         try {
+             \App\Models\ActivityLog::create([
+                 'user_id' => $request->user()->id, 'action' => 'updated', 'model_type' => 'User', 'model_id' => $u->id,
+-                'description' => ($on ? "Svodkani ko'rish berildi: " : "Svodkani ko'rish olib tashlandi: ") . "{$u->name} ({$u->username})",
++                'description' => ($on ? "Jamlanma hisobotni ko'rish berildi: " : "Jamlanma hisobotni ko'rish olib tashlandi: ") . "{$u->name} ({$u->username})",
+                 'created_at' => now(),
+             ]);
+         } catch (\Throwable $e) {
+diff --git a/app/Models/PortalRequestTemplate.php b/app/Models/PortalRequestTemplate.php
+new file mode 100644
+index 0000000..6c8f576
+--- /dev/null
++++ b/app/Models/PortalRequestTemplate.php
+@@ -0,0 +1,26 @@
++<?php
++
++namespace App\Models;
++
++use Illuminate\Database\Eloquent\Model;
++
++/**
++ * [Paket 33] Buyurtmachi bo'linmasining buyurtma shablonlari.
++ * Shablon faqat o'z bo'linmasiga ko'rinadi (boshqa bo'linma o'zi uchun yaratadi).
++ * payload — JSON: laboratory_group_id, delivery_shift_id, contact_name, contact_phone, notes, items[].
++ */
++class PortalRequestTemplate extends Model
++{
++    protected $fillable = ['customer_department_id', 'name', 'sort_order', 'payload', 'created_by', 'updated_by'];
++
++    protected $casts = [
++        'customer_department_id' => 'integer',
++        'sort_order'             => 'integer',
++        'payload'                => 'array',
++    ];
++
++    public function department()
++    {
++        return $this->belongsTo(CustomerDepartment::class, 'customer_department_id');
++    }
++}
+diff --git a/app/Models/Sample.php b/app/Models/Sample.php
+index 8a86555..f04d51a 100644
+--- a/app/Models/Sample.php
++++ b/app/Models/Sample.php
+@@ -96,4 +96,10 @@ class Sample extends Model
+         }
+         $this->save();
+     }
++
++    /** [P33] Namunani qabul qilib olgan laboratoriya xodimi */
++    public function receivedBy(): \Illuminate\Database\Eloquent\Relations\BelongsTo
++    {
++        return $this->belongsTo(User::class, 'received_by')->withTrashed();
++    }
+ }
+diff --git a/app/Models/SampleRequest.php b/app/Models/SampleRequest.php
+index 0a32634..6dbd36c 100644
+--- a/app/Models/SampleRequest.php
++++ b/app/Models/SampleRequest.php
+@@ -22,6 +22,7 @@ class SampleRequest extends Model
+         'delivery_shift_id', 'delivery_shift', // [P28] qaysi smenada olib kelinadi
+         'svodka_date', 'svodka_shift',          // [P29] namuna olingan sana va navbatchilik (buyurtmachi svodkasi uchun)
+         'laboratory_group_id',                  // [P30] buyurtmachi tanlagan laboratoriya guruhi
++        'handed_over_phone',                    // [P33] olib kelgan shaxs telefoni (qabulda)
+     ];
+ 
+     // SQL Server butun sonlarni satr qilib qaytaradi — JSON'da doim son bo'lsin
+diff --git a/app/Services/Samples/SampleIntake.php b/app/Services/Samples/SampleIntake.php
+index fa172e7..c0ff91d 100644
+--- a/app/Services/Samples/SampleIntake.php
++++ b/app/Services/Samples/SampleIntake.php
+@@ -22,38 +22,56 @@ use Illuminate\Validation\Rule;
+ class SampleIntake
+ {
+     // [P24] handed_over_by — namunani topshirgan shaxs (reyestr: «topshirgan FIO»)
+-    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit', 'handed_over_by'];
++    // [P33] received_by — namunani qabul qilib olgan laboratoriya xodimi (ro'yxatdan tanlanadi)
++    public const FIELDS = ['customer_department_id', 'customer_code', 'received_quantity', 'quantity_unit', 'handed_over_by', 'received_by'];
+ 
+     public static function rules(?Sample $ignore = null): array
+     {
+         return [
+             'customer_department_id' => ['nullable', 'integer',
+                 Rule::exists('customer_departments', 'id')->whereNull('deleted_at')],
+-            'customer_code'          => ['nullable', 'string', 'max:64', function ($attribute, $value, $fail) use ($ignore) {
+-                $value = trim((string) $value);
+-                $dept = request()->input('customer_department_id');
+-                if ($value === '' || ! $dept) {
+-                    return;
+-                }
+-                // [P26] Bo'lim shifri har oy qaytadan boshlanishi mumkin (908 — oktyabrda ham, noyabrda ham).
+-                // Takror faqat SHU OYDA taqiqlanadi: bitta bo'limning shu oydagi faol (arxivlanmagan) probalari ichida.
+-                // Oy — probaning ro'yxatga olingan oyi (period_month): yangi proba uchun joriy oy,
+-                // tahrirlashda — probaning o'z oyi.
+-                $period = $ignore?->period_month ?: now()->format('Y-m');
+-                // [P30] guruh tanlangan bo'lsa — takror faqat shu guruh ichida taqiqlanadi
+-                $group = request()->has('assigned_group_id') ? request()->input('assigned_group_id') : $ignore?->assigned_group_id;
+-                $group = $group ? (int) $group : null;
+-                $dup = self::duplicateCode((int) $dept, $value, $period, $group, $ignore?->id);
+-                if ($dup) {
+-                    $fail(self::duplicateMessage($value, $period, $dup, $group));
+-                }
+-            }],
++            // [P33] shifr cheklovsiz takrorlanadi (har kuni bir xil nuqta — bir xil shifr). Probani laboratoriya
++            // raqami (PR-YYYYMM-NNNN) ajratib turadi. duplicateCode() endi faqat ogohlantirish uchun ishlatiladi.
++            'customer_code'          => ['nullable', 'string', 'max:64'],
+             'received_quantity'      => ['nullable', 'numeric', 'gt:0', 'max:9999999999'],
+             'quantity_unit'          => ['nullable', Rule::in(QuantityUnit::UNITS)],
+             'handed_over_by'         => ['nullable', 'string', 'max:191'],
++            'received_by'            => ['nullable', 'integer', function ($attribute, $value, $fail) {
++                if ($value && ! self::isReceiver((int) $value, request()->user())) {
++                    $fail("Qabul qilib olgan xodim ro'yxatda yo'q");
++                }
++            }],
+         ];
+     }
+ 
++    /**
++     * [P33] «Kim qabul qilib oldi» ro'yxati: faol laboratoriya xodimlari (buyurtmachi hisoblari emas).
++     * Xodim laboratoriyaga biriktirilgan bo'lsa — o'sha laboratoriya xodimlari (laboratoriyasiz admin ham).
++     *
++     * @return array<int, array{id:int, name:string, position:?string}>
++     */
++    public static function receivers(?\App\Models\User $for): array
++    {
++        $portal = app(CustomerPortal::class);
++        $labId = $for?->laboratory_id ? (int) $for->laboratory_id : null;
++
++        return \App\Models\User::query()
++            ->with('role.permissions')
++            ->where('is_active', true)
++            ->when($labId, fn ($q) => $q->where(fn ($w) => $w->where('laboratory_id', $labId)->orWhereNull('laboratory_id')))
++            ->orderBy('name')
++            ->get(['id', 'name', 'position', 'role_id', 'laboratory_id'])
++            ->filter(fn ($u) => ! $portal->isPortalUser($u) && ($u->isAdmin() || $u->hasPermission('samples.view')))
++            ->map(fn ($u) => ['id' => (int) $u->id, 'name' => (string) $u->name, 'position' => $u->position])
++            ->values()
++            ->all();
++    }
++
++    public static function isReceiver(int $userId, ?\App\Models\User $for): bool
++    {
++        return in_array($userId, array_column(self::receivers($for), 'id'), true);
++    }
++
+     /**
+      * [P26] Shu bo'limning shu oydagi faol probasida bunday shifr bormi.
+      * [P30] Guruh berilsa — faqat shu guruhga biriktirilgan probalar ichida (bir xil namunalar turli guruhlarga
+@@ -107,6 +125,13 @@ class SampleIntake
+                 $attrs['handed_over_by'] = trim((string) $attrs['handed_over_by']) ?: null;
+             }
+         }
++        if (array_key_exists('received_by', $attrs)) { // [P33]
++            if (! \Illuminate\Support\Facades\Schema::hasColumn('samples', 'received_by')) {
++                unset($attrs['received_by']);
++            } elseif ($attrs['received_by'] !== null) {
++                $attrs['received_by'] = (int) $attrs['received_by'] ?: null;
++            }
++        }
+         if (! $attrs) {
+             return $sample;
+         }
+diff --git a/app/Services/Samples/SampleRequests.php b/app/Services/Samples/SampleRequests.php
+index 30472c4..0bb8650 100644
+--- a/app/Services/Samples/SampleRequests.php
++++ b/app/Services/Samples/SampleRequests.php
+@@ -355,7 +355,6 @@ class SampleRequests
+ 
+         // Tekshiruv: hammasi yozishdan OLDIN — xato bo'lsa hech narsa yaratilmaydi
+         $plan = [];
+-        $seenCodes = [];
+         foreach ($rows as $i => $row) {
+             $item = $pending->get((int) ($row['id'] ?? 0));
+             if (! $item) {
+@@ -379,21 +378,7 @@ class SampleRequests
+             // [P30] guruh: qabulda tanlanmasa — buyurtmachi tanlagan guruh
+             $group = ($row['assigned_group_id'] ?? null) ?: ($request->laboratory_group_id ?: null);
+             $code = trim((string) ($row['customer_code'] ?? $item->customer_code ?? ''));
+-            if ($code !== '') {
+-                if (isset($seenCodes[$code])) {
+-                    $errors["items.$i.customer_code"][] = "«{$code}» shifri bu qabulda takrorlangan";
+-                }
+-                $seenCodes[$code] = true;
+-                // [P26] shifr har oy qaytalanishi mumkin — takror faqat shu oyda (qabul oyi) taqiqlanadi
+-                // [P30] va faqat SHU GURUHDA: bir xil namunalar turli guruhlarga (masalan, Bo'tana va
+-                // Bo'tana quruq faza) bir xil shifr bilan yuborilishi mumkin
+-                $period = now()->format('Y-m');
+-                $dup = SampleIntake::duplicateCode((int) $request->customer_department_id, $code, $period, $group ? (int) $group : null);
+-                if ($dup) {
+-                    $errors["items.$i.customer_code"][] = SampleIntake::duplicateMessage($code, $period, $dup, $group ? (int) $group : null);
+-                }
+-            }
+-
++            // [P33] shifr takrorlanishi taqiqlanmaydi (na shu qabulda, na shu oyda) — interfeys faqat ogohlantiradi
+             $number = trim((string) ($row['sample_number'] ?? ''));
+             if ($number === '') {
+                 $number = $code !== '' ? $code : "{$request->number}-{$item->position}";
+@@ -434,8 +419,17 @@ class SampleRequests
+         $handedOver = trim((string) ($data['handed_over_by'] ?? '')) ?: ($request->contact_name ?: null);
+         $handedOver = $handedOver ? mb_substr($handedOver, 0, 191) : null;
+ 
++        // [P33] olib kelgan shaxs telefoni (buyurtmadagi telefon — taklif) va qabul qilib olgan xodim (ro'yxatdan)
++        $handedPhone = trim((string) ($data['handed_over_phone'] ?? '')) ?: ($request->contact_phone ?: null);
++        $handedPhone = $handedPhone ? mb_substr($handedPhone, 0, 64) : null;
++        $receiverId = (int) ($data['received_by'] ?? 0) ?: (int) $user->id;
++        if ($receiverId !== (int) $user->id && ! SampleIntake::isReceiver($receiverId, $user)) {
++            throw ValidationException::withMessages(['received_by' => ["Qabul qilib olgan xodim ro'yxatda yo'q"]]);
++        }
++        $hasPhone = \Illuminate\Support\Facades\Schema::hasColumn('sample_requests', 'handed_over_phone');
++
+         // Bir vaqtda ikki laborant qabul qilsa — proba shifri to'qnashadi, qayta urinamiz
+-        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver) {
++        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver, $handedPhone, $receiverId, $hasPhone) {
+             $now = now();
+             $created = [];
+             foreach ($plan as $p) {
+@@ -466,6 +460,7 @@ class SampleRequests
+                     'received_quantity'      => $p['qty'],
+                     'quantity_unit'          => $p['qty'] !== null ? $p['unit'] : null,
+                     'handed_over_by'         => $handedOver,
++                    'received_by'            => $receiverId, // [P33]
+                 ]);
+                 if ($p['gcode'] !== null) {
+                     $sample->forceFill(['group_code' => $p['gcode']])->save(); // [P30] guruh shifri probaga
+@@ -489,13 +484,15 @@ class SampleRequests
+             $request->forceFill([
+                 'status'         => $left ? 'partial' : 'received',
+                 'received_at'    => $request->received_at ?: $now,
+-                'received_by'    => $request->received_by ?: $user->id,
++                'received_by'    => $request->received_by ?: $receiverId, // [P33] tanlangan xodim
+                 'handed_over_by' => $handedOver ?? $request->handed_over_by,
+                 'closed_at'      => $left ? null : $now,
+                 'closed_by'      => $left ? null : $user->id,
+                 'updated_by'     => $user->id,
+-            ])->save();
+-            $this->log('updated', $request, "Buyurtma bo'yicha namuna qabul qilindi: {$request->number} (" . count($created) . ' ta)', $user);
++            ] + ($hasPhone ? ['handed_over_phone' => $handedPhone ?? $request->handed_over_phone] : []))->save();
++            $this->log('updated', $request, "Buyurtma bo'yicha namuna qabul qilindi: {$request->number} (" . count($created) . ' ta)'
++                . ($handedOver ? "; olib keldi: {$handedOver}" : '')
++                . '; qabul qilib oldi: ' . (\App\Models\User::find($receiverId)?->name ?? "#$receiverId"), $user);
+ 
+             return $created;
+         }));
+@@ -537,7 +534,7 @@ class SampleRequests
+         }
+     }
+ 
+-    /** Yuborishdan oldin: kamida bitta namuna, har birida aniqlanadigan ko'rsatkich, shifrlar takrorlanmasin */
++    /** Yuborishdan oldin: kamida bitta namuna, har birida aniqlanadigan ko'rsatkich */
+     private function assertComplete(SampleRequest $request): void
+     {
+         $errors = [];
+@@ -557,17 +554,11 @@ class SampleRequests
+                 $errors['laboratory_group_id'][] = 'Tanlangan guruh faol emas — boshqasini tanlang';
+             }
+         }
+-        $codes = [];
+         foreach ($request->items as $i => $item) {
+             if (! $item->resolvedElementIds()) {
+                 $errors["items.$i.element_ids"][] = "{$item->position}-namuna: nimani aniqlash kerakligini tanlang";
+             }
+-            if ($item->customer_code !== null) {
+-                if (isset($codes[$item->customer_code])) {
+-                    $errors["items.$i.customer_code"][] = "«{$item->customer_code}» shifri takrorlangan";
+-                }
+-                $codes[$item->customer_code] = true;
+-            }
++            // [P33] bir buyurtmada takrorlangan shifr — xato emas (formada ogohlantirish chiqadi)
+         }
+         if ($errors) {
+             throw ValidationException::withMessages($errors);
+@@ -735,6 +726,7 @@ class SampleRequests
+             'received_at'    => $r->received_at?->toDateTimeString(),
+             'received_by'    => $r->receiver?->name,
+             'handed_over_by' => $r->handed_over_by,
++            'handed_over_phone' => $r->getAttribute('handed_over_phone'), // [P33]
+             'closed_at'      => $r->closed_at?->toDateTimeString(),
+             'closed_by'      => $r->closer?->name,
+             'close_reason'   => $r->close_reason,
+diff --git a/app/Services/Svodka/SvodkaService.php b/app/Services/Svodka/SvodkaService.php
+index 83c7ade..0d043da 100644
+--- a/app/Services/Svodka/SvodkaService.php
++++ b/app/Services/Svodka/SvodkaService.php
+@@ -309,7 +309,7 @@ class SvodkaService
+     {
+         $set = $this->settings($deptId);
+         if (! $set->enabled) {
+-            throw ValidationException::withMessages(['department_id' => ["Bu bo'lim uchun svodka rejimi yoqilmagan"]]);
++            throw ValidationException::withMessages(['department_id' => ["Bu bo'lim uchun jamlanma hisobot rejimi yoqilmagan"]]);
+         }
+         $expected = $set->release_mode === 'shift';
+         if ($expected && ! in_array($shift, [1, 2], true)) {
+@@ -427,7 +427,7 @@ class SvodkaService
+             $rev = ($st['release']['revision'] ?? 0) + 1;
+             $dept = DB::table('customer_departments')->where('id', $deptId)->value('name');
+             $when = Carbon::parse($m['date'])->format('d.m.Y') . ($shift ? ' · ' . ($shift === 1 ? $set->shift1_label : $set->shift2_label) : '');
+-            $title = $st['release'] ? "Svodka: yangi/tuzatilgan natija — {$dept}" : "Svodka tayyor — {$dept}";
++            $title = $st['release'] ? "Jamlanma hisobot: yangi/tuzatilgan natija — {$dept}" : "Jamlanma hisobot tayyor — {$dept}";
+             // ruxsati rol orqali berilganlar (boshliqlar); hech kim bo'lmasa — administratorlar
+             $portal = app(\App\Services\Samples\CustomerPortal::class);
+             $users = User::where('is_active', true)->get()->filter(fn ($u) => ! $u->isAdmin() && ! $portal->isPortalUser($u) && $u->hasPermission(self::RELEASE_PERMISSION));
+@@ -460,8 +460,8 @@ class SvodkaService
+                     ['dedup_key' => "svodka-released-{$rel->id}-{$u->id}"],
+                     [
+                         'user_id' => $u->id, 'type' => 'sample', 'level' => 'success',
+-                        'title' => 'Svodka tayyor: ' . $when . ($rel->revision > 1 ? " ({$rel->revision}-tahrir)" : ''),
+-                        'body' => "Laboratoriya natijalarni tasdiqladi — «Svodka» sahifasida ko'rish va Excel'ga yuklab olish mumkin.",
++                        'title' => 'Jamlanma hisobot tayyor: ' . $when . ($rel->revision > 1 ? " ({$rel->revision}-tahrir)" : ''),
++                        'body' => "Laboratoriya natijalarni tasdiqladi — «Jamlanma hisobot» sahifasida ko'rish va Excel'ga yuklab olish mumkin.",
+                         'link_route' => 'portal-svodka', 'link_id' => $rel->id,
+                     ]
+                 );
+@@ -476,7 +476,7 @@ class SvodkaService
+         try {
+             \App\Models\ActivityLog::create([
+                 'user_id' => $user->id, 'action' => 'created', 'model_type' => 'SvodkaRelease', 'model_id' => $rel->id,
+-                'description' => "Svodka chiqarildi: bo'lim #{$rel->customer_department_id}, " . $rel->production_date->format('d.m.Y')
++                'description' => "Jamlanma hisobot chiqarildi: bo'lim #{$rel->customer_department_id}, " . $rel->production_date->format('d.m.Y')
+                     . ($rel->shift ? " ({$rel->shift}-navbatchilik)" : ' (sutka)') . ", {$rel->revision}-tahrir, {$rel->samples_count} namuna, {$rel->values_count} qiymat",
+                 'properties' => null, 'ip_address' => request()?->ip(), 'created_at' => now(),
+             ]);
+diff --git a/app/Services/Svodka/SvodkaXlsx.php b/app/Services/Svodka/SvodkaXlsx.php
+index 801924a..a9c3594 100644
+--- a/app/Services/Svodka/SvodkaXlsx.php
++++ b/app/Services/Svodka/SvodkaXlsx.php
+@@ -78,7 +78,7 @@ class SvodkaXlsx
+             throw new RuntimeException('PHP zip kengaytmasi yoqilmagan');
+         }
+         if (! $this->sheets) {
+-            $this->sheet('Svodka');
++            $this->sheet('Jamlanma hisobot');
+         }
+         $path ??= tempnam(sys_get_temp_dir(), 'svx');
+         $zip = new ZipArchive();
+diff --git a/database/migrations/2026_11_11_100000_portal_templates_and_receipt_fields.php b/database/migrations/2026_11_11_100000_portal_templates_and_receipt_fields.php
+new file mode 100644
+index 0000000..8e522d7
+--- /dev/null
++++ b/database/migrations/2026_11_11_100000_portal_templates_and_receipt_fields.php
+@@ -0,0 +1,60 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Schema;
++
++/**
++ * [Paket 33]
++ *   portal_request_templates     — buyurtmachi bo'linmasining buyurtma shablonlari (faqat shu bo'linma ko'radi)
++ *   sample_requests.handed_over_phone — namunani olib kelgan shaxsning telefoni (qabulda)
++ *   samples.received_by          — namunani qabul qilib olgan laboratoriya xodimi (ro'yxatdan tanlanadi)
++ *
++ * Qayta ishga tushirish xavfsiz: har bir qism faqat yo'q bo'lsa qo'shiladi. Mavjud ma'lumotga tegilmaydi.
++ */
++return new class extends Migration
++{
++    public function up(): void
++    {
++        if (! Schema::hasTable('portal_request_templates')) {
++            Schema::create('portal_request_templates', function (Blueprint $table) {
++                $table->id();
++                $table->unsignedBigInteger('customer_department_id')->index();
++                $table->string('name', 120);
++                $table->integer('sort_order')->default(0);
++                $table->text('payload')->nullable();               // JSON: sarlavha maydonlari + namunalar
++                $table->unsignedBigInteger('created_by')->nullable();
++                $table->unsignedBigInteger('updated_by')->nullable();
++                $table->timestamps();
++            });
++        }
++
++        if (Schema::hasTable('sample_requests') && ! Schema::hasColumn('sample_requests', 'handed_over_phone')) {
++            Schema::table('sample_requests', function (Blueprint $table) {
++                $table->string('handed_over_phone', 64)->nullable();
++            });
++        }
++
++        if (Schema::hasTable('samples') && ! Schema::hasColumn('samples', 'received_by')) {
++            Schema::table('samples', function (Blueprint $table) {
++                $table->unsignedBigInteger('received_by')->nullable()->index();
++            });
++        }
++    }
++
++    public function down(): void
++    {
++        if (Schema::hasColumn('samples', 'received_by')) {
++            Schema::table('samples', function (Blueprint $table) {
++                $table->dropIndex(['received_by']);
++                $table->dropColumn('received_by');
++            });
++        }
++        if (Schema::hasColumn('sample_requests', 'handed_over_phone')) {
++            Schema::table('sample_requests', function (Blueprint $table) {
++                $table->dropColumn('handed_over_phone');
++            });
++        }
++        Schema::dropIfExists('portal_request_templates');
++    }
++};
+diff --git a/database/seeders/SvodkaModuleSeeder.php b/database/seeders/SvodkaModuleSeeder.php
+index 19b63c5..19d7cdb 100644
+--- a/database/seeders/SvodkaModuleSeeder.php
++++ b/database/seeders/SvodkaModuleSeeder.php
+@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
+  *  - [P32] ruxsat results.analysis — «Natijalar tahlili» (laboratoriya boshlig'iga, faqat yangi yaratilganda);
+  *    eski «AI tahlil» menyu bandi (suv/havo kuzatuvlari) yangi sahifaga yo'naltiriladi — faqat admin uni
+  *    o'zgartirmagan bo'lsa (yo'li hali «ai-analysis»); bo'lmasa yangi band yaratiladi
++ *  - [P33] menyu «Shablonlarim» (buyurtmachi, portal.request); o'zbekcha nomlar «Svodka» → «Jamlanma hisobot»
++ *    (faqat eski standart nom turgan bo'lsa)
+  *  - svodka rejimi har bo'lim uchun alohida yoqiladi: «Svodkalar» → bo'lim → Sozlama (customer_departments.manage)
+  */
+ class SvodkaModuleSeeder extends Seeder
+@@ -31,7 +33,7 @@ class SvodkaModuleSeeder extends Seeder
+                 'ability'    => 'release',
+                 'group'      => 'lab',
+                 'label_ru'   => 'Сводка заказчика — Выпуск (без изменения результатов)',
+-                'label_uz'   => "Buyurtmachi svodkasi — Chiqarish (natijalarni o'zgartirmasdan)",
++                'label_uz'   => "Buyurtmachi jamlanma hisoboti — Chiqarish (natijalarni o'zgartirmasdan)",
+                 'label_en'   => 'Customer summary — Release (results cannot be changed)',
+                 'sort_order' => (int) Permission::max('sort_order') + 1,
+             ]);
+@@ -45,12 +47,12 @@ class SvodkaModuleSeeder extends Seeder
+                 'ability'    => 'view',
+                 'group'      => 'lab',
+                 'label_ru'   => 'Сводка заказчика — Просмотр (как заказчик, с названиями точек)',
+-                'label_uz'   => "Buyurtmachi svodkasi — Ko'rish (buyurtmachidek, nuqta nomlari bilan)",
++                'label_uz'   => "Buyurtmachi jamlanma hisoboti — Ko'rish (buyurtmachidek, nuqta nomlari bilan)",
+                 'label_en'   => 'Customer summary — View (as the customer, with point names)',
+                 'sort_order' => (int) Permission::max('sort_order') + 1,
+             ]);
+             MenuItem::firstOrCreate(['key' => 'svodka_view'], [
+-                'title_ru' => 'Сводки подразделений', 'title_uz' => "Bo'limlar svodkasi", 'title_en' => 'Department summaries',
++                'title_ru' => 'Сводки подразделений', 'title_uz' => "Bo'limlar jamlanma hisoboti", 'title_en' => 'Department summaries',
+                 'icon' => 'table', 'route' => 'portal-svodka', 'permission' => 'svodka.view',
+                 'parent_id' => null, 'sort_order' => 2, 'is_active' => true,
+             ]);
+@@ -83,15 +85,39 @@ class SvodkaModuleSeeder extends Seeder
+             }
+ 
+             MenuItem::firstOrCreate(['key' => 'portal_svodka'], [
+-                'title_ru' => 'Сводка', 'title_uz' => 'Svodka', 'title_en' => 'Summary',
++                'title_ru' => 'Сводка', 'title_uz' => 'Jamlanma hisobot', 'title_en' => 'Summary',
+                 'icon' => 'table', 'route' => 'portal-svodka', 'permission' => 'portal.view',
+                 'parent_id' => null, 'sort_order' => 1, 'is_active' => true,
+             ]);
+             MenuItem::firstOrCreate(['key' => 'svodka_releases'], [
+-                'title_ru' => 'Сводки заказчиков', 'title_uz' => 'Svodkalar', 'title_en' => 'Customer summaries',
++                'title_ru' => 'Сводки заказчиков', 'title_uz' => 'Jamlanma hisobotlar', 'title_en' => 'Customer summaries',
+                 'icon' => 'clipboard-check', 'route' => 'svodka-releases', 'permission' => 'svodka.release',
+                 'parent_id' => null, 'sort_order' => 2, 'is_active' => true,
+             ]);
++
++            // [P33] Buyurtmachi: «Shablonlarim» — bo'linma shablonlari (Buyurtmalarim dan keyin)
++            MenuItem::firstOrCreate(['key' => 'portal_templates'], [
++                'title_ru' => 'Мои шаблоны', 'title_uz' => 'Shablonlarim', 'title_en' => 'My templates',
++                'icon' => 'layout-template', 'route' => 'portal-templates', 'permission' => 'portal.request',
++                'parent_id' => null, 'sort_order' => 0, 'is_active' => true,
++            ]);
++
++            // [P33] O'zbekcha «Svodka» → «Jamlanma hisobot». Faqat eski standart nom turgan bo'lsa almashtiriladi —
++            // admin o'zi qo'ygan nomga tegilmaydi. Rus va ingliz nomlari o'zgarmaydi.
++            $rename = [
++                'portal_svodka'   => ['Svodka', 'Jamlanma hisobot'],
++                'svodka_releases' => ['Svodkalar', 'Jamlanma hisobotlar'],
++                'svodka_view'     => ["Bo'limlar svodkasi", "Bo'limlar jamlanma hisoboti"],
++            ];
++            foreach ($rename as $key => [$old, $new]) {
++                MenuItem::where('key', $key)->where('title_uz', $old)->update(['title_uz' => $new]);
++            }
++            foreach (['svodka.release', 'svodka.view'] as $perm) {
++                $row = Permission::where('name', $perm)->first();
++                if ($row && str_starts_with((string) $row->label_uz, 'Buyurtmachi svodkasi')) {
++                    $row->update(['label_uz' => 'Buyurtmachi jamlanma hisoboti' . substr($row->label_uz, strlen('Buyurtmachi svodkasi'))]);
++                }
++            }
+         });
+     }
+ }
+diff --git a/resources/js/modules/intake/components/SampleIntakePanel.vue b/resources/js/modules/intake/components/SampleIntakePanel.vue
+index 4268873..feaf31a 100644
+--- a/resources/js/modules/intake/components/SampleIntakePanel.vue
++++ b/resources/js/modules/intake/components/SampleIntakePanel.vue
+@@ -200,8 +200,9 @@ const kindSign = (m) => (m.delta > 0 ? '+' : '−')
+         <span v-if="intake.handed_over_by" class="text-ink-muted" data-handed>
+           {{ t('intake.panel.handedOverBy') }}: <b class="text-ink font-semibold">{{ intake.handed_over_by }}</b>
+         </span>
+-        <span v-if="intake.registered_by" class="text-[12.5px] text-ink-faint">
+-          {{ t('intake.panel.receivedBy') }}: {{ intake.registered_by }}, {{ formatDateTime(intake.registered_at) }}
++        <!-- [P33] qabul qilib olgan xodim (tanlangan); bo'lmasa — ro'yxatga olgan xodim -->
++        <span v-if="intake.received_by || intake.registered_by" class="text-[12.5px] text-ink-faint" data-received-by>
++          {{ t('intake.panel.receivedBy') }}: {{ intake.received_by || intake.registered_by }}, {{ formatDateTime(intake.registered_at) }}
+         </span>
+       </div>
+ 
+diff --git a/resources/js/modules/intake/guard.js b/resources/js/modules/intake/guard.js
+index e38b3b2..9ab1155 100644
+--- a/resources/js/modules/intake/guard.js
++++ b/resources/js/modules/intake/guard.js
+@@ -11,6 +11,7 @@ export const PORTAL_PAGES = [
+   'portal', 'portal-sample', 'profile', 'forbidden', 'not-found', 'login',
+   'portal-requests', 'portal-request-new', 'portal-request', // [P24] Buyurtmalarim
+   'portal-svodka', // [P29] Svodka
++  'portal-templates', 'portal-template-new', 'portal-template', // [P33] Shablonlarim
+ ]
+ 
+ export function isPortalUser(user) {
+diff --git a/resources/js/modules/intake/requests/components/RequestForm.vue b/resources/js/modules/intake/requests/components/RequestForm.vue
+index 72c4dad..692ac33 100644
+--- a/resources/js/modules/intake/requests/components/RequestForm.vue
++++ b/resources/js/modules/intake/requests/components/RequestForm.vue
+@@ -17,10 +17,22 @@ const props = defineProps({
+   errors: { type: Object, default: () => ({}) },
+   showDepartment: { type: Boolean, default: true },
+   fresh: { type: Boolean, default: false },     // [P29] yangi buyurtma (tahrirlash uchun yuklash emas)
++  templateMode: { type: Boolean, default: false }, // [P33] shablon tahriri: sanalar (olib kelish, svodka) yo'q
+ })
+ const { t, locale } = useI18n()
+ 
+ const err = (k) => fieldError(props.errors, k)
++
++/* [P33] Bir buyurtmada takrorlangan shifr — xato emas, faqat ogohlantirish (bir xil shifr turli guruh/nuqtaga) */
++const dupCodes = computed(() => {
++  const seen = {}
++  props.form.items.forEach((i) => {
++    const c = (i.customer_code || '').trim()
++    if (c) seen[c] = (seen[c] || 0) + 1
++  })
++  return seen
++})
++const isDup = (item) => (dupCodes.value[(item.customer_code || '').trim()] || 0) > 1
+ const groups = computed(() => props.options.groups ?? []) // [P30]
+ 
+ /* [P29] Svodka: bo'lim svodka rejimida bo'lsa — sana/navbatchilik va har namunaga nuqta (faqat buyurtmachiga keladi) */
+@@ -28,6 +40,10 @@ const sv = computed(() => props.options.svodka?.[props.form.department_id] ?? nu
+ const svPoints = computed(() => Object.fromEntries((sv.value?.sections ?? []).flatMap((s) => s.points.map((p) => [p.id, s]))))
+ watch(() => props.form.department_id, (v, old) => {
+   if (v === old || (!old && !props.fresh)) return   // tahrirlash uchun yuklash — tegilmaydi
++  if (props.templateMode) {                         // [P33] shablonda sana yo'q — faqat nuqtalar tozalanadi
++    if (old) props.form.items.forEach((i) => { i.svodka_point_id = '' })
++    return
++  }
+   const s = props.options.svodka?.[v]
+   if (old) props.form.items.forEach((i) => { i.svodka_point_id = '' })
+   if (old || !props.form.svodka_date) {
+@@ -89,7 +105,7 @@ function remove(i) {
+         <label class="field-label">{{ t('sreq.form.delivery') }}</label>
+         <!-- [P28] sana + smena -->
+         <div class="flex gap-2">
+-          <input v-model="form.delivery_date" type="date" class="field-input min-w-0 flex-1" data-f="delivery">
++          <input v-if="!templateMode" v-model="form.delivery_date" type="date" class="field-input min-w-0 flex-1" data-f="delivery">
+           <select
+             v-if="options.shifts?.length"
+             v-model="form.delivery_shift_id" class="field-input w-auto min-w-[200px]"
+@@ -116,7 +132,7 @@ function remove(i) {
+       </div>
+ 
+       <!-- [P29] Svodka: qaysi kun va navbatchilik (laboratoriya ko'rmaydi) -->
+-      <div v-if="sv" class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-end gap-x-4 gap-y-3 rounded-md border border-aqua-300/70 bg-aqua-50/50 dark:bg-aqua-800/15 px-3 py-3" data-svodka-head>
++      <div v-if="sv && !templateMode" class="sm:col-span-2 lg:col-span-4 flex flex-wrap items-end gap-x-4 gap-y-3 rounded-md border border-aqua-300/70 bg-aqua-50/50 dark:bg-aqua-800/15 px-3 py-3" data-svodka-head>
+         <div class="min-w-[220px] flex-1">
+           <p class="text-[13px] font-semibold text-ink">{{ t('svodka.form.title') }}</p>
+           <p class="flex items-center gap-1.5 text-[12px] text-ink-muted"><EyeOff :size="13" class="shrink-0" /> {{ t('svodka.form.hint') }}</p>
+@@ -167,6 +183,7 @@ function remove(i) {
+               :class="err(`items.${i}.customer_code`) && 'field-input-error'" :placeholder="t('sreq.form.codeHint')" data-f="code"
+             >
+             <p v-if="err(`items.${i}.customer_code`)" class="mt-1 text-[12px] text-crit">{{ err(`items.${i}.customer_code`) }}</p>
++            <p v-else-if="isDup(item)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
+             <!-- [P29] svodka nuqtasi — faqat buyurtmachiga -->
+             <template v-if="sv">
+               <label class="field-label lg:sr-only mt-2">{{ t('svodka.form.point') }}</label>
+diff --git a/resources/js/modules/intake/requests/components/RequestInfo.vue b/resources/js/modules/intake/requests/components/RequestInfo.vue
+index ae73c2a..0bdcc63 100644
+--- a/resources/js/modules/intake/requests/components/RequestInfo.vue
++++ b/resources/js/modules/intake/requests/components/RequestInfo.vue
+@@ -26,8 +26,9 @@ const rows = computed(() => [
+   r.value.svodka_date && [t('svodka.form.row'), [formatDate(r.value.svodka_date), r.value.svodka_shift_label].filter(Boolean).join(' · ')],
+   r.value.expires_at && ['submitted', 'expired'].includes(r.value.status) && [t('sreq.info.expires'), formatDate(r.value.expires_at)],
+   (r.value.contact_name || r.value.contact_phone) && [t('sreq.col.contact'), [r.value.contact_name, r.value.contact_phone].filter(Boolean).join(', ')],
++  // [P33] «Qabul qilindi: sana · kim qabul qilib oldi»; «Olib keldi: F.I.Sh., telefon»
+   r.value.received_at && [t('sreq.info.received'), `${formatDateTime(r.value.received_at)}${r.value.received_by ? ' · ' + r.value.received_by : ''}`],
+-  r.value.handed_over_by && [t('sreq.info.handedOver'), r.value.handed_over_by],
++  (r.value.handed_over_by || r.value.handed_over_phone) && [t('sreq.receive.handedOverBy'), [r.value.handed_over_by, r.value.handed_over_phone].filter(Boolean).join(', ')],
+   r.value.closed_at && ['rejected', 'cancelled'].includes(r.value.status) && [t('sreq.info.closed'), `${formatDateTime(r.value.closed_at)}${r.value.closed_by ? ' · ' + r.value.closed_by : ''}`],
+   r.value.notes && [t('sreq.form.notes'), r.value.notes],
+ ].filter(Boolean))
+diff --git a/resources/js/modules/intake/requests/components/TemplateBar.vue b/resources/js/modules/intake/requests/components/TemplateBar.vue
+new file mode 100644
+index 0000000..9021358
+--- /dev/null
++++ b/resources/js/modules/intake/requests/components/TemplateBar.vue
+@@ -0,0 +1,211 @@
++<script setup>
++/**
++ * [Paket 33] «Yangi buyurtma» tepasidagi shablon tugmalari (faqat buyurtmachi).
++ *   - tugma bosilsa forma shablon bo'yicha to'ladi; formada ma'lumot bo'lsa — «Almashtirish» yoki «Oxiriga qo'shish»;
++ *   - «Shablon sifatida saqlash» — joriy formadan yangi shablon (sanalarsiz);
++ *   - ?template=ID bilan ochilsa — shablon darhol qo'llanadi («Shablonlarim» → «Ishlatish»).
++ * form — RequestEditor'ning reactive formasi (joyida o'zgartiriladi).
++ */
++import { computed, nextTick, ref, watch } from 'vue'
++import { useRoute, useRouter } from 'vue-router'
++import { useI18n } from 'vue-i18n'
++import { LayoutTemplate, Save, Settings2 } from 'lucide-vue-next'
++import api from '@/lib/api'
++import BaseModal from '@/components/ui/BaseModal.vue'
++import { useUiStore } from '@/stores/ui'
++import { apiErrorMessage, blankItem, fieldError } from '../shared'
++import { templateFromForm } from '../templates'
++import '../i18n'
++import '../i18nP33'
++
++const props = defineProps({
++  form: { type: Object, required: true },
++  options: { type: Object, required: true },
++})
++const { t } = useI18n()
++const ui = useUiStore()
++const route = useRoute()
++const router = useRouter()
++
++const list = ref([])
++const loaded = ref(false)
++const choice = ref(null)        // qo'llash so'rovi: shablon
++const saveOpen = ref(false)
++const saveName = ref('')
++const saveErrors = ref({})
++const busy = ref(false)
++let autoApplied = false
++
++const dept = computed(() => Number(props.form.department_id) || null)
++const shown = computed(() => list.value.filter((x) => !dept.value || x.department_id === dept.value))
++
++async function load() {
++  try {
++    const { data } = await api.get('/portal/request-templates')
++    list.value = data.data ?? []
++  } catch {
++    list.value = []
++  } finally {
++    loaded.value = true
++  }
++  // «Shablonlarim» → «Ishlatish»: /portal/requests/new?template=ID
++  const want = Number(route.query.template)
++  if (want && !autoApplied) {
++    autoApplied = true
++    const tpl = list.value.find((x) => x.id === want)
++    if (tpl) {
++      if (dept.value !== tpl.department_id) {
++        props.form.department_id = tpl.department_id
++        await nextTick() // bo'lim kuzatuvchisi (svodka sanasi) avval ishlasin — keyin namunalar
++      }
++      apply(tpl, 'replace')
++    }
++    router.replace({ query: { ...route.query, template: undefined } })
++  }
++}
++load()
++
++/* ---------- qo'llash ---------- */
++
++function hasData() {
++  const f = props.form
++  if (f.items.length > 1) return true
++  return f.items.some((i) => (i.customer_code || '').trim() || i.element_ids?.length || i.test_profile_id
++    || (i.quantity !== '' && i.quantity !== null) || (i.notes || '').trim() || i.svodka_point_id || (i.group_code || '').trim())
++}
++
++function pick(tpl) {
++  if (hasData()) choice.value = tpl
++  else apply(tpl, 'replace')
++}
++
++const ids = (arr) => new Set((arr ?? []).map((x) => Number(x.id)))
++
++function apply(tpl, how) {
++  const p = tpl.payload ?? {}
++  const f = props.form
++  const elements = ids(props.options.elements)
++  const profiles = ids(props.options.profiles)
++  const groups = ids(props.options.groups)
++  const shifts = ids(props.options.shifts)
++  const sv = props.options.svodka?.[f.department_id] ?? props.options.svodka?.[tpl.department_id]
++  const points = new Set((sv?.sections ?? []).flatMap((s) => s.points.map((x) => Number(x.id))))
++  const units = props.options.units ?? ['g']
++
++  // sarlavha: almashtirishda — shablon qiymati (bo'lsa); qo'shishda — faqat bo'sh maydonlar to'ldiriladi
++  const head = (key, value, ok = true) => {
++    if (value === null || value === undefined || value === '' || !ok) return
++    if (how === 'replace' || !f[key]) f[key] = value
++  }
++  head('laboratory_group_id', p.laboratory_group_id, !groups.size || groups.has(Number(p.laboratory_group_id)))
++  head('delivery_shift_id', p.delivery_shift_id, shifts.has(Number(p.delivery_shift_id)))
++  head('contact_name', p.contact_name)
++  head('contact_phone', p.contact_phone)
++  head('notes', p.notes)
++
++  const items = (p.items ?? []).map((i) => blankItem({
++    customer_code: i.customer_code ?? '',
++    state_of_matter: i.state_of_matter || 'solid',
++    test_profile_id: i.test_profile_id && profiles.has(Number(i.test_profile_id)) ? i.test_profile_id : null,
++    element_ids: (i.element_ids ?? []).map(Number).filter((id) => elements.has(id)),
++    quantity: i.quantity ?? '',
++    quantity_unit: units.includes(i.quantity_unit) ? i.quantity_unit : (units[0] || 'g'),
++    notes: i.notes ?? '',
++    svodka_point_id: i.svodka_point_id && points.has(Number(i.svodka_point_id)) ? i.svodka_point_id : '',
++    group_code: i.group_code ?? '',
++  }))
++  if (how === 'replace') f.items.splice(0, f.items.length, ...items)
++  else {
++    // bitta bo'sh qator bo'lsa — uning o'rniga
++    if (!hasData()) f.items.splice(0, f.items.length)
++    f.items.push(...items)
++  }
++  choice.value = null
++  ui.success(t('sreq.tpl.applied', { name: tpl.name }))
++}
++
++/* ---------- shablon sifatida saqlash ---------- */
++
++function openSave() {
++  saveName.value = ''
++  saveErrors.value = {}
++  saveOpen.value = true
++}
++
++async function saveTemplate() {
++  busy.value = true
++  saveErrors.value = {}
++  try {
++    const { data } = await api.post('/portal/request-templates', {
++      department_id: props.form.department_id || null,
++      name: saveName.value.trim(),
++      payload: templateFromForm(props.form),
++    })
++    list.value.push(data)
++    saveOpen.value = false
++    ui.success(t('sreq.tpl.saved'))
++  } catch (e) {
++    saveErrors.value = e?.response?.data?.errors ?? {}
++    if (!Object.keys(saveErrors.value).length) ui.error(apiErrorMessage(e, t('sreq.tpl.loadError')))
++  } finally {
++    busy.value = false
++  }
++}
++
++const saveError = computed(() => fieldError(saveErrors.value, 'name') || fieldError(saveErrors.value, 'payload.items')
++  || fieldError(saveErrors.value, 'department_id'))
++
++watch(() => props.form.department_id, () => { choice.value = null })
++</script>
++
++<template>
++  <div class="panel mb-4 px-4 py-3 flex flex-wrap items-center gap-2" data-template-bar>
++    <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-muted mr-1">
++      <LayoutTemplate :size="15" class="text-assay-500" /> {{ t('sreq.tpl.bar') }}
++    </span>
++
++    <template v-if="shown.length">
++      <button
++        v-for="tpl in shown" :key="tpl.id" type="button"
++        class="inline-flex items-center gap-1.5 rounded-md border border-assay-300/70 bg-assay-50/60 dark:bg-assay-800/20 px-3 py-1.5 text-[13px] font-medium text-ink hover:border-assay-500 hover:bg-assay-50 dark:hover:bg-assay-800/40 transition-colors"
++        :title="t('sreq.tpl.items', { n: tpl.items_count })" :data-template="tpl.id" @click="pick(tpl)"
++      >
++        {{ tpl.name }} <span class="text-ink-faint tnum text-[12px]">{{ tpl.items_count }}</span>
++      </button>
++    </template>
++    <span v-else-if="loaded" class="text-[12.5px] text-ink-faint">{{ t('sreq.tpl.barEmpty') }}</span>
++
++    <span class="flex-1" />
++    <button type="button" class="btn-ghost btn-sm" data-save-template @click="openSave">
++      <Save :size="15" /> {{ t('sreq.tpl.saveAs') }}
++    </button>
++    <router-link :to="{ name: 'portal-templates' }" class="btn-ghost btn-sm" data-manage-templates>
++      <Settings2 :size="15" /> {{ t('sreq.tpl.manage') }}
++    </router-link>
++
++    <!-- Qo'llash: formada ma'lumot bor -->
++    <BaseModal :model-value="!!choice" :title="choice ? t('sreq.tpl.applyTitle', { name: choice.name }) : ''" size="sm" @update:model-value="!$event && (choice = null)">
++      <p class="text-[13.5px] leading-relaxed text-ink-muted">{{ t('sreq.tpl.applyBody') }}</p>
++      <template #footer>
++        <button class="btn-ghost" @click="choice = null">{{ t('common.cancel') }}</button>
++        <button class="btn-outline" data-apply-append @click="apply(choice, 'append')">{{ t('sreq.tpl.append') }}</button>
++        <button class="btn-primary" data-apply-replace @click="apply(choice, 'replace')">{{ t('sreq.tpl.replace') }}</button>
++      </template>
++    </BaseModal>
++
++    <!-- Shablon sifatida saqlash -->
++    <BaseModal v-model="saveOpen" :title="t('sreq.tpl.saveAsTitle')" size="sm">
++      <p class="text-[13px] leading-relaxed text-ink-muted mb-3">{{ t('sreq.tpl.saveAsBody') }}</p>
++      <label class="field-label">{{ t('sreq.tpl.name') }} *</label>
++      <input
++        v-model="saveName" class="field-input" maxlength="120" :placeholder="t('sreq.tpl.namePlaceholder')"
++        :class="saveError && 'field-input-error'" data-template-name @keyup.enter="saveName.trim() && saveTemplate()"
++      >
++      <p v-if="saveError" class="mt-1.5 text-[12.5px] text-crit">{{ saveError }}</p>
++      <template #footer>
++        <button class="btn-ghost" @click="saveOpen = false">{{ t('common.cancel') }}</button>
++        <button class="btn-primary" :disabled="busy || !saveName.trim()" data-template-save @click="saveTemplate">{{ t('sreq.tpl.save') }}</button>
++      </template>
++    </BaseModal>
++  </div>
++</template>
+diff --git a/resources/js/modules/intake/requests/i18nP33.js b/resources/js/modules/intake/requests/i18nP33.js
+new file mode 100644
+index 0000000..715ef6e
+--- /dev/null
++++ b/resources/js/modules/intake/requests/i18nP33.js
+@@ -0,0 +1,166 @@
++/**
++ * [Paket 33] Tarjimalar: shifr takrori ogohlantirishi, qabul (telefon, kim qabul qilib oldi),
++ * buyurtmachi shablonlari. requests/i18n.js ga tegmasdan qo'shiladi (mergeLocaleMessage — chuqur birlashtiradi).
++ */
++import { i18n } from '@/i18n'
++
++const uz = {
++  sreq: {
++    form: { dupCodeWarn: "Bu shifr shu buyurtmada takrorlangan — xato bo'lmasa, shundayligicha qoldiring" },
++    p33: {
++      handedHint: 'F.I.Sh.',
++      receivedBy: 'Kim qabul qilib oldi',
++      receivedByHint: 'Namunani qabul qilib olgan laboratoriya xodimi',
++    },
++    tpl: {
++      menu: 'Shablonlarim',
++      title: 'Shablonlarim',
++      hint: "Doimiy buyurtmalarni shablon qilib saqlang. «Yangi buyurtma» sahifasining tepasida shablon tugmalari chiqadi — bosilsa, forma shu shablon bo'yicha to'ladi, keyin xohlagancha o'zgartirasiz. Shablonlarni faqat sizning bo'linmangiz ko'radi.",
++      newBtn: 'Yangi shablon',
++      newTitle: 'Yangi shablon',
++      editTitle: 'Shablon: {name}',
++      name: 'Shablon nomi',
++      namePlaceholder: "Masalan: Kunduzgi smena — to'liq",
++      department: "Bo'lim",
++      items: '{n} ta namuna',
++      group: 'Guruh',
++      shift: 'Smena',
++      edit: 'Tahrirlash',
++      remove: "O'chirish",
++      moveUp: 'Yuqoriga',
++      moveDown: 'Pastga',
++      save: 'Saqlash',
++      back: 'Ortga',
++      empty: "Hali shablon yo'q",
++      emptyHint: "«Yangi shablon» tugmasini bosing yoki buyurtma formasida «Shablon sifatida saqlash» ni tanlang.",
++      readOnly: "Ko'rish rejimi — shablonlarni faqat buyurtmachi bo'linmasi vakillari o'zgartiradi.",
++      saved: 'Shablon saqlandi',
++      deleted: "Shablon o'chirildi",
++      deleteTitle: "Shablonni o'chirish",
++      deleteBody: "«{name}» shabloni o'chiriladi. Avval yuborilgan buyurtmalarga ta'sir qilmaydi.",
++      noDate: "Sana shablonga saqlanmaydi — har buyurtmada yangidan qo'yiladi.",
++      bar: 'Shablondan to\'ldirish:',
++      barEmpty: "Doimiy buyurtmalar uchun shablon yarating — forma bir bosishda to'ladi",
++      manage: 'Shablonlar',
++      applyTitle: 'Shablonni qo\'llash: {name}',
++      applyBody: "Formada allaqachon ma'lumot bor. Shablondagi namunalarni nima qilamiz?",
++      replace: 'Almashtirish',
++      append: "Oxiriga qo'shish",
++      applied: "«{name}» shabloni qo'llandi — kerak bo'lsa o'zgartiring",
++      saveAs: 'Shablon sifatida saqlash',
++      saveAsTitle: 'Shablon sifatida saqlash',
++      saveAsBody: "Joriy formadagi guruh, smena, kim olib keladi, izoh va namunalar shablonga saqlanadi (sanalarsiz).",
++      loadError: "Shablonlarni yuklab bo'lmadi",
++    },
++  },
++}
++
++const ru = {
++  sreq: {
++    form: { dupCodeWarn: 'Этот шифр повторяется в заявке — если это не ошибка, оставьте как есть' },
++    p33: {
++      handedHint: 'Ф.И.О.',
++      receivedBy: 'Кто принял',
++      receivedByHint: 'Сотрудник лаборатории, принявший пробу',
++    },
++    tpl: {
++      menu: 'Мои шаблоны',
++      title: 'Мои шаблоны',
++      hint: 'Сохраните постоянные заявки как шаблоны. На странице «Новая заявка» вверху появятся кнопки шаблонов — по нажатию форма заполнится по шаблону, затем её можно изменить. Шаблоны видит только ваше подразделение.',
++      newBtn: 'Новый шаблон',
++      newTitle: 'Новый шаблон',
++      editTitle: 'Шаблон: {name}',
++      name: 'Название шаблона',
++      namePlaceholder: 'Например: Дневная смена — полный',
++      department: 'Подразделение',
++      items: 'Проб: {n}',
++      group: 'Группа',
++      shift: 'Смена',
++      edit: 'Изменить',
++      remove: 'Удалить',
++      moveUp: 'Выше',
++      moveDown: 'Ниже',
++      save: 'Сохранить',
++      back: 'Назад',
++      empty: 'Шаблонов пока нет',
++      emptyHint: 'Нажмите «Новый шаблон» или выберите «Сохранить как шаблон» в форме заявки.',
++      readOnly: 'Режим просмотра — шаблоны изменяют только представители подразделения-заказчика.',
++      saved: 'Шаблон сохранён',
++      deleted: 'Шаблон удалён',
++      deleteTitle: 'Удалить шаблон',
++      deleteBody: 'Шаблон «{name}» будет удалён. На отправленные заявки это не влияет.',
++      noDate: 'Дата в шаблон не сохраняется — указывается в каждой заявке.',
++      bar: 'Заполнить по шаблону:',
++      barEmpty: 'Создайте шаблон для постоянных заявок — форма заполнится одним нажатием',
++      manage: 'Шаблоны',
++      applyTitle: 'Применить шаблон: {name}',
++      applyBody: 'В форме уже есть данные. Что сделать с пробами из шаблона?',
++      replace: 'Заменить',
++      append: 'Добавить в конец',
++      applied: 'Шаблон «{name}» применён — при необходимости измените',
++      saveAs: 'Сохранить как шаблон',
++      saveAsTitle: 'Сохранить как шаблон',
++      saveAsBody: 'В шаблон сохраняются группа, смена, кто доставит, примечание и пробы (без дат).',
++      loadError: 'Не удалось загрузить шаблоны',
++    },
++  },
++}
++
++const en = {
++  sreq: {
++    form: { dupCodeWarn: 'This code is repeated in the request — leave it if that is intended' },
++    p33: {
++      handedHint: 'Full name',
++      receivedBy: 'Received by',
++      receivedByHint: 'Laboratory employee who received the sample',
++    },
++    tpl: {
++      menu: 'My templates',
++      title: 'My templates',
++      hint: 'Save recurring requests as templates. Template buttons appear at the top of «New request» — one click fills the form, then you can change anything. Only your department sees its templates.',
++      newBtn: 'New template',
++      newTitle: 'New template',
++      editTitle: 'Template: {name}',
++      name: 'Template name',
++      namePlaceholder: 'e.g. Day shift — full',
++      department: 'Department',
++      items: '{n} samples',
++      group: 'Group',
++      shift: 'Shift',
++      edit: 'Edit',
++      remove: 'Delete',
++      moveUp: 'Move up',
++      moveDown: 'Move down',
++      save: 'Save',
++      back: 'Back',
++      empty: 'No templates yet',
++      emptyHint: 'Click «New template» or choose «Save as template» in the request form.',
++      readOnly: 'View mode — only customer department representatives change templates.',
++      saved: 'Template saved',
++      deleted: 'Template deleted',
++      deleteTitle: 'Delete template',
++      deleteBody: 'Template «{name}» will be deleted. Sent requests are not affected.',
++      noDate: 'Dates are not stored in a template — set them in each request.',
++      bar: 'Fill from template:',
++      barEmpty: 'Create a template for recurring requests — fill the form in one click',
++      manage: 'Templates',
++      applyTitle: 'Apply template: {name}',
++      applyBody: 'The form already has data. What to do with the template samples?',
++      replace: 'Replace',
++      append: 'Append',
++      applied: 'Template «{name}» applied — change anything you need',
++      saveAs: 'Save as template',
++      saveAsTitle: 'Save as template',
++      saveAsBody: 'Group, shift, courier, notes and samples are saved (without dates).',
++      loadError: 'Could not load templates',
++    },
++  },
++}
++
++export function ensureP33I18n() {
++  i18n.global.mergeLocaleMessage('uz', uz)
++  i18n.global.mergeLocaleMessage('ru', ru)
++  i18n.global.mergeLocaleMessage('en', en)
++}
++
++ensureP33I18n()
+diff --git a/resources/js/modules/intake/requests/templates.js b/resources/js/modules/intake/requests/templates.js
+new file mode 100644
+index 0000000..a859bb5
+--- /dev/null
++++ b/resources/js/modules/intake/requests/templates.js
+@@ -0,0 +1,53 @@
++/**
++ * [Paket 33] Buyurtma shabloni — forma ↔ shablon (Vue'siz yordamchilar).
++ * Shablonga sanalar (olib kelish sanasi, svodka sanasi va navbatchiligi) saqlanmaydi.
++ */
++import { blankItem, toPayload } from './shared'
++
++/** Joriy buyurtma formasidan shablon payload'i */
++export function templateFromForm(form) {
++  const p = toPayload(form)
++  return {
++    laboratory_group_id: p.laboratory_group_id,
++    delivery_shift_id: p.delivery_shift_id ? Number(p.delivery_shift_id) : null,
++    contact_name: p.contact_name,
++    contact_phone: p.contact_phone,
++    notes: p.notes,
++    items: p.items.map((i) => ({
++      customer_code: i.customer_code,
++      state_of_matter: i.state_of_matter,
++      test_profile_id: i.test_profile_id,
++      element_ids: i.element_ids,
++      quantity: i.quantity,
++      quantity_unit: i.quantity_unit,
++      notes: i.notes,
++      svodka_point_id: i.svodka_point_id,
++      group_code: i.group_code,
++    })),
++  }
++}
++
++/** Shablondan tahrirlash formasi (shablon muharriri uchun) */
++export function formFromTemplate(tpl) {
++  const p = tpl?.payload ?? {}
++  return {
++    department_id: tpl?.department_id ?? '',
++    delivery_date: '', svodka_date: '', svodka_shift: '',
++    delivery_shift_id: p.delivery_shift_id ?? '',
++    laboratory_group_id: p.laboratory_group_id ?? '',
++    contact_name: p.contact_name ?? '',
++    contact_phone: p.contact_phone ?? '',
++    notes: p.notes ?? '',
++    items: (p.items ?? []).map((i) => blankItem({
++      customer_code: i.customer_code ?? '',
++      state_of_matter: i.state_of_matter || 'solid',
++      test_profile_id: i.test_profile_id ?? null,
++      element_ids: [...(i.element_ids ?? [])],
++      quantity: i.quantity ?? '',
++      quantity_unit: i.quantity_unit || 'g',
++      notes: i.notes ?? '',
++      svodka_point_id: i.svodka_point_id ?? '',
++      group_code: i.group_code ?? '',
++    })),
++  }
++}
+diff --git a/resources/js/modules/intake/requests/views/LabRequestDetail.vue b/resources/js/modules/intake/requests/views/LabRequestDetail.vue
+index 0263f5d..6b4258f 100644
+--- a/resources/js/modules/intake/requests/views/LabRequestDetail.vue
++++ b/resources/js/modules/intake/requests/views/LabRequestDetail.vue
+@@ -18,6 +18,7 @@ import { apiErrorMessage, fieldError, nameOf, printSlip } from '../shared'
+ import '../i18n'
+ import '../../i18n'
+ import '../i18nGroup' // [P30]
++import '../i18nP33' // [P33] qabul: telefon, kim qabul qilib oldi; shifr takrori ogohlantirishi
+ 
+ const route = useRoute()
+ const router = useRouter()
+@@ -31,6 +32,8 @@ const loadError = ref('')
+ const busy = ref(false)
+ const rows = ref([])
+ const handedOverBy = ref('')
++const handedOverPhone = ref('') // [P33]
++const receivedBy = ref('')      // [P33] qabul qilib olgan xodim (ro'yxatdan)
+ const errors = ref({})
+ const sentIds = ref([])
+ const created = ref([])
+@@ -39,6 +42,17 @@ const rejectOpen = ref(false)
+ const pending = computed(() => (request.value?.items ?? []).filter((i) => i.status === 'pending'))
+ const closedItems = computed(() => (request.value?.items ?? []).filter((i) => i.status !== 'pending'))
+ const takeCount = computed(() => rows.value.filter((r) => r.take).length)
++/* [P33] shu qabulda takrorlangan shifr — faqat ogohlantirish */
++const dupCodes = computed(() => {
++  const seen = {}
++  rows.value.filter((r) => r.take).forEach((r) => {
++    const c = (r.customer_code || '').trim()
++    if (c) seen[c] = (seen[c] || 0) + 1
++  })
++  return seen
++})
++const isDup = (row) => row.take && (dupCodes.value[(row.customer_code || '').trim()] || 0) > 1
++const receivers = computed(() => options.value?.receivers ?? [])
+ const allTaken = computed({
+   get: () => rows.value.length > 0 && rows.value.every((r) => r.take),
+   set: (v) => rows.value.forEach((r) => { r.take = v }),
+@@ -62,6 +76,12 @@ function buildRows(r) {
+     notes: i.notes ?? '',
+   }))
+   handedOverBy.value = r.handed_over_by || r.contact_name || ''
++  handedOverPhone.value = r.handed_over_phone || r.contact_phone || ''
++  // sukut bo'yicha — tizimga kirgan xodim (ro'yxatda bo'lsa)
++  if (!receivedBy.value) {
++    const me = options.value?.me
++    receivedBy.value = receivers.value.some((u) => u.id === me) ? me : (receivers.value[0]?.id ?? '')
++  }
+ }
+ 
+ async function load() {
+@@ -72,6 +92,7 @@ async function load() {
+       api.get(`/sample-requests/${route.params.id}`),
+     ])
+     options.value = opt.data
++    receivedBy.value = '' // [P33] buyurtma almashganda qayta tanlanadi
+     if (req.data.can?.edit) {
+       router.replace({ name: 'sample-request-edit', params: { id: req.data.id } })
+       return
+@@ -104,6 +125,8 @@ async function receive() {
+   try {
+     const { data } = await api.post(`/sample-requests/${request.value.id}/receive`, {
+       handed_over_by: handedOverBy.value || null,
++      handed_over_phone: handedOverPhone.value || null, // [P33]
++      received_by: receivedBy.value || null,            // [P33]
+       items: chosen.map((r) => ({
+         id: r.id,
+         sample_number: r.sample_number || null,
+@@ -192,9 +215,22 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
+         </div>
+ 
+         <div class="px-4 py-3 border-b border-line flex flex-wrap items-end gap-4">
+-          <div class="min-w-[260px] flex-1 max-w-md">
++          <div class="min-w-[240px] flex-1 max-w-sm">
+             <label class="field-label">{{ t('sreq.receive.handedOverBy') }}</label>
+-            <input v-model="handedOverBy" class="field-input" maxlength="191" data-handed>
++            <input v-model="handedOverBy" class="field-input" maxlength="191" :placeholder="t('sreq.p33.handedHint')" data-handed>
++          </div>
++          <!-- [P33] olib kelgan shaxs telefoni -->
++          <div class="w-[200px]">
++            <label class="field-label">{{ t('sreq.form.phone') }}</label>
++            <input v-model="handedOverPhone" class="field-input" maxlength="64" inputmode="tel" data-handed-phone>
++          </div>
++          <!-- [P33] kim qabul qilib oldi — laboratoriya xodimlari ro'yxatidan -->
++          <div class="min-w-[240px] flex-1 max-w-sm">
++            <label class="field-label">{{ t('sreq.p33.receivedBy') }} *</label>
++            <select v-model="receivedBy" class="field-input" :class="fieldError(errors, 'received_by') && 'field-input-error'" data-received-by>
++              <option v-for="u in receivers" :key="u.id" :value="u.id">{{ u.name }}<template v-if="u.position"> — {{ u.position }}</template></option>
++            </select>
++            <p v-if="fieldError(errors, 'received_by')" class="mt-1 text-[12px] text-crit">{{ fieldError(errors, 'received_by') }}</p>
+           </div>
+           <label class="inline-flex items-center gap-2 pb-2 text-[13.5px] text-ink cursor-pointer">
+             <input v-model="allTaken" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500" data-all>
+@@ -218,6 +254,7 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
+               <label class="field-label">{{ t('sreq.form.code') }}</label>
+               <input v-model="row.customer_code" class="field-input h-[34px] font-mono" :class="rowErr(row, 'customer_code') && 'field-input-error'" :disabled="!row.take">
+               <p v-if="rowErr(row, 'customer_code')" class="mt-1 text-[12px] text-crit">{{ rowErr(row, 'customer_code') }}</p>
++              <p v-else-if="isDup(row)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
+               <p v-if="row.group_code" class="mt-1 flex items-center gap-1 font-mono text-[12px] text-assay-700 dark:text-assay-200" :title="t('sreq.group.codeHint')" data-row-gcode>
+                 <KeyRound :size="12" class="shrink-0" /> {{ row.group_code }}
+               </p>
+diff --git a/resources/js/modules/intake/requests/views/PortalTemplates.vue b/resources/js/modules/intake/requests/views/PortalTemplates.vue
+new file mode 100644
+index 0000000..d914467
+--- /dev/null
++++ b/resources/js/modules/intake/requests/views/PortalTemplates.vue
+@@ -0,0 +1,167 @@
++<script setup>
++/**
++ * [Paket 33] Buyurtmachi — «Shablonlarim»: bo'linmaning doimiy buyurtma shablonlari.
++ * Shablonni faqat shu bo'linma vakillari ko'radi va ishlatadi. Tartib — «Yangi buyurtma» tepasidagi tugmalar tartibi.
++ */
++import { computed, onMounted, ref } from 'vue'
++import { useRouter } from 'vue-router'
++import { useI18n } from 'vue-i18n'
++import { ArrowDown, ArrowUp, LayoutTemplate, Pencil, Plus, Send, Trash2 } from 'lucide-vue-next'
++import api from '@/lib/api'
++import PageHeader from '@/components/ui/PageHeader.vue'
++import EmptyState from '@/components/ui/EmptyState.vue'
++import { useUiStore } from '@/stores/ui'
++import { formatDateTime } from '@/lib/format'
++import ReasonDialog from '../components/ReasonDialog.vue'
++import { apiErrorMessage, nameOf } from '../shared'
++import '../i18n'
++import '../i18nGroup'
++import '../i18nP33'
++
++const { t, locale } = useI18n()
++const router = useRouter()
++const ui = useUiStore()
++
++const list = ref([])
++const options = ref(null)
++const canWrite = ref(false)
++const loading = ref(true)
++const loadError = ref('')
++const removing = ref(null)
++const busy = ref(false)
++
++const departments = computed(() => options.value?.departments ?? [])
++const groupName = (id) => nameOf((options.value?.groups ?? []).find((g) => Number(g.id) === Number(id)), locale.value)
++const shiftName = (id) => (options.value?.shifts ?? []).find((s) => Number(s.id) === Number(id))?.name ?? ''
++
++/** Bo'limlar bo'yicha guruhlash (bitta bo'lim bo'lsa — sarlavhasiz) */
++const blocks = computed(() => {
++  const by = {}
++  list.value.forEach((x) => { (by[x.department_id] ||= []).push(x) })
++  return Object.entries(by).map(([id, rows]) => ({
++    id: Number(id),
++    name: departments.value.find((d) => Number(d.id) === Number(id))?.name ?? `#${id}`,
++    rows,
++  }))
++})
++
++async function load() {
++  loading.value = true
++  loadError.value = ''
++  try {
++    const [opt, tpl] = await Promise.all([api.get('/portal/requests/options'), api.get('/portal/request-templates')])
++    options.value = opt.data
++    list.value = tpl.data.data ?? []
++    canWrite.value = !!tpl.data.can_write
++  } catch (e) {
++    loadError.value = apiErrorMessage(e, t('sreq.tpl.loadError'))
++  } finally {
++    loading.value = false
++  }
++}
++onMounted(load)
++
++async function move(block, i, dir) {
++  const rows = [...block.rows]
++  const j = i + dir
++  if (j < 0 || j >= rows.length) return
++  ;[rows[i], rows[j]] = [rows[j], rows[i]]
++  const order = rows.map((r) => r.id)
++  list.value = [...list.value.filter((x) => x.department_id !== block.id), ...rows]
++  try {
++    await api.post('/portal/request-templates/order', { ids: order })
++  } catch (e) {
++    ui.error(apiErrorMessage(e, t('sreq.tpl.loadError')))
++    load()
++  }
++}
++
++async function remove() {
++  const tpl = removing.value
++  if (!tpl) return
++  busy.value = true
++  try {
++    await api.delete(`/portal/request-templates/${tpl.id}`)
++    list.value = list.value.filter((x) => x.id !== tpl.id)
++    ui.success(t('sreq.tpl.deleted'))
++    removing.value = null
++  } catch (e) {
++    ui.error(apiErrorMessage(e, t('sreq.tpl.loadError')))
++  } finally {
++    busy.value = false
++  }
++}
++
++const edit = (tpl) => router.push({ name: 'portal-template', params: { id: tpl.id } })
++const use = (tpl) => router.push({ name: 'portal-request-new', query: { template: tpl.id, department_id: tpl.department_id } })
++</script>
++
++<template>
++  <div>
++    <PageHeader :title="t('sreq.tpl.title')">
++      <template #actions>
++        <button v-if="canWrite" class="btn-primary" data-new-template @click="router.push({ name: 'portal-template-new' })">
++          <Plus :size="16" /> {{ t('sreq.tpl.newBtn') }}
++        </button>
++      </template>
++    </PageHeader>
++
++    <p class="mb-4 max-w-3xl text-[13.5px] leading-relaxed text-ink-muted">{{ t('sreq.tpl.hint') }}</p>
++    <p v-if="!loading && !loadError && !canWrite" class="mb-4 text-[13px] text-aqua-700 dark:text-aqua-200">{{ t('sreq.tpl.readOnly') }}</p>
++
++    <div v-if="loading" class="space-y-3">
++      <div class="h-16 rounded-panel bg-surface-sunken animate-pulse" />
++      <div class="h-16 rounded-panel bg-surface-sunken animate-pulse" />
++    </div>
++    <p v-else-if="loadError" class="panel p-4 text-[14px] text-crit">{{ loadError }}</p>
++
++    <div v-else-if="!list.length" class="panel">
++      <EmptyState :icon="LayoutTemplate" :title="t('sreq.tpl.empty')" :hint="t('sreq.tpl.emptyHint')">
++        <button v-if="canWrite" class="btn-primary" @click="router.push({ name: 'portal-template-new' })">
++          <Plus :size="16" /> {{ t('sreq.tpl.newBtn') }}
++        </button>
++      </EmptyState>
++    </div>
++
++    <div v-else class="space-y-4">
++      <div v-for="block in blocks" :key="block.id" class="panel overflow-hidden" :data-dept="block.id">
++        <div v-if="blocks.length > 1 || departments.length > 1" class="px-4 py-2.5 border-b border-line bg-surface-sunken/50 text-[13px] font-semibold text-ink">
++          {{ block.name }}
++        </div>
++        <div class="divide-y divide-line">
++          <div v-for="(tpl, i) in block.rows" :key="tpl.id" class="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3" :data-template-row="tpl.id">
++            <div class="min-w-[220px] flex-1">
++              <button type="button" class="text-left text-[14.5px] font-semibold text-ink hover:text-assay-700 dark:hover:text-assay-200" @click="canWrite ? edit(tpl) : null">
++                {{ tpl.name }}
++              </button>
++              <p class="mt-0.5 flex flex-wrap gap-x-3 text-[12.5px] text-ink-muted">
++                <span class="tnum">{{ t('sreq.tpl.items', { n: tpl.items_count }) }}</span>
++                <span v-if="tpl.payload?.laboratory_group_id">{{ t('sreq.tpl.group') }}: {{ groupName(tpl.payload.laboratory_group_id) }}</span>
++                <span v-if="tpl.payload?.delivery_shift_id">{{ t('sreq.tpl.shift') }}: {{ shiftName(tpl.payload.delivery_shift_id) }}</span>
++                <span v-if="tpl.payload?.contact_name">{{ tpl.payload.contact_name }}</span>
++                <span v-if="tpl.updated_at" class="text-ink-faint">{{ formatDateTime(tpl.updated_at) }}</span>
++              </p>
++            </div>
++            <div class="flex items-center gap-1">
++              <button v-if="canWrite" class="btn-outline btn-sm" :data-use="tpl.id" @click="use(tpl)">
++                <Send :size="14" /> {{ t('sreq.newTitle') }}
++              </button>
++              <template v-if="canWrite">
++                <button class="btn-ghost btn-icon h-8 w-8" :title="t('sreq.tpl.moveUp')" :aria-label="t('sreq.tpl.moveUp')" :disabled="i === 0" @click="move(block, i, -1)"><ArrowUp :size="15" /></button>
++                <button class="btn-ghost btn-icon h-8 w-8" :title="t('sreq.tpl.moveDown')" :aria-label="t('sreq.tpl.moveDown')" :disabled="i === block.rows.length - 1" @click="move(block, i, 1)"><ArrowDown :size="15" /></button>
++                <button class="btn-ghost btn-icon h-8 w-8" :title="t('sreq.tpl.edit')" :aria-label="t('sreq.tpl.edit')" :data-edit="tpl.id" @click="edit(tpl)"><Pencil :size="15" /></button>
++                <button class="btn-ghost btn-icon h-8 w-8 hover:text-crit" :title="t('sreq.tpl.remove')" :aria-label="t('sreq.tpl.remove')" :data-remove="tpl.id" @click="removing = tpl"><Trash2 :size="15" /></button>
++              </template>
++            </div>
++          </div>
++        </div>
++      </div>
++    </div>
++
++    <ReasonDialog
++      :model-value="!!removing" :title="t('sreq.tpl.deleteTitle')" :body="removing ? t('sreq.tpl.deleteBody', { name: removing.name }) : ''"
++      :with-reason="false" :confirm-label="t('sreq.tpl.remove')" :loading="busy"
++      @update:model-value="!$event && (removing = null)" @confirm="remove"
++    />
++  </div>
++</template>
+diff --git a/resources/js/modules/intake/requests/views/RequestEditor.vue b/resources/js/modules/intake/requests/views/RequestEditor.vue
+index f59ea4b..2faa74c 100644
+--- a/resources/js/modules/intake/requests/views/RequestEditor.vue
++++ b/resources/js/modules/intake/requests/views/RequestEditor.vue
+@@ -16,6 +16,7 @@ import RequestForm from '../components/RequestForm.vue'
+ import RequestInfo from '../components/RequestInfo.vue'
+ import ItemsTable from '../components/ItemsTable.vue'
+ import ReasonDialog from '../components/ReasonDialog.vue'
++import TemplateBar from '../components/TemplateBar.vue' // [P33] shablon tugmalari
+ import { apiErrorMessage, blankItem, printSlip, toForm, toPayload } from '../shared'
+ import '../i18n'
+ 
+@@ -189,6 +190,8 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
+       <!-- Tahrirlash: yangi yoki qoralama -->
+       <template v-if="editable">
+         <RequestInfo v-if="request" :request="request" :audience="mode" class="mb-4" />
++        <!-- [P33] Shablondan to'ldirish — faqat buyurtmachi (o'z bo'linmasi shablonlari) -->
++        <TemplateBar v-if="mode === 'portal' && options?.can_write" :form="form" :options="options" />
+         <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" :fresh="!id" />
+ 
+         <div class="sticky bottom-0 z-10 mt-4 pb-3">
+diff --git a/resources/js/modules/intake/requests/views/TemplateEditor.vue b/resources/js/modules/intake/requests/views/TemplateEditor.vue
+new file mode 100644
+index 0000000..f92f55f
+--- /dev/null
++++ b/resources/js/modules/intake/requests/views/TemplateEditor.vue
+@@ -0,0 +1,142 @@
++<script setup>
++/**
++ * [Paket 33] Buyurtma shablonini yaratish / tahrirlash (buyurtmachi).
++ * Buyurtma formasi bilan bir xil (RequestForm, templateMode) — faqat sanalar yo'q.
++ */
++import { computed, onMounted, reactive, ref } from 'vue'
++import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
++import { useI18n } from 'vue-i18n'
++import { ArrowLeft, Info, Save } from 'lucide-vue-next'
++import api from '@/lib/api'
++import PageHeader from '@/components/ui/PageHeader.vue'
++import { useUiStore } from '@/stores/ui'
++import RequestForm from '../components/RequestForm.vue'
++import { apiErrorMessage, blankItem, fieldError } from '../shared'
++import { formFromTemplate, templateFromForm } from '../templates'
++import '../i18n'
++import '../i18nP33'
++
++const route = useRoute()
++const router = useRouter()
++const ui = useUiStore()
++const { t } = useI18n()
++
++const id = computed(() => (route.params.id ? Number(route.params.id) : null))
++const options = ref(null)
++const name = ref('')
++const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
++const errors = ref({})
++const loading = ref(true)
++const loadError = ref('')
++const busy = ref(false)
++const saved = ref('')
++const snapshot = () => JSON.stringify([name.value, form.department_id, templateFromForm(form)])
++const dirty = computed(() => !loading.value && !loadError.value && snapshot() !== saved.value)
++const showDepartment = computed(() => (options.value?.departments?.length ?? 0) !== 1)
++
++const title = computed(() => (id.value ? t('sreq.tpl.editTitle', { name: name.value || '…' }) : t('sreq.tpl.newTitle')))
++
++async function load() {
++  loading.value = true
++  try {
++    const [opt, list] = await Promise.all([api.get('/portal/requests/options'), api.get('/portal/request-templates')])
++    options.value = opt.data
++    if (!list.data.can_write) {
++      loadError.value = t('sreq.tpl.readOnly')
++      return
++    }
++    if (id.value) {
++      const tpl = (list.data.data ?? []).find((x) => x.id === id.value)
++      if (!tpl) {
++        loadError.value = t('sreq.empty')
++        return
++      }
++      name.value = tpl.name
++      Object.assign(form, formFromTemplate(tpl))
++      if (!form.items.length) form.items.push(blankItem())
++    } else {
++      Object.assign(form, formFromTemplate(null), { items: [blankItem()] })
++      if (opt.data.departments?.length === 1) form.department_id = opt.data.departments[0].id
++      const want = Number(route.query.department_id)
++      if (want && opt.data.departments?.some((d) => Number(d.id) === want)) form.department_id = want
++      if (opt.data.groups?.length === 1) form.laboratory_group_id = opt.data.groups[0].id
++    }
++  } catch (e) {
++    loadError.value = apiErrorMessage(e, t('sreq.tpl.loadError'))
++  } finally {
++    loading.value = false
++    saved.value = snapshot()
++  }
++}
++onMounted(load)
++
++onBeforeRouteLeave(() => (dirty.value && !busy.value && !window.confirm(t('sreq.msg.unsaved')) ? false : true))
++
++/** Shablon xatolari (payload.items.0.x) → forma xatolari (items.0.x) */
++function mapErrors(errs) {
++  const out = {}
++  Object.entries(errs ?? {}).forEach(([k, v]) => { out[k.replace(/^payload\./, '')] = v })
++  return out
++}
++
++async function save() {
++  busy.value = true
++  errors.value = {}
++  try {
++    const body = { department_id: form.department_id || null, name: name.value.trim(), payload: templateFromForm(form) }
++    const { data } = id.value
++      ? await api.put(`/portal/request-templates/${id.value}`, body)
++      : await api.post('/portal/request-templates', body)
++    name.value = data.name
++    saved.value = snapshot()
++    ui.success(t('sreq.tpl.saved'))
++    router.push({ name: 'portal-templates' })
++  } catch (e) {
++    errors.value = mapErrors(e?.response?.data?.errors)
++    ui.error(apiErrorMessage(e, t('sreq.tpl.loadError')))
++  } finally {
++    busy.value = false
++  }
++}
++</script>
++
++<template>
++  <div>
++    <PageHeader :title="title">
++      <template #actions>
++        <button class="btn-ghost" @click="router.push({ name: 'portal-templates' })"><ArrowLeft :size="16" /> {{ t('sreq.tpl.back') }}</button>
++      </template>
++    </PageHeader>
++
++    <div v-if="loading" class="space-y-3">
++      <div class="h-20 rounded-panel bg-surface-sunken animate-pulse" />
++      <div class="h-56 rounded-panel bg-surface-sunken animate-pulse" />
++    </div>
++    <p v-else-if="loadError" class="panel p-4 text-[14px] text-warn-dark dark:text-warn-light">{{ loadError }}</p>
++
++    <template v-else>
++      <div class="panel p-4 mb-4">
++        <label class="field-label">{{ t('sreq.tpl.name') }} *</label>
++        <input
++          v-model="name" class="field-input max-w-xl" maxlength="120" :placeholder="t('sreq.tpl.namePlaceholder')"
++          :class="fieldError(errors, 'name') && 'field-input-error'" data-template-name
++        >
++        <p v-if="fieldError(errors, 'name')" class="mt-1.5 text-[12.5px] text-crit">{{ fieldError(errors, 'name') }}</p>
++        <p class="mt-2 flex items-center gap-1.5 text-[12.5px] text-ink-faint"><Info :size="13" class="shrink-0" /> {{ t('sreq.tpl.noDate') }}</p>
++      </div>
++
++      <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" fresh template-mode />
++
++      <div class="sticky bottom-0 z-10 mt-4 pb-3">
++        <div class="panel shadow-pop px-4 py-3 flex flex-wrap items-center gap-2">
++          <p v-if="fieldError(errors, 'items')" class="text-[12.5px] text-crit">{{ fieldError(errors, 'items') }}</p>
++          <span class="flex-1" />
++          <span v-if="dirty" class="text-[12.5px] text-ink-faint">●</span>
++          <button class="btn-primary" :disabled="busy || !name.trim() || !form.items.length" data-template-save @click="save">
++            <Save :size="16" /> {{ t('sreq.tpl.save') }}
++          </button>
++        </div>
++      </div>
++    </template>
++  </div>
++</template>
+diff --git a/resources/js/modules/intake/routes.js b/resources/js/modules/intake/routes.js
+index 9f7ccb3..b059498 100644
+--- a/resources/js/modules/intake/routes.js
++++ b/resources/js/modules/intake/routes.js
+@@ -46,6 +46,22 @@ export default [
+     component: () => import('./requests/views/RequestEditor.vue'),
+     meta: { permission: PORTAL_REQ, mode: 'portal' },
+   },
++  /* ---- [P33] Buyurtmachi: Shablonlarim (bo'linma shablonlari) ---- */
++  {
++    path: 'portal/templates', name: 'portal-templates',
++    component: () => import('./requests/views/PortalTemplates.vue'),
++    meta: { permission: PORTAL_REQ },
++  },
++  {
++    path: 'portal/templates/new', name: 'portal-template-new',
++    component: () => import('./requests/views/TemplateEditor.vue'),
++    meta: { permission: 'portal.request' },
++  },
++  {
++    path: 'portal/templates/:id(\\d+)', name: 'portal-template',
++    component: () => import('./requests/views/TemplateEditor.vue'),
++    meta: { permission: 'portal.request' },
++  },
+   {
+     path: 'sample-requests', name: 'sample-requests',
+     component: () => import('./requests/views/LabRequests.vue'),
+diff --git a/resources/js/modules/intake/sampleForm.js b/resources/js/modules/intake/sampleForm.js
+index 2009a51..094722c 100644
+--- a/resources/js/modules/intake/sampleForm.js
++++ b/resources/js/modules/intake/sampleForm.js
+@@ -13,6 +13,7 @@ import api from '@/lib/api'
+ import * as lab from '@/resources/lab'
+ import './i18n'
+ import './requests/i18n' // [P24] «Topshirgan shaxs» matnlari
++import './requests/i18nP33' // [P33] «Kim qabul qilib oldi»
+ 
+ const UNITS = ['g', 'kg', 'mg', 'ml', 'l']
+ 
+@@ -66,6 +67,40 @@ function departmentField(extra = {}) {
+   return withDepartmentOptions({ key: 'customer_department_id', type: 'select', labelKey: 'intake.department', ...extra })
+ }
+ 
++/* ---------- [P33] «Kim qabul qilib oldi»: laboratoriya xodimlari ro'yxati ---------- */
++const recv = reactive({ options: [], me: null, loaded: false })
++let recvLoading = false
++let recvTry = 0
++
++function ensureReceivers() {
++  if (recv.loaded || recvLoading || Date.now() - recvTry < 10000) return
++  recvLoading = true
++  recvTry = Date.now()
++  api.get('/sample-intake/receivers')
++    .then(({ data }) => {
++      const list = (data?.receivers ?? []).map((u) => ({ value: Number(u.id), label: u.position ? `${u.name} — ${u.position}` : u.name }))
++      recv.options.splice(0, recv.options.length, ...list)
++      recv.me = list.some((o) => o.value === Number(data?.me)) ? Number(data.me) : null
++      recv.loaded = true
++    })
++    .catch(() => { /* ruxsat yo'q yoki login'dan oldin */ })
++    .finally(() => { recvLoading = false })
++}
++
++function receiverField() {
++  const field = { key: 'received_by', type: 'select', labelKey: 'sreq.p33.receivedBy', hintKey: 'sreq.p33.receivedByHint' }
++  Object.defineProperty(field, 'options', {
++    enumerable: true, configurable: true,
++    get() { ensureReceivers(); return recv.options },
++  })
++  // yangi proba: sukut bo'yicha tizimga kirgan xodim
++  Object.defineProperty(field, 'default', {
++    enumerable: true, configurable: true,
++    get() { ensureReceivers(); return recv.me },
++  })
++  return field
++}
++
+ const keyOf = (x) => x?.key
+ 
+ /**
+@@ -118,6 +153,18 @@ export function installSampleIntakeForm(resource = lab.sampleResource) {
+     }
+   }
+ 
++  // [P33] Kim qabul qilib oldi — «Topshirgan shaxs» dan keyin
++  const all2 = sections.flatMap((s) => s.fields ?? [])
++  if (!all2.some((f) => keyOf(f) === 'received_by')) {
++    const sec = sections.find((s) => (s.fields ?? []).some((f) => keyOf(f) === 'handed_over_by'))
++      || sections.find((s) => (s.fields ?? []).some((f) => keyOf(f) === 'customer_department_id'))
++    if (sec) {
++      const at = sec.fields.findIndex((f) => keyOf(f) === 'handed_over_by')
++      sec.fields.splice(at >= 0 ? at + 1 : sec.fields.length, 0, receiverField())
++      changed = true
++    }
++  }
++
+   // Jadval ustuni — «Buyurtmachi guruh» dan keyin
+   if (Array.isArray(resource.columns) && !resource.columns.some((c) => keyOf(c) === 'customer_department')) {
+     const at = resource.columns.findIndex((c) => keyOf(c) === 'customer_group')
+diff --git a/resources/js/modules/intake/svodka/i18n.js b/resources/js/modules/intake/svodka/i18n.js
+index 39263cb..6a89445 100644
+--- a/resources/js/modules/intake/svodka/i18n.js
++++ b/resources/js/modules/intake/svodka/i18n.js
+@@ -7,14 +7,14 @@ import { i18n } from '@/i18n'
+ const uz = {
+   svodka: {
+     wd: { 0: 'yakshanba', 1: 'dushanba', 2: 'seshanba', 3: 'chorshanba', 4: 'payshanba', 5: 'juma', 6: 'shanba' },
+-    title: 'Svodka',
+-    subtitle: "Kunlik svodka: laboratoriya boshlig'i tasdiqlagan natijalar o'zi tushadi",
++    title: 'Jamlanma hisobot',
++    subtitle: "Kunlik jamlanma hisobot: laboratoriya boshlig'i tasdiqlagan natijalar o'zi tushadi",
+     loadError: "Ma'lumotni yuklab bo'lmadi",
+-    onlyCustomer: "Svodka faqat buyurtmachi bo'limi foydalanuvchilariga ochiq. Laboratoriya xodimiga admin ruxsat berishi mumkin: «Svodkalar» → «Svodkani ko'ruvchilar».",
++    onlyCustomer: "Jamlanma hisobot faqat buyurtmachi bo'limi foydalanuvchilariga ochiq. Laboratoriya xodimiga admin ruxsat berishi mumkin: «Jamlanma hisobotlar» → «Jamlanma hisobotni ko'ruvchilar».",
+     viewOnly: "Faqat ko'rish",
+-    viewOnlyHint: "Siz svodkani buyurtmachidek ko'rasiz: o'zgartirish, bog'lash va spravochnikni tahrirlash — faqat buyurtmachida",
++    viewOnlyHint: "Siz jamlanma hisobotni buyurtmachidek ko'rasiz: o'zgartirish, bog'lash va spravochnikni tahrirlash — faqat buyurtmachida",
+     notLinked: "Hisobingiz hech bir bo'limga biriktirilmagan. Laboratoriyaga murojaat qiling.",
+-    disabledNote: "Laboratoriya bu bo'lim uchun svodka rejimini hali yoqmagan — spravochnikni oldindan tayyorlab qo'yishingiz mumkin.",
++    disabledNote: "Laboratoriya bu bo'lim uchun jamlanma hisobot rejimini hali yoqmagan — spravochnikni oldindan tayyorlab qo'yishingiz mumkin.",
+     cancel: 'Bekor qilish',
+     save: 'Saqlash',
+     remove: "O'chirish",
+@@ -22,7 +22,7 @@ const uz = {
+     restore: 'Faollashtirish',
+     up: 'Yuqoriga',
+     down: 'Pastga',
+-    tabs: { day: 'Svodka', points: 'Nuqtalar (spravochnik)' },
++    tabs: { day: 'Jamlanma hisobot', points: 'Nuqtalar (spravochnik)' },
+     day: {
+       prev: 'Oldingi kun',
+       next: 'Keyingi kun',
+@@ -37,7 +37,7 @@ const uz = {
+       pendingHint: 'Namuna hali laboratoriyaga topshirilmagan (buyurtmada)',
+       releasedHint: "Laboratoriya chiqargan — bog'lanishni o'zgartirib bo'lmaydi",
+       reassignHint: "Nuqtasini yoki navbatchiligini o'zgartirish",
+-      setupHint: "Avval «Nuqtalar» bo'limida svodka bloklari va namuna olish nuqtalarini kiriting.",
++      setupHint: "Avval «Nuqtalar» bo'limida jamlanma hisobot bloklari va namuna olish nuqtalarini kiriting.",
+       legendPending: '* — namuna hali laboratoriyaga topshirilmagan',
+       legendClick: "shifrni bosib nuqtasini o'zgartirish mumkin (chiqarilguncha)",
+       legendEmpty: "qiymatlar laboratoriya boshlig'i tasdiqlagandan keyin chiqadi",
+@@ -51,7 +51,7 @@ const uz = {
+     },
+     unassigned: {
+       title: "Nuqtaga bog'lanmagan namunalar ({n})",
+-      hint: "Buyurtmasiz kelgan yoki buyurtmada nuqta tanlanmagan namunalar. Svodkaga tushishi uchun nuqtani tanlang.",
++      hint: "Buyurtmasiz kelgan yoki buyurtmada nuqta tanlanmagan namunalar. Jamlanma hisobotga tushishi uchun nuqtani tanlang.",
+       assign: "Bog'lash",
+     },
+     assign: {
+@@ -60,8 +60,8 @@ const uz = {
+       subtitle: "Faqat sizga ko'rinadi, laboratoriya ko'rmaydi",
+       point: 'Nuqta',
+       choosePoint: 'Nuqtani tanlang',
+-      unlink: "— bog'lamaslik (svodkadan chiqarish) —",
+-      date: 'Svodka sanasi',
++      unlink: "— bog'lamaslik (jamlanma hisobotdan chiqarish) —",
++      date: 'Hisobot sanasi',
+       shift: 'Navbatchilik',
+       hint: "Laboratoriya natijani chiqargandan keyin bog'lanishni o'zgartirib bo'lmaydi.",
+       save: 'Saqlash',
+@@ -69,8 +69,8 @@ const uz = {
+     },
+     export: {
+       button: 'Excel',
+-      hint: "Svodka ko'rinishida Excel fayl (har kun — alohida varaq)",
+-      title: 'Svodkani Excelga yuklash',
++      hint: "Jamlanma hisobot ko'rinishida Excel fayl (har kun — alohida varaq)",
++      title: 'Jamlanma hisobotni Excelga yuklash',
+       subtitle: "Faqat laboratoriya tasdiqlagan qiymatlar",
+       from: 'Boshlanish',
+       to: 'Tugash',
+@@ -89,7 +89,7 @@ const uz = {
+     },
+     section: {
+       new: 'Yangi blok',
+-      newTitle: 'Yangi svodka bloki',
++      newTitle: 'Yangi jamlanma hisobot bloki',
+       editTitle: 'Blokni tahrirlash',
+       title: 'Blok nomi',
+       titleHint: "Masalan: Asosiy, Boyitilgan ko'mir, LSU",
+@@ -104,15 +104,15 @@ const uz = {
+       columnsRequired: "Kamida bitta ko'rsatkich tanlang",
+     },
+     points: {
+-      privacy: "Bu ro'yxat faqat sizning bo'limingizga ko'rinadi. Laboratoriya namuna olish nuqtalarini ko'rmaydi — faqat namuna shifri va natijani ko'radi. Natijalar laboratoriya boshlig'i tasdiqlagandan keyin svodkaga o'zi tushadi.",
++      privacy: "Bu ro'yxat faqat sizning bo'limingizga ko'rinadi. Laboratoriya namuna olish nuqtalarini ko'rmaydi — faqat namuna shifri va natijani ko'radi. Natijalar laboratoriya boshlig'i tasdiqlagandan keyin jamlanma hisobotga o'zi tushadi.",
+       emptyTitle: "Spravochnik bo'sh",
+-      emptyHint: "«Yangi blok» tugmasi bilan svodka blokini yarating va unga namuna olish nuqtalarini qo'shing.",
++      emptyHint: "«Yangi blok» tugmasi bilan jamlanma hisobot blokini yarating va unga namuna olish nuqtalarini qo'shing.",
+       inactive: 'nofaol',
+       daily: 'sutkalik',
+       shiftly: 'navbatchilik',
+-      dailyHint: "Sutkalik — sutkada bitta namuna (svodkada I-navbatchilik katagi bo'sh qoladi)",
++      dailyHint: "Sutkalik — sutkada bitta namuna (jamlanma hisobotda I-navbatchilik katagi bo'sh qoladi)",
+       used: 'ishlatilgan',
+-      usedHint: "Buyurtma yoki svodkada ishlatilgan — o'chirilsa, nofaol bo'ladi (eski svodkalarda nomi qoladi)",
++      usedHint: "Buyurtma yoki jamlanma hisobotda ishlatilgan — o'chirilsa, nofaol bo'ladi (eski jamlanma hisobotlarda nomi qoladi)",
+       noPoints: "Nuqta yo'q — quyida qo'shing",
+       newPlaceholder: "Yangi nuqta nomi, masalan: №2 \"K\" SAF",
+       add: "Qo'shish",
+@@ -133,32 +133,32 @@ const uz = {
+       deletePoint: "«{name}» nuqtasini o'chirish",
+       deleteSectionBody: "Blok va undagi barcha nuqtalar o'chiriladi.",
+       deletePointBody: "Nuqta spravochnikdan o'chiriladi.",
+-      deactivateBody: "U buyurtma yoki svodkada ishlatilgan — o'chirilmaydi, nofaol bo'ladi: yangi buyurtmalarda chiqmaydi, eski svodkalarda nomi qoladi.",
++      deactivateBody: "U buyurtma yoki jamlanma hisobotda ishlatilgan — o'chirilmaydi, nofaol bo'ladi: yangi buyurtmalarda chiqmaydi, eski jamlanma hisobotlarda nomi qoladi.",
+     },
+     form: {
+-      title: 'Svodka',
+-      hint: "Namunalar qaysi kun va navbatchilik svodkasiga tushadi — laboratoriya buni ko'rmaydi",
+-      date: 'Svodka sanasi',
++      title: 'Jamlanma hisobot',
++      hint: "Namunalar qaysi kun va navbatchilik jamlanma hisobotiga tushadi — laboratoriya buni ko'rmaydi",
++      date: 'Hisobot sanasi',
+       shift: 'Navbatchilik',
+       noShift: '— tanlanmagan —',
+-      point: 'Nuqta (svodka)',
++      point: 'Nuqta (hisobot)',
+       noPoint: '— nuqta —',
+       pointHint: "Faqat sizga ko'rinadi",
+-      row: 'Svodka',
++      row: 'Jamlanma hisobot',
+     },
+-    chipLocked: "Natija tayyor — laboratoriya boshlig'i svodkani tasdiqlagandan keyin ko'rinadi",
++    chipLocked: "Natija tayyor — laboratoriya boshlig'i jamlanma hisobotni tasdiqlagandan keyin ko'rinadi",
+     legendLocked: 'tasdiqlash kutilmoqda',
+-    cardLocked: "Bu namuna svodka bo'yicha: natijalar laboratoriya boshlig'i navbatchilik (sutka) svodkasini tasdiqlagandan keyin ko'rinadi.",
+-    cardLockedLink: "Svodkani ochish",
++    cardLocked: "Bu namuna jamlanma hisobot bo'yicha: natijalar laboratoriya boshlig'i navbatchilik (sutka) jamlanma hisobotini tasdiqlagandan keyin ko'rinadi.",
++    cardLockedLink: "Jamlanma hisobotni ochish",
+     valueLocked: 'tasdiqlash kutilmoqda',
+-    analysesLocked: "Tahlil tafsilotlari svodka tasdiqlangandan keyin ko'rinadi",
++    analysesLocked: "Tahlil tafsilotlari jamlanma hisobot tasdiqlangandan keyin ko'rinadi",
+     rel: {
+-      title: 'Svodkalarni tasdiqlash',
++      title: 'Jamlanma hisobotlarni tasdiqlash',
+       subtitle: "Laboratoriya natijalari buyurtmachiga faqat siz chiqargandan keyin ko'rinadi",
+       blind: "Bu yerda hech narsani o'zgartirib bo'lmaydi: «Chiqarish» o'sha paytdagi tasdiqlangan natijalarni buyurtmachiga ochadi. Namuna olish nuqtalari (nomlari) laboratoriyaga ko'rinmaydi — faqat shifrlar va natijalar.",
+-      noDepartments: "Svodka rejimidagi bo'lim yo'q",
+-      noDepartmentsHint: "Bo'lim uchun svodka rejimi «Sozlama» orqali yoqiladi (bo'limlarni boshqarish huquqi kerak)",
+-      deptOff: "Bu bo'lim uchun svodka rejimi o'chiq — natijalar buyurtmachiga odatdagidek darhol ko'rinadi.",
++      noDepartments: "Jamlanma hisobot rejimidagi bo'lim yo'q",
++      noDepartmentsHint: "Bo'lim uchun jamlanma hisobot rejimi «Sozlama» orqali yoqiladi (bo'limlarni boshqarish huquqi kerak)",
++      deptOff: "Bu bo'lim uchun jamlanma hisobot rejimi o'chiq — natijalar buyurtmachiga odatdagidek darhol ko'rinadi.",
+       deptOffManage: "Yoqish uchun «Sozlama» tugmasini bosing.",
+       byShift: "Navbatchiliklar",
+       byDay: 'Sutkalar',
+@@ -183,8 +183,8 @@ const uz = {
+       sampleChanged: "o'zgargan",
+       noSamples: "Bu davrda namuna yo'q",
+       done: '{rev}-tahrir chiqarildi: {n} ta namuna',
+-      confirmTitle: 'Svodkani chiqarish',
+-      confirmReTitle: 'Svodkani qayta chiqarish',
++      confirmTitle: 'Jamlanma hisobotni chiqarish',
++      confirmReTitle: 'Jamlanma hisobotni qayta chiqarish',
+       confirmBody: "{n} ta namuna, {v} ta natija buyurtmachiga ochiladi.",
+       confirmPending: "{n} ta namunada natija hali to'liq emas — ular tayyor bo'lgach qayta chiqariladi.",
+       confirmNote: "Natijalar o'zgartirilmaydi. Keyin tuzatilsa — buyurtmachi tuzatilgan qiymatni qayta chiqarilgandan keyin ko'radi (yangi tahrir, tarix saqlanadi).",
+@@ -193,7 +193,7 @@ const uz = {
+     },
+     ra: {
+       title: 'Natijalar tahlili (AI)',
+-      subtitle: "Svodka nuqtalari bo'yicha natijalar dinamikasi — har nuqta o'z tarixiga nisbatan avtomatik baholanadi",
++      subtitle: "Jamlanma hisobot nuqtalari bo'yicha natijalar dinamikasi — har nuqta o'z tarixiga nisbatan avtomatik baholanadi",
+       dept: "Bo'lim",
+       section: 'Blok',
+       allSections: 'Barcha bloklar',
+@@ -242,12 +242,12 @@ const uz = {
+       tableHint: "Qatorni bosing — batafsil grafik",
+       reasonsTitle: 'Sabablar',
+       none: "Alohida belgi yo'q",
+-      openSvodka: "Svodkada ochish",
++      openSvodka: "Jamlanma hisobotda ochish",
+     },
+     viewers: {
+-      button: "Svodkani ko'ruvchilar",
+-      title: "Svodkani ko'ruvchilar",
+-      subtitle: "Tanlangan foydalanuvchilar barcha bo'limlar svodkasini buyurtmachidek (nuqta nomlari bilan) ko'radi, lekin o'zgartira olmaydi. Rol yaratish shart emas.",
++      button: "Jamlanma hisobotni ko'ruvchilar",
++      title: "Jamlanma hisobotni ko'ruvchilar",
++      subtitle: "Tanlangan foydalanuvchilar barcha bo'limlar jamlanma hisobotini buyurtmachidek (nuqta nomlari bilan) ko'radi, lekin o'zgartira olmaydi. Rol yaratish shart emas.",
+       add: "Qo'shish",
+       choose: 'Foydalanuvchini tanlang',
+       search: 'Qidirish: ism yoki login',
+@@ -255,22 +255,22 @@ const uz = {
+       empty: "Hali hech kim qo'shilmagan",
+       list: "Ko'ra oladiganlar",
+       viaRole: 'rol orqali',
+-      viaRoleHint: "Rolida «Buyurtmachi svodkasi — Ko'rish» ruxsati bor — olib tashlash uchun rolni o'zgartiring",
++      viaRoleHint: "Rolida «Buyurtmachi jamlanma hisoboti — Ko'rish» ruxsati bor — olib tashlash uchun rolni o'zgartiring",
+       reload: "Ruxsat foydalanuvchida sahifa yangilangandan keyin ishlaydi.",
+     },
+     settings: {
+       button: 'Sozlama',
+       off: "o'chiq",
+-      title: '{name} — svodka rejimi',
+-      hint: "Yoqilsa, bu bo'lim natijalarni portalda faqat laboratoriya boshlig'i svodkani chiqargandan keyin ko'radi.",
+-      enabled: 'Svodka rejimi',
++      title: '{name} — jamlanma hisobot rejimi',
++      hint: "Yoqilsa, bu bo'lim natijalarni portalda faqat laboratoriya boshlig'i jamlanma hisobotni chiqargandan keyin ko'radi.",
++      enabled: 'Jamlanma hisobot rejimi',
+       mode: 'Qanday chiqariladi',
+       modes: { day: "Sutka bo'yicha", shift: "Har navbatchilik" },
+       modeHints: {
+         day: "Ikkala navbatchilik tugagach — bir marta",
+         shift: 'Har navbatchilik oxirida — alohida',
+       },
+-      docTitle: 'Svodka sarlavhasi (Excel)',
++      docTitle: 'Hisobot sarlavhasi (Excel)',
+       shift1: 'Kechki navbatchilik (I)',
+       shift2: 'Kunduzgi navbatchilik (II)',
+       start: 'Boshlanishi',
+diff --git a/resources/js/modules/intake/svodka/shared.js b/resources/js/modules/intake/svodka/shared.js
+index a45d7ff..72390df 100644
+--- a/resources/js/modules/intake/svodka/shared.js
++++ b/resources/js/modules/intake/svodka/shared.js
+@@ -71,7 +71,7 @@ export async function downloadSvodka(params) {
+   }
+   const cd = res.headers?.['content-disposition'] || ''
+   const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd)
+-  const name = m ? decodeURIComponent(m[1]) : 'svodka.xlsx'
++  const name = m ? decodeURIComponent(m[1]) : 'jamlanma_hisobot.xlsx'
+   const url = URL.createObjectURL(res.data)
+   const a = document.createElement('a')
+   a.href = url
+diff --git a/routes/sample_intake.php b/routes/sample_intake.php
+index 1b1b648..f751021 100644
+--- a/routes/sample_intake.php
++++ b/routes/sample_intake.php
+@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
+         ->middleware('permission:customer_departments.manage');
+ 
+     /* ---------- Proba: qabul ma'lumoti va miqdor hisobi ---------- */
++    Route::get('/sample-intake/receivers', [SampleIntakeController::class, 'receivers']) // [P33]
++        ->middleware('permission:samples.create|samples.update|sample_requests.receive');
+     Route::get('/samples/{sample}/intake', [SampleIntakeController::class, 'show'])
+         ->middleware('permission:samples.view');
+     Route::put('/samples/{sample}/quantity', [SampleIntakeController::class, 'updateQuantity'])
+diff --git a/routes/sample_requests.php b/routes/sample_requests.php
+index 4dfe223..5891cc6 100644
+--- a/routes/sample_requests.php
++++ b/routes/sample_requests.php
+@@ -10,6 +10,7 @@
+ */
+ 
+ use App\Http\Controllers\Api\Intake\PortalRequestController;
++use App\Http\Controllers\Api\Intake\PortalTemplateController;
+ use App\Http\Controllers\Api\Intake\SampleRequestController;
+ use Illuminate\Support\Facades\Route;
+ 
+@@ -28,6 +29,15 @@ Route::middleware('auth:sanctum')->group(function () {
+         Route::post('/{id}/cancel', [PortalRequestController::class, 'cancel'])->whereNumber('id');
+     });
+ 
++    /* ---------- [P33] Buyurtmachi: Shablonlarim (faqat o'z bo'linmasi) ---------- */
++    Route::prefix('portal/request-templates')->group(function () {
++        Route::get('/', [PortalTemplateController::class, 'index']);
++        Route::post('/', [PortalTemplateController::class, 'store'])->middleware('throttle:30,1');
++        Route::post('/order', [PortalTemplateController::class, 'order']);
++        Route::put('/{id}', [PortalTemplateController::class, 'update'])->whereNumber('id');
++        Route::delete('/{id}', [PortalTemplateController::class, 'destroy'])->whereNumber('id');
++    });
++
+     /* ---------- Laboratoriya: Buyurtmalar ---------- */
+     Route::prefix('sample-requests')->group(function () {
+         Route::get('/options', [SampleRequestController::class, 'options'])
+diff --git a/tests/Feature/P33RequestsTest.php b/tests/Feature/P33RequestsTest.php
+new file mode 100644
+index 0000000..e78c127
+--- /dev/null
++++ b/tests/Feature/P33RequestsTest.php
+@@ -0,0 +1,186 @@
++<?php
++
++namespace Tests\Feature;
++
++use App\Models\CustomerDepartment;
++use App\Models\MenuItem;
++use App\Models\Permission;
++use App\Models\Role;
++use App\Models\Sample;
++use App\Models\User;
++use Database\Seeders\PermissionSeeder;
++use Database\Seeders\RoleSeeder;
++use Database\Seeders\SampleIntakeModuleSeeder;
++use Database\Seeders\SampleRequestModuleSeeder;
++use Database\Seeders\SvodkaModuleSeeder;
++use Illuminate\Foundation\Testing\RefreshDatabase;
++use Illuminate\Support\Facades\DB;
++use Tests\TestCase;
++
++/**
++ * [Paket 33] Shifr takrori, qabulda «kim olib keldi / kim qabul qilib oldi», buyurtmachi shablonlari,
++ * «Svodka» → «Jamlanma hisobot» (o'zbekcha).
++ */
++class P33RequestsTest extends TestCase
++{
++    use RefreshDatabase;
++
++    private User $head;
++    private User $operator;
++    private User $customer;
++    private User $customer2;
++    private CustomerDepartment $dept;
++    private CustomerDepartment $dept2;
++    private int $element;
++
++    protected function setUp(): void
++    {
++        parent::setUp();
++        $this->seed([PermissionSeeder::class, RoleSeeder::class, SampleIntakeModuleSeeder::class,
++            SampleRequestModuleSeeder::class, SvodkaModuleSeeder::class]);
++
++        $lab = DB::table('laboratories')->insertGetId(['code' => 'TL', 'name_ru' => 'ЦЗЛ', 'name_uz' => 'MZL', 'name_en' => 'CL', 'created_at' => now(), 'updated_at' => now()]);
++        $role = fn ($n) => Role::where('name', $n)->first()->id;
++        $this->head = User::factory()->create(['name' => 'Karimova N.', 'role_id' => $role('lab_head'), 'laboratory_id' => $lab]);
++        $this->operator = User::factory()->create(['name' => 'Aliyev Q.', 'role_id' => $role('operator'), 'laboratory_id' => $lab]);
++        $this->customer = User::factory()->create(['name' => 'OTK vakil', 'role_id' => $role('customer')]);
++        $this->customer2 = User::factory()->create(['name' => 'TTG vakil', 'role_id' => $role('customer')]);
++
++        $this->dept = CustomerDepartment::create(['code' => 'OTK', 'name' => 'OTK GMZ-3', 'is_active' => true]);
++        $this->dept2 = CustomerDepartment::create(['code' => 'TTG', 'name' => 'TTG', 'is_active' => true]);
++        DB::table('customer_department_user')->insert([
++            ['customer_department_id' => $this->dept->id, 'user_id' => $this->customer->id],
++            ['customer_department_id' => $this->dept2->id, 'user_id' => $this->customer2->id],
++        ]);
++        $this->element = DB::table('elements')->insertGetId(['symbol' => 'Au', 'name_ru' => 'Золото', 'name_uz' => 'Oltin', 'name_en' => 'Gold', 'default_unit' => 'g/t', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
++        DB::table('laboratory_groups')->update(['is_active' => false]); // guruh tanlash majburiy bo'lmasin
++    }
++
++    private function sendRequest(User $u, array $codes): array
++    {
++        $items = array_map(fn ($c) => ['customer_code' => $c, 'state_of_matter' => 'solid', 'element_ids' => [$this->element]], $codes);
++        $r = $this->actingAs($u)->postJson('/api/portal/requests', [
++            'department_id' => $this->dept->id, 'contact_name' => 'Rahimov A.', 'contact_phone' => '+998 90 111 22 33',
++            'items' => $items, 'submit' => true,
++        ]);
++        $r->assertSuccessful();
++
++        return $r->json();
++    }
++
++    private function receive(array $req, array $extra = [], ?User $as = null)
++    {
++        $items = collect($req['items'])->map(fn ($i) => ['id' => $i['id'], 'customer_code' => $i['customer_code'], 'element_ids' => [$this->element], 'state_of_matter' => 'solid'])->all();
++
++        return $this->actingAs($as ?? $this->operator)->postJson("/api/sample-requests/{$req['id']}/receive", ['items' => $items] + $extra);
++    }
++
++    public function test_same_code_inside_one_request_is_allowed(): void
++    {
++        $req = $this->sendRequest($this->customer, ['908', '908', '910']);
++        $this->assertSame('submitted', $req['status']);
++        $this->receive($req)->assertOk();
++        $this->assertSame(2, Sample::where('customer_code', '908')->count());
++    }
++
++    public function test_same_code_repeats_in_same_month(): void
++    {
++        foreach ([1, 2, 3] as $n) {
++            $this->receive($this->sendRequest($this->customer, ['908']))->assertOk();
++        }
++        $this->assertSame(3, Sample::where('customer_code', '908')->where('period_month', now()->format('Y-m'))->count());
++        // qo'lda ro'yxatga olish ham (SampleIntakeHook validatsiyasi)
++        $rules = \App\Services\Samples\SampleIntake::rules();
++        $v = validator(['customer_department_id' => $this->dept->id, 'customer_code' => '908'], $rules);
++        $this->assertFalse($v->fails());
++    }
++
++    public function test_receive_stores_courier_phone_and_chosen_receiver(): void
++    {
++        $opts = $this->actingAs($this->operator)->getJson('/api/sample-requests/options')->assertOk()->json();
++        $ids = array_column($opts['receivers'], 'id');
++        $this->assertContains($this->head->id, $ids);
++        $this->assertContains($this->operator->id, $ids);
++        $this->assertNotContains($this->customer->id, $ids, 'buyurtmachi ro\'yxatda bo\'lmasin');
++        $this->assertSame($this->operator->id, $opts['me']);
++
++        $req = $this->sendRequest($this->customer, ['A1']);
++        $r = $this->receive($req, ['handed_over_by' => 'Rahimov A.', 'handed_over_phone' => '+998 90 999 00 11', 'received_by' => $this->head->id])->assertOk();
++        $this->assertSame('Karimova N.', $r->json('request.received_by'));
++        $this->assertSame('+998 90 999 00 11', $r->json('request.handed_over_phone'));
++        $s = Sample::where('customer_code', 'A1')->first();
++        $this->assertSame($this->head->id, (int) $s->received_by);
++        $this->assertSame($this->operator->id, (int) $s->registered_by);
++        $intake = $this->actingAs($this->head)->getJson("/api/samples/{$s->id}/intake")->assertOk()->json('intake');
++        $this->assertSame('Karimova N.', $intake['received_by']);
++        $this->assertSame('Rahimov A.', $intake['handed_over_by']);
++    }
++
++    public function test_receive_defaults_and_rejects_foreign_receiver(): void
++    {
++        $req = $this->sendRequest($this->customer, ['B1']);
++        $this->receive($req, ['received_by' => $this->customer->id])->assertStatus(422)->assertJsonValidationErrors('received_by');
++        $r = $this->receive($req)->assertOk();   // received_by yo'q — joriy xodim; telefon — buyurtmadagi
++        $this->assertSame('+998 90 111 22 33', $r->json('request.handed_over_phone'));
++        $this->assertSame($this->operator->id, (int) Sample::where('customer_code', 'B1')->value('received_by'));
++    }
++
++    public function test_templates_belong_to_department_only(): void
++    {
++        $payload = ['contact_name' => 'Rahimov A.', 'items' => [
++            ['customer_code' => '908', 'state_of_matter' => 'solid', 'element_ids' => [$this->element], 'quantity' => 200, 'quantity_unit' => 'g'],
++            ['customer_code' => '909', 'state_of_matter' => 'liquid', 'element_ids' => [$this->element]],
++        ]];
++        $r = $this->actingAs($this->customer)->postJson('/api/portal/request-templates', ['name' => 'Kunduzgi', 'payload' => $payload])->assertCreated();
++        $id = $r->json('id');
++        $this->assertSame($this->dept->id, $r->json('department_id'));
++        $this->assertSame(2, $r->json('items_count'));
++
++        // nom bo'lim ichida takrorlanmaydi
++        $this->actingAs($this->customer)->postJson('/api/portal/request-templates', ['name' => 'Kunduzgi', 'payload' => $payload])
++            ->assertStatus(422)->assertJsonValidationErrors('name');
++        // boshqa bo'linma ko'rmaydi va o'zgartira olmaydi
++        $this->assertCount(0, $this->actingAs($this->customer2)->getJson('/api/portal/request-templates')->assertOk()->json('data'));
++        $this->actingAs($this->customer2)->putJson("/api/portal/request-templates/$id", ['name' => 'X', 'payload' => $payload])->assertNotFound();
++        $this->actingAs($this->customer2)->deleteJson("/api/portal/request-templates/$id")->assertNotFound();
++        // boshqa bo'linma nomidan yaratib bo'lmaydi
++        $this->actingAs($this->customer2)->postJson('/api/portal/request-templates', ['name' => 'Y', 'department_id' => $this->dept->id, 'payload' => $payload])
++            ->assertStatus(422)->assertJsonValidationErrors('department_id');
++        // o'zinikini ko'radi, tahrirlaydi, tartiblaydi, o'chiradi
++        $this->assertCount(1, $this->actingAs($this->customer)->getJson('/api/portal/request-templates')->json('data'));
++        $this->actingAs($this->customer)->putJson("/api/portal/request-templates/$id", ['name' => 'Kunduzgi smena', 'payload' => $payload])
++            ->assertOk()->assertJsonPath('name', 'Kunduzgi smena');
++        $id2 = $this->actingAs($this->customer)->postJson('/api/portal/request-templates', ['name' => 'Tungi', 'payload' => $payload])->json('id');
++        $this->actingAs($this->customer)->postJson('/api/portal/request-templates/order', ['ids' => [$id2, $id]])->assertOk();
++        $this->assertSame([$id2, $id], array_column($this->actingAs($this->customer)->getJson('/api/portal/request-templates')->json('data'), 'id'));
++        $this->actingAs($this->customer)->deleteJson("/api/portal/request-templates/$id")->assertOk();
++        $this->assertDatabaseMissing('portal_request_templates', ['id' => $id]);
++        // bo'sh shablon — xato
++        $this->actingAs($this->customer)->postJson('/api/portal/request-templates', ['name' => 'Bo\'sh', 'payload' => ['items' => []]])
++            ->assertStatus(422);
++        // laboratoriya xodimi portal ko'rinishida faqat o'qiydi (portal.request yo'q)
++        $this->actingAs($this->operator)->postJson('/api/portal/request-templates', ['name' => 'Z', 'payload' => $payload])->assertForbidden();
++    }
++
++    public function test_menu_and_uzbek_rename(): void
++    {
++        $this->assertSame('Shablonlarim', MenuItem::where('key', 'portal_templates')->value('title_uz'));
++        $this->assertSame('Jamlanma hisobot', MenuItem::where('key', 'portal_svodka')->value('title_uz'));
++        $this->assertSame('Jamlanma hisobotlar', MenuItem::where('key', 'svodka_releases')->value('title_uz'));
++        $this->assertSame('Сводка', MenuItem::where('key', 'portal_svodka')->value('title_ru'));
++
++        // eski server: eski nomlar → seeder qayta ishga tushganda almashadi; admin qo'ygan nom saqlanadi
++        MenuItem::where('key', 'portal_svodka')->update(['title_uz' => 'Svodka']);
++        MenuItem::where('key', 'svodka_releases')->update(['title_uz' => 'Kunlik hisobotlar']);
++        Permission::where('name', 'svodka.view')->update(['label_uz' => "Buyurtmachi svodkasi — Ko'rish (buyurtmachidek, nuqta nomlari bilan)"]);
++        $this->seed(SvodkaModuleSeeder::class);
++        $this->assertSame('Jamlanma hisobot', MenuItem::where('key', 'portal_svodka')->value('title_uz'));
++        $this->assertSame('Kunlik hisobotlar', MenuItem::where('key', 'svodka_releases')->value('title_uz'));
++        $this->assertStringStartsWith('Buyurtmachi jamlanma hisoboti — ', Permission::where('name', 'svodka.view')->value('label_uz'));
++        $this->assertSame(1, MenuItem::where('key', 'portal_templates')->count());
++
++        // portal foydalanuvchisi menyusida «Shablonlarim» bor
++        $menu = $this->actingAs($this->customer)->getJson('/api/menu')->assertOk()->json();
++        $this->assertContains('portal-templates', array_column($menu, 'route'));
++    }
++}

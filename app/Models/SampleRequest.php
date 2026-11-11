@@ -22,6 +22,7 @@ class SampleRequest extends Model
         'delivery_shift_id', 'delivery_shift', // [P28] qaysi smenada olib kelinadi
         'svodka_date', 'svodka_shift',          // [P29] namuna olingan sana va navbatchilik (buyurtmachi svodkasi uchun)
         'laboratory_group_id',                  // [P30] buyurtmachi tanlagan laboratoriya guruhi
+        'handed_over_phone',                    // [P33] olib kelgan shaxs telefoni (qabulda)
     ];
 
     // SQL Server butun sonlarni satr qilib qaytaradi — JSON'da doim son bo'lsin

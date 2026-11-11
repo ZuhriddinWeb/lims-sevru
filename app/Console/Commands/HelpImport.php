@@ -20,6 +20,15 @@ class HelpImport extends Command
 
     public function handle(HelpAssistant $help): int
     {
+        // Jadval tuzilishi to'liqmi — aks holda SQL xatosi o'rniga aniq ko'rsatma
+        $schema = \Illuminate\Support\Facades\Schema::class;
+        if (! $schema::hasTable('help_entries') || ! $schema::hasColumn('help_entries', 'is_page')) {
+            $this->error("Yordamchi jadvali to'liq emas — migratsiya bajarilmagan. Avval:  php artisan migrate --force");
+            $this->line("(kerakli migratsiyalar: 2026_10_14_180000_create_help_tables, 2026_10_15_080000_add_is_page_to_help_entries)");
+
+            return self::FAILURE;
+        }
+
         $path = $this->argument('path') ?: base_path('database/help/help_qa.json');
         if (! is_file($path)) {
             $this->error("Fayl topilmadi: {$path}");

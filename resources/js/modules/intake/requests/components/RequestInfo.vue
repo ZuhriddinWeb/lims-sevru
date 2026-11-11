@@ -26,8 +26,9 @@ const rows = computed(() => [
   r.value.svodka_date && [t('svodka.form.row'), [formatDate(r.value.svodka_date), r.value.svodka_shift_label].filter(Boolean).join(' · ')],
   r.value.expires_at && ['submitted', 'expired'].includes(r.value.status) && [t('sreq.info.expires'), formatDate(r.value.expires_at)],
   (r.value.contact_name || r.value.contact_phone) && [t('sreq.col.contact'), [r.value.contact_name, r.value.contact_phone].filter(Boolean).join(', ')],
+  // [P33] «Qabul qilindi: sana · kim qabul qilib oldi»; «Olib keldi: F.I.Sh., telefon»
   r.value.received_at && [t('sreq.info.received'), `${formatDateTime(r.value.received_at)}${r.value.received_by ? ' · ' + r.value.received_by : ''}`],
-  r.value.handed_over_by && [t('sreq.info.handedOver'), r.value.handed_over_by],
+  (r.value.handed_over_by || r.value.handed_over_phone) && [t('sreq.receive.handedOverBy'), [r.value.handed_over_by, r.value.handed_over_phone].filter(Boolean).join(', ')],
   r.value.closed_at && ['rejected', 'cancelled'].includes(r.value.status) && [t('sreq.info.closed'), `${formatDateTime(r.value.closed_at)}${r.value.closed_by ? ' · ' + r.value.closed_by : ''}`],
   r.value.notes && [t('sreq.form.notes'), r.value.notes],
 ].filter(Boolean))

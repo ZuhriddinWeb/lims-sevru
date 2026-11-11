@@ -1,12 +1,12 @@
 @echo off
 rem ======================================================================
-rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 24 holati, 2026-10-20)
+rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 33 holati, 2026-11-11)
 rem
 rem  Oldindan (SERVERGA_NOLDAN_ORNATISH.txt, 1-4 bo'limlar):
 rem    - PHP 8.2+, ODBC + pdo_sqlsrv, Composer, Git, IIS; SQL Server'da BO'SH baza va login
 rem    - git clone qilingan; shu skript loyiha ichidagi deploy\ papkasidan ishga tushiriladi
 rem  "Administrator sifatida" ochilgan cmd da:
-rem      cd C:\inetpub\lims
+rem      cd C:\inetpub\lims          (XAMPP: cd /d C:\xampp\htdocs\LIMS)
 rem      deploy\server_yangi_ornatish.bat
 rem
 rem  XAVFSIZ: baza holatini o'zi aniqlaydi. Bazada foydalanuvchilar bo'lsa (ishlab turgan
@@ -28,6 +28,8 @@ if not exist artisan (
   echo [X] artisan topilmadi. Skript loyiha ichidagi deploy papkasida bo'lishi kerak.
   exit /b 1
 )
+where php >nul 2>nul
+if errorlevel 1 if exist C:\xampp\php\php.exe set "PATH=C:\xampp\php;%PATH%"
 echo.
 echo Loyiha papkasi: %CD%
 for /f "delims=" %%C in ('git log -1 --oneline 2^>nul') do echo Commit:         %%C
@@ -55,6 +57,7 @@ for %%E in (pdo_sqlsrv openssl curl zip mbstring fileinfo gd dom xml tokenizer c
 if "%MISSING%"=="1" (
   echo.
   echo   php.ini ni oching - php --ini - va extension=... qatorlarini yoqing, so'ng qayta ishga tushiring.
+  echo   zip - Excel'ga yuklash va svodka uchun SHART.
   echo   pdo_sqlsrv uchun Microsoft ODBC Driver 17/18 ham o'rnatilgan bo'lishi kerak.
   exit /b 1
 )
@@ -71,6 +74,17 @@ call :need database\help\help_qa.json "Paket 21: yordamchi javoblari"
 call :need app\Console\Commands\SetPassword.php "lims:set-password"
 call :need app\Console\Commands\WorksheetAddTotals.php "Paket 23: varaq bo'yicha jami"
 call :need app\Services\Samples\SampleRequests.php "Paket 24: qoralama buyurtma"
+call :need database\migrations\2026_10_22_100000_create_app_settings_table.php "Paket 27: portal sozlamalari"
+call :need database\migrations\2026_10_23_100000_add_delivery_shift_to_sample_requests.php "Paket 28: smena, natijalar"
+call :need app\Providers\SvodkaServiceProvider.php "Paket 29: buyurtmachi svodkasi"
+call :need routes\svodka.php "Paket 29: svodka yo'llari"
+call :need database\migrations\2026_10_29_100000_add_group_to_sample_requests.php "Paket 30: buyurtma guruhga"
+call :need database\migrations\2026_11_02_100000_create_svodka_viewers_table.php "Paket 31: svodkani ko'ruvchilar"
+call :need app\Console\Commands\SvodkaTekshir.php "Paket 31: svodka:tekshir"
+call :need app\Services\Svodka\ResultAnalysis.php "Paket 32: natijalar tahlili"
+call :need database\migrations\2026_11_11_100000_portal_templates_and_receipt_fields.php "Paket 33: shablonlar, kim qabul qildi"
+call :need app\Http\Controllers\Api\Intake\PortalTemplateController.php "Paket 33: buyurtmachi shablonlari"
+call :need database\seeders\SvodkaModuleSeeder.php "seeder: SvodkaModuleSeeder"
 call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
 call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"
 call :need database\seeders\SampleIntakeModuleSeeder.php "seeder: SampleIntakeModuleSeeder"
@@ -78,20 +92,24 @@ call :need database\seeders\InsightsModuleSeeder.php "seeder: InsightsModuleSeed
 call :need database\seeders\SampleRequestModuleSeeder.php "seeder: SampleRequestModuleSeeder"
 call :need app\Console\Commands\LimsUpgrade.php "lims:upgrade"
 call :need app\Console\Commands\InstallState.php "lims:install-state"
-set MANIFEST=public\build\manifest.json
-if not exist %MANIFEST% set MANIFEST=public\build\.vite\manifest.json
-findstr /c:"requests/views/LabRequests.vue" %MANIFEST% >nul 2>nul
-if errorlevel 1 (
-  echo   [X] public\build yo'q yoki eski - lokalda: npm run build, git add -f public/build, commit, push; serverda git pull
-  set PRE=1
-) else (
-  echo   [ok] public\build - serverda Node kerak emas
-)
 if "%PRE%"=="1" (
   echo.
   echo   Kod to'liq kelmagan. Hech narsa o'zgarmadi.
   exit /b 1
 )
+echo.
+echo   Barcha fayllar eng oxirgi versiyadami, public\build yangimi - deploy\tekshir_versiyalar.ps1:
+powershell -NoProfile -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+if not errorlevel 1 goto :files_ok
+echo.
+echo   [!] Yuqorida ESKI/FARQ yoki YO'Q fayllar bor - repoga to'liq to'plam kelmagan.
+echo       To'g'ri yo'l: lokalda tuzatib, push, serverda git pull.
+set /p GOON=Shunga qaramay davom etilsinmi? [ha/yoq]: 
+if /i not "%GOON%"=="ha" (
+  echo   To'xtatildi. Hech narsa o'zgarmadi.
+  exit /b 1
+)
+:files_ok
 echo.
 
 echo === 2/11  Composer paketlari ===
@@ -259,7 +277,7 @@ echo.
 echo === 11/11  Tekshirish ===
 php artisan migrate:status | findstr /i "Pending" >nul
 if errorlevel 1 (echo   [ok] Barcha migratsiyalar bajarilgan) else (echo   [!] Bajarilmagan migratsiya bor)
-for %%R in (help/status sample-requests portal/requests insights/desk lab-shifts customer-departments interlab/v1/identity) do (
+for %%R in (help/status sample-requests portal/requests portal/svodka svodka-releases result-analysis insights/desk lab-shifts customer-departments interlab/v1/identity) do (
   php artisan route:list --path=%%R 2>nul | findstr /c:"api/" >nul && (echo   [ok] /api/%%R) || (echo   [X] /api/%%R topilmadi)
 )
 echo.
@@ -269,8 +287,8 @@ echo.
 echo   Rejalashtirgich - 3 ta vazifa:
 php artisan schedule:list
 echo.
-echo TAYYOR. Endi IIS sayt va ruxsatlar - SERVERGA_NOLDAN_ORNATISH.txt, 7-bo'lim;
-echo so'ng brauzerda kirib tekshiring - 9-bo'lim.
+echo TAYYOR. Endi veb-server: IIS - SERVERGA_NOLDAN_ORNATISH.txt, 7-bo'lim;
+echo XAMPP/Apache - 7A-bo'lim. So'ng brauzerda kirib tekshiring - 9-bo'lim.
 endlocal
 exit /b 0
 

@@ -309,7 +309,7 @@ class SvodkaService
     {
         $set = $this->settings($deptId);
         if (! $set->enabled) {
-            throw ValidationException::withMessages(['department_id' => ["Bu bo'lim uchun svodka rejimi yoqilmagan"]]);
+            throw ValidationException::withMessages(['department_id' => ["Bu bo'lim uchun jamlanma hisobot rejimi yoqilmagan"]]);
         }
         $expected = $set->release_mode === 'shift';
         if ($expected && ! in_array($shift, [1, 2], true)) {
@@ -427,7 +427,7 @@ class SvodkaService
             $rev = ($st['release']['revision'] ?? 0) + 1;
             $dept = DB::table('customer_departments')->where('id', $deptId)->value('name');
             $when = Carbon::parse($m['date'])->format('d.m.Y') . ($shift ? ' · ' . ($shift === 1 ? $set->shift1_label : $set->shift2_label) : '');
-            $title = $st['release'] ? "Svodka: yangi/tuzatilgan natija — {$dept}" : "Svodka tayyor — {$dept}";
+            $title = $st['release'] ? "Jamlanma hisobot: yangi/tuzatilgan natija — {$dept}" : "Jamlanma hisobot tayyor — {$dept}";
             // ruxsati rol orqali berilganlar (boshliqlar); hech kim bo'lmasa — administratorlar
             $portal = app(\App\Services\Samples\CustomerPortal::class);
             $users = User::where('is_active', true)->get()->filter(fn ($u) => ! $u->isAdmin() && ! $portal->isPortalUser($u) && $u->hasPermission(self::RELEASE_PERMISSION));
@@ -460,8 +460,8 @@ class SvodkaService
                     ['dedup_key' => "svodka-released-{$rel->id}-{$u->id}"],
                     [
                         'user_id' => $u->id, 'type' => 'sample', 'level' => 'success',
-                        'title' => 'Svodka tayyor: ' . $when . ($rel->revision > 1 ? " ({$rel->revision}-tahrir)" : ''),
-                        'body' => "Laboratoriya natijalarni tasdiqladi — «Svodka» sahifasida ko'rish va Excel'ga yuklab olish mumkin.",
+                        'title' => 'Jamlanma hisobot tayyor: ' . $when . ($rel->revision > 1 ? " ({$rel->revision}-tahrir)" : ''),
+                        'body' => "Laboratoriya natijalarni tasdiqladi — «Jamlanma hisobot» sahifasida ko'rish va Excel'ga yuklab olish mumkin.",
                         'link_route' => 'portal-svodka', 'link_id' => $rel->id,
                     ]
                 );
@@ -476,7 +476,7 @@ class SvodkaService
         try {
             \App\Models\ActivityLog::create([
                 'user_id' => $user->id, 'action' => 'created', 'model_type' => 'SvodkaRelease', 'model_id' => $rel->id,
-                'description' => "Svodka chiqarildi: bo'lim #{$rel->customer_department_id}, " . $rel->production_date->format('d.m.Y')
+                'description' => "Jamlanma hisobot chiqarildi: bo'lim #{$rel->customer_department_id}, " . $rel->production_date->format('d.m.Y')
                     . ($rel->shift ? " ({$rel->shift}-navbatchilik)" : ' (sutka)') . ", {$rel->revision}-tahrir, {$rel->samples_count} namuna, {$rel->values_count} qiymat",
                 'properties' => null, 'ip_address' => request()?->ip(), 'created_at' => now(),
             ]);

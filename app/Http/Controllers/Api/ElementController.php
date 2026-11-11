@@ -14,11 +14,17 @@ class ElementController extends Controller
     public function index(Request $request)
     {
         $query = Element::query();
-        if ($search = $request->input('search')) {
-            $query->where('symbol', 'like', "%$search%")
-                  ->orWhere('name_ru', 'like', "%$search%")
+        if ($search = trim((string) $request->input('search'))) {
+            // [P25] «SO4» deb qidirilsa «SO₄» ham topilsin (indeksli yozuv variantlari)
+            $variants = \App\Support\ChemText::variants($search);
+            $query->where(function ($q) use ($search, $variants) {
+                foreach ($variants as $v) {
+                    $q->orWhere('symbol', 'like', "%$v%");
+                }
+                $q->orWhere('name_ru', 'like', "%$search%")
                   ->orWhere('name_uz', 'like', "%$search%")
                   ->orWhere('name_en', 'like', "%$search%");
+            });
         }
         if ($request->boolean('all')) {
             return $query->where('is_active', true)->orderBy('sort_order')->get();

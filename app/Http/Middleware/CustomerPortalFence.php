@@ -110,23 +110,33 @@ class CustomerPortalFence
         }
     }
 
-    /** [P31] «Svodkani ko'ruvchilar»dagi xodim menyusiga «Bo'limlar svodkasi» (rolida svodka.view bo'lmasa ham) */
+    /**
+     * [P31] «Svodkani ko'ruvchilar»dagi xodim menyusiga «Bo'limlar svodkasi» (rolida svodka.view bo'lmasa ham)
+     * [P32] va «Natijalar tahlili» (results.analysis)
+     */
     private function addViewerMenu(JsonResponse $response, $user): void
     {
         $data = $response->getData(true);
         if (! is_array($data) || ! array_is_list($data) || ! $this->isSvodkaViewer($user)) {
             return;
         }
+        $have = [];
         foreach ($data as $it) {
-            if (is_array($it) && ($it['key'] ?? null) === 'svodka_view') {
-                return;
+            if (is_array($it)) {
+                $have[] = $it['permission'] ?? null;
             }
         }
-        $item = \App\Models\MenuItem::where('key', 'svodka_view')->where('is_active', true)->whereNull('parent_id')->first();
-        if (! $item) {
+        $add = array_values(array_diff(['svodka.view', 'results.analysis'], $have));
+        if (! $add) {
             return;
         }
-        $data[] = $item->setRelation('children', collect())->toArray();
+        $items = \App\Models\MenuItem::whereIn('permission', $add)->where('is_active', true)->whereNull('parent_id')->get();
+        if ($items->isEmpty()) {
+            return;
+        }
+        foreach ($items as $item) {
+            $data[] = $item->setRelation('children', collect())->toArray();
+        }
         usort($data, fn ($a, $b) => ((int) ($a['sort_order'] ?? 0)) <=> ((int) ($b['sort_order'] ?? 0)));
         $response->setData($data);
     }
@@ -166,9 +176,13 @@ class CustomerPortalFence
         }
         $data['user']['portal'] = $this->portal->profile($user);
         // [P31] admin svodkani ko'rishni shu foydalanuvchiga alohida bergan — rolga tegmasdan ruxsatlar ro'yxatiga qo'shiladi
-        if (isset($data['user']['permissions']) && is_array($data['user']['permissions'])
-            && ! in_array('svodka.view', $data['user']['permissions'], true) && $this->isSvodkaViewer($user)) {
-            $data['user']['permissions'][] = 'svodka.view';
+        // [P32] ular natijalar tahlilini ham ko'radi
+        if (isset($data['user']['permissions']) && is_array($data['user']['permissions']) && $this->isSvodkaViewer($user)) {
+            foreach (['svodka.view', 'results.analysis'] as $perm) {
+                if (! in_array($perm, $data['user']['permissions'], true)) {
+                    $data['user']['permissions'][] = $perm;
+                }
+            }
         }
         $response->setData($data);
     }

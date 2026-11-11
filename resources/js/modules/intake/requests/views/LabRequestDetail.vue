@@ -18,6 +18,7 @@ import { apiErrorMessage, fieldError, nameOf, printSlip } from '../shared'
 import '../i18n'
 import '../../i18n'
 import '../i18nGroup' // [P30]
+import '../i18nP33' // [P33] qabul: telefon, kim qabul qilib oldi; shifr takrori ogohlantirishi
 
 const route = useRoute()
 const router = useRouter()
@@ -31,6 +32,8 @@ const loadError = ref('')
 const busy = ref(false)
 const rows = ref([])
 const handedOverBy = ref('')
+const handedOverPhone = ref('') // [P33]
+const receivedBy = ref('')      // [P33] qabul qilib olgan xodim (ro'yxatdan)
 const errors = ref({})
 const sentIds = ref([])
 const created = ref([])
@@ -39,6 +42,17 @@ const rejectOpen = ref(false)
 const pending = computed(() => (request.value?.items ?? []).filter((i) => i.status === 'pending'))
 const closedItems = computed(() => (request.value?.items ?? []).filter((i) => i.status !== 'pending'))
 const takeCount = computed(() => rows.value.filter((r) => r.take).length)
+/* [P33] shu qabulda takrorlangan shifr — faqat ogohlantirish */
+const dupCodes = computed(() => {
+  const seen = {}
+  rows.value.filter((r) => r.take).forEach((r) => {
+    const c = (r.customer_code || '').trim()
+    if (c) seen[c] = (seen[c] || 0) + 1
+  })
+  return seen
+})
+const isDup = (row) => row.take && (dupCodes.value[(row.customer_code || '').trim()] || 0) > 1
+const receivers = computed(() => options.value?.receivers ?? [])
 const allTaken = computed({
   get: () => rows.value.length > 0 && rows.value.every((r) => r.take),
   set: (v) => rows.value.forEach((r) => { r.take = v }),
@@ -62,6 +76,12 @@ function buildRows(r) {
     notes: i.notes ?? '',
   }))
   handedOverBy.value = r.handed_over_by || r.contact_name || ''
+  handedOverPhone.value = r.handed_over_phone || r.contact_phone || ''
+  // sukut bo'yicha — tizimga kirgan xodim (ro'yxatda bo'lsa)
+  if (!receivedBy.value) {
+    const me = options.value?.me
+    receivedBy.value = receivers.value.some((u) => u.id === me) ? me : (receivers.value[0]?.id ?? '')
+  }
 }
 
 async function load() {
@@ -72,6 +92,7 @@ async function load() {
       api.get(`/sample-requests/${route.params.id}`),
     ])
     options.value = opt.data
+    receivedBy.value = '' // [P33] buyurtma almashganda qayta tanlanadi
     if (req.data.can?.edit) {
       router.replace({ name: 'sample-request-edit', params: { id: req.data.id } })
       return
@@ -104,6 +125,8 @@ async function receive() {
   try {
     const { data } = await api.post(`/sample-requests/${request.value.id}/receive`, {
       handed_over_by: handedOverBy.value || null,
+      handed_over_phone: handedOverPhone.value || null, // [P33]
+      received_by: receivedBy.value || null,            // [P33]
       items: chosen.map((r) => ({
         id: r.id,
         sample_number: r.sample_number || null,
@@ -192,9 +215,22 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
         </div>
 
         <div class="px-4 py-3 border-b border-line flex flex-wrap items-end gap-4">
-          <div class="min-w-[260px] flex-1 max-w-md">
+          <div class="min-w-[240px] flex-1 max-w-sm">
             <label class="field-label">{{ t('sreq.receive.handedOverBy') }}</label>
-            <input v-model="handedOverBy" class="field-input" maxlength="191" data-handed>
+            <input v-model="handedOverBy" class="field-input" maxlength="191" :placeholder="t('sreq.p33.handedHint')" data-handed>
+          </div>
+          <!-- [P33] olib kelgan shaxs telefoni -->
+          <div class="w-[200px]">
+            <label class="field-label">{{ t('sreq.form.phone') }}</label>
+            <input v-model="handedOverPhone" class="field-input" maxlength="64" inputmode="tel" data-handed-phone>
+          </div>
+          <!-- [P33] kim qabul qilib oldi — laboratoriya xodimlari ro'yxatidan -->
+          <div class="min-w-[240px] flex-1 max-w-sm">
+            <label class="field-label">{{ t('sreq.p33.receivedBy') }} *</label>
+            <select v-model="receivedBy" class="field-input" :class="fieldError(errors, 'received_by') && 'field-input-error'" data-received-by>
+              <option v-for="u in receivers" :key="u.id" :value="u.id">{{ u.name }}<template v-if="u.position"> — {{ u.position }}</template></option>
+            </select>
+            <p v-if="fieldError(errors, 'received_by')" class="mt-1 text-[12px] text-crit">{{ fieldError(errors, 'received_by') }}</p>
           </div>
           <label class="inline-flex items-center gap-2 pb-2 text-[13.5px] text-ink cursor-pointer">
             <input v-model="allTaken" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500" data-all>
@@ -218,6 +254,7 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
               <label class="field-label">{{ t('sreq.form.code') }}</label>
               <input v-model="row.customer_code" class="field-input h-[34px] font-mono" :class="rowErr(row, 'customer_code') && 'field-input-error'" :disabled="!row.take">
               <p v-if="rowErr(row, 'customer_code')" class="mt-1 text-[12px] text-crit">{{ rowErr(row, 'customer_code') }}</p>
+              <p v-else-if="isDup(row)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
               <p v-if="row.group_code" class="mt-1 flex items-center gap-1 font-mono text-[12px] text-assay-700 dark:text-assay-200" :title="t('sreq.group.codeHint')" data-row-gcode>
                 <KeyRound :size="12" class="shrink-0" /> {{ row.group_code }}
               </p>

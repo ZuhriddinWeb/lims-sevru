@@ -10,6 +10,7 @@
 */
 
 use App\Http\Controllers\Api\Intake\PortalRequestController;
+use App\Http\Controllers\Api\Intake\PortalTemplateController;
 use App\Http\Controllers\Api\Intake\SampleRequestController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/{id}/submit', [PortalRequestController::class, 'submit'])->whereNumber('id');
         Route::post('/{id}/withdraw', [PortalRequestController::class, 'withdraw'])->whereNumber('id');
         Route::post('/{id}/cancel', [PortalRequestController::class, 'cancel'])->whereNumber('id');
+    });
+
+    /* ---------- [P33] Buyurtmachi: Shablonlarim (faqat o'z bo'linmasi) ---------- */
+    Route::prefix('portal/request-templates')->group(function () {
+        Route::get('/', [PortalTemplateController::class, 'index']);
+        Route::post('/', [PortalTemplateController::class, 'store'])->middleware('throttle:30,1');
+        Route::post('/order', [PortalTemplateController::class, 'order']);
+        Route::put('/{id}', [PortalTemplateController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [PortalTemplateController::class, 'destroy'])->whereNumber('id');
     });
 
     /* ---------- Laboratoriya: Buyurtmalar ---------- */

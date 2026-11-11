@@ -26,6 +26,15 @@ class SampleIntakeController extends Controller
     {
     }
 
+    /** [P33] «Kim qabul qilib oldi» ro'yxati (proba ro'yxatga olish formasi uchun) */
+    public function receivers(Request $request)
+    {
+        return response()->json([
+            'receivers' => \App\Services\Samples\SampleIntake::receivers($request->user()),
+            'me'        => (int) $request->user()->id,
+        ]);
+    }
+
     /** Proba kartochkasidagi panel uchun hammasi bitta so'rovda */
     public function show(Sample $sample)
     {
@@ -49,6 +58,7 @@ class SampleIntakeController extends Controller
                 'registered_at'     => $sample->registered_at?->toDateTimeString(),
                 'registered_by'     => $sample->registeredBy?->name,
                 'handed_over_by'    => $sample->getAttribute('handed_over_by'), // [P24]
+                'received_by'       => $sample->getAttribute('received_by') ? $sample->receivedBy?->name : null, // [P33]
                 // [P30] guruh shifri — faqat proba biriktirilgan guruh xodimlariga
                 'group_code'        => \App\Services\Samples\SampleRequests::canSeeGroupCode(request()->user(), $sample->assigned_group_id ? (int) $sample->assigned_group_id : null)
                     ? $sample->getAttribute('group_code') : null,

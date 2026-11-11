@@ -11,6 +11,7 @@ export const PORTAL_PAGES = [
   'portal', 'portal-sample', 'profile', 'forbidden', 'not-found', 'login',
   'portal-requests', 'portal-request-new', 'portal-request', // [P24] Buyurtmalarim
   'portal-svodka', // [P29] Svodka
+  'portal-templates', 'portal-template-new', 'portal-template', // [P33] Shablonlarim
 ]
 
 export function isPortalUser(user) {

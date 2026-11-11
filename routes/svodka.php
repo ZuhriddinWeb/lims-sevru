@@ -10,6 +10,7 @@
 */
 
 use App\Http\Controllers\Api\Svodka\PortalSvodkaController;
+use App\Http\Controllers\Api\Svodka\ResultAnalysisController;
 use App\Http\Controllers\Api\Svodka\SvodkaReleaseController;
 use Illuminate\Support\Facades\Route;
 
@@ -48,5 +49,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/viewers', [SvodkaReleaseController::class, 'viewers']);
         Route::post('/viewers', [SvodkaReleaseController::class, 'addViewer']);
         Route::delete('/viewers/{user}', [SvodkaReleaseController::class, 'removeViewer'])->whereNumber('user');
+    });
+
+    // [P32] Natijalar tahlili (menyuda «AI tahlil») — kirish tekshiruvi kontrollerda
+    Route::prefix('result-analysis')->group(function () {
+        Route::get('/options', [ResultAnalysisController::class, 'options']);
+        Route::get('/', [ResultAnalysisController::class, 'analyze'])->middleware('throttle:60,1');
     });
 });

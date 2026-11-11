@@ -32,6 +32,8 @@ Route::middleware('auth:sanctum')->group(function () {
         ->middleware('permission:customer_departments.manage');
 
     /* ---------- Proba: qabul ma'lumoti va miqdor hisobi ---------- */
+    Route::get('/sample-intake/receivers', [SampleIntakeController::class, 'receivers']) // [P33]
+        ->middleware('permission:samples.create|samples.update|sample_requests.receive');
     Route::get('/samples/{sample}/intake', [SampleIntakeController::class, 'show'])
         ->middleware('permission:samples.view');
     Route::put('/samples/{sample}/quantity', [SampleIntakeController::class, 'updateQuantity'])

@@ -355,7 +355,6 @@ class SampleRequests
 
         // Tekshiruv: hammasi yozishdan OLDIN — xato bo'lsa hech narsa yaratilmaydi
         $plan = [];
-        $seenCodes = [];
         foreach ($rows as $i => $row) {
             $item = $pending->get((int) ($row['id'] ?? 0));
             if (! $item) {
@@ -379,21 +378,7 @@ class SampleRequests
             // [P30] guruh: qabulda tanlanmasa — buyurtmachi tanlagan guruh
             $group = ($row['assigned_group_id'] ?? null) ?: ($request->laboratory_group_id ?: null);
             $code = trim((string) ($row['customer_code'] ?? $item->customer_code ?? ''));
-            if ($code !== '') {
-                if (isset($seenCodes[$code])) {
-                    $errors["items.$i.customer_code"][] = "«{$code}» shifri bu qabulda takrorlangan";
-                }
-                $seenCodes[$code] = true;
-                // [P26] shifr har oy qaytalanishi mumkin — takror faqat shu oyda (qabul oyi) taqiqlanadi
-                // [P30] va faqat SHU GURUHDA: bir xil namunalar turli guruhlarga (masalan, Bo'tana va
-                // Bo'tana quruq faza) bir xil shifr bilan yuborilishi mumkin
-                $period = now()->format('Y-m');
-                $dup = SampleIntake::duplicateCode((int) $request->customer_department_id, $code, $period, $group ? (int) $group : null);
-                if ($dup) {
-                    $errors["items.$i.customer_code"][] = SampleIntake::duplicateMessage($code, $period, $dup, $group ? (int) $group : null);
-                }
-            }
-
+            // [P33] shifr takrorlanishi taqiqlanmaydi (na shu qabulda, na shu oyda) — interfeys faqat ogohlantiradi
             $number = trim((string) ($row['sample_number'] ?? ''));
             if ($number === '') {
                 $number = $code !== '' ? $code : "{$request->number}-{$item->position}";
@@ -434,8 +419,17 @@ class SampleRequests
         $handedOver = trim((string) ($data['handed_over_by'] ?? '')) ?: ($request->contact_name ?: null);
         $handedOver = $handedOver ? mb_substr($handedOver, 0, 191) : null;
 
+        // [P33] olib kelgan shaxs telefoni (buyurtmadagi telefon — taklif) va qabul qilib olgan xodim (ro'yxatdan)
+        $handedPhone = trim((string) ($data['handed_over_phone'] ?? '')) ?: ($request->contact_phone ?: null);
+        $handedPhone = $handedPhone ? mb_substr($handedPhone, 0, 64) : null;
+        $receiverId = (int) ($data['received_by'] ?? 0) ?: (int) $user->id;
+        if ($receiverId !== (int) $user->id && ! SampleIntake::isReceiver($receiverId, $user)) {
+            throw ValidationException::withMessages(['received_by' => ["Qabul qilib olgan xodim ro'yxatda yo'q"]]);
+        }
+        $hasPhone = \Illuminate\Support\Facades\Schema::hasColumn('sample_requests', 'handed_over_phone');
+
         // Bir vaqtda ikki laborant qabul qilsa — proba shifri to'qnashadi, qayta urinamiz
-        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver) {
+        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver, $handedPhone, $receiverId, $hasPhone) {
             $now = now();
             $created = [];
             foreach ($plan as $p) {
@@ -466,6 +460,7 @@ class SampleRequests
                     'received_quantity'      => $p['qty'],
                     'quantity_unit'          => $p['qty'] !== null ? $p['unit'] : null,
                     'handed_over_by'         => $handedOver,
+                    'received_by'            => $receiverId, // [P33]
                 ]);
                 if ($p['gcode'] !== null) {
                     $sample->forceFill(['group_code' => $p['gcode']])->save(); // [P30] guruh shifri probaga
@@ -489,13 +484,15 @@ class SampleRequests
             $request->forceFill([
                 'status'         => $left ? 'partial' : 'received',
                 'received_at'    => $request->received_at ?: $now,
-                'received_by'    => $request->received_by ?: $user->id,
+                'received_by'    => $request->received_by ?: $receiverId, // [P33] tanlangan xodim
                 'handed_over_by' => $handedOver ?? $request->handed_over_by,
                 'closed_at'      => $left ? null : $now,
                 'closed_by'      => $left ? null : $user->id,
                 'updated_by'     => $user->id,
-            ])->save();
-            $this->log('updated', $request, "Buyurtma bo'yicha namuna qabul qilindi: {$request->number} (" . count($created) . ' ta)', $user);
+            ] + ($hasPhone ? ['handed_over_phone' => $handedPhone ?? $request->handed_over_phone] : []))->save();
+            $this->log('updated', $request, "Buyurtma bo'yicha namuna qabul qilindi: {$request->number} (" . count($created) . ' ta)'
+                . ($handedOver ? "; olib keldi: {$handedOver}" : '')
+                . '; qabul qilib oldi: ' . (\App\Models\User::find($receiverId)?->name ?? "#$receiverId"), $user);
 
             return $created;
         }));
@@ -537,7 +534,7 @@ class SampleRequests
         }
     }
 
-    /** Yuborishdan oldin: kamida bitta namuna, har birida aniqlanadigan ko'rsatkich, shifrlar takrorlanmasin */
+    /** Yuborishdan oldin: kamida bitta namuna, har birida aniqlanadigan ko'rsatkich */
     private function assertComplete(SampleRequest $request): void
     {
         $errors = [];
@@ -557,17 +554,11 @@ class SampleRequests
                 $errors['laboratory_group_id'][] = 'Tanlangan guruh faol emas — boshqasini tanlang';
             }
         }
-        $codes = [];
         foreach ($request->items as $i => $item) {
             if (! $item->resolvedElementIds()) {
                 $errors["items.$i.element_ids"][] = "{$item->position}-namuna: nimani aniqlash kerakligini tanlang";
             }
-            if ($item->customer_code !== null) {
-                if (isset($codes[$item->customer_code])) {
-                    $errors["items.$i.customer_code"][] = "«{$item->customer_code}» shifri takrorlangan";
-                }
-                $codes[$item->customer_code] = true;
-            }
+            // [P33] bir buyurtmada takrorlangan shifr — xato emas (formada ogohlantirish chiqadi)
         }
         if ($errors) {
             throw ValidationException::withMessages($errors);
@@ -735,6 +726,7 @@ class SampleRequests
             'received_at'    => $r->received_at?->toDateTimeString(),
             'received_by'    => $r->receiver?->name,
             'handed_over_by' => $r->handed_over_by,
+            'handed_over_phone' => $r->getAttribute('handed_over_phone'), // [P33]
             'closed_at'      => $r->closed_at?->toDateTimeString(),
             'closed_by'      => $r->closer?->name,
             'close_reason'   => $r->close_reason,

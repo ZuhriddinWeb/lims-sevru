@@ -46,6 +46,22 @@ export default [
     component: () => import('./requests/views/RequestEditor.vue'),
     meta: { permission: PORTAL_REQ, mode: 'portal' },
   },
+  /* ---- [P33] Buyurtmachi: Shablonlarim (bo'linma shablonlari) ---- */
+  {
+    path: 'portal/templates', name: 'portal-templates',
+    component: () => import('./requests/views/PortalTemplates.vue'),
+    meta: { permission: PORTAL_REQ },
+  },
+  {
+    path: 'portal/templates/new', name: 'portal-template-new',
+    component: () => import('./requests/views/TemplateEditor.vue'),
+    meta: { permission: 'portal.request' },
+  },
+  {
+    path: 'portal/templates/:id(\\d+)', name: 'portal-template',
+    component: () => import('./requests/views/TemplateEditor.vue'),
+    meta: { permission: 'portal.request' },
+  },
   {
     path: 'sample-requests', name: 'sample-requests',
     component: () => import('./requests/views/LabRequests.vue'),
@@ -77,6 +93,12 @@ export default [
     path: 'portal/svodka/:id(\\d+)?', name: 'portal-svodka',
     component: () => import('./svodka/views/PortalSvodka.vue'),
     meta: { permission: ['portal.view', 'portal.request', 'svodka.view'] }, // [P31] svodka.view — xodim, faqat ko'rish
+  },
+  /* ---- [P32] Natijalar tahlili (menyuda «AI tahlil»): nuqta → ko'rsatkich dinamikasi, o'z tarixiga nisbatan ---- */
+  {
+    path: 'result-analysis', name: 'result-analysis',
+    component: () => import('./svodka/views/ResultAnalysis.vue'),
+    meta: { permission: ['results.analysis'] },
   },
   {
     path: 'svodka-releases/:id(\\d+)?', name: 'svodka-releases',

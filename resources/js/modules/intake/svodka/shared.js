@@ -71,7 +71,7 @@ export async function downloadSvodka(params) {
   }
   const cd = res.headers?.['content-disposition'] || ''
   const m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd)
-  const name = m ? decodeURIComponent(m[1]) : 'svodka.xlsx'
+  const name = m ? decodeURIComponent(m[1]) : 'jamlanma_hisobot.xlsx'
   const url = URL.createObjectURL(res.data)
   const a = document.createElement('a')
   a.href = url

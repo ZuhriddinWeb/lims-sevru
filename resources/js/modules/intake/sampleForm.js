@@ -13,6 +13,7 @@ import api from '@/lib/api'
 import * as lab from '@/resources/lab'
 import './i18n'
 import './requests/i18n' // [P24] «Topshirgan shaxs» matnlari
+import './requests/i18nP33' // [P33] «Kim qabul qilib oldi»
 
 const UNITS = ['g', 'kg', 'mg', 'ml', 'l']
 
@@ -66,6 +67,40 @@ function departmentField(extra = {}) {
   return withDepartmentOptions({ key: 'customer_department_id', type: 'select', labelKey: 'intake.department', ...extra })
 }
 
+/* ---------- [P33] «Kim qabul qilib oldi»: laboratoriya xodimlari ro'yxati ---------- */
+const recv = reactive({ options: [], me: null, loaded: false })
+let recvLoading = false
+let recvTry = 0
+
+function ensureReceivers() {
+  if (recv.loaded || recvLoading || Date.now() - recvTry < 10000) return
+  recvLoading = true
+  recvTry = Date.now()
+  api.get('/sample-intake/receivers')
+    .then(({ data }) => {
+      const list = (data?.receivers ?? []).map((u) => ({ value: Number(u.id), label: u.position ? `${u.name} — ${u.position}` : u.name }))
+      recv.options.splice(0, recv.options.length, ...list)
+      recv.me = list.some((o) => o.value === Number(data?.me)) ? Number(data.me) : null
+      recv.loaded = true
+    })
+    .catch(() => { /* ruxsat yo'q yoki login'dan oldin */ })
+    .finally(() => { recvLoading = false })
+}
+
+function receiverField() {
+  const field = { key: 'received_by', type: 'select', labelKey: 'sreq.p33.receivedBy', hintKey: 'sreq.p33.receivedByHint' }
+  Object.defineProperty(field, 'options', {
+    enumerable: true, configurable: true,
+    get() { ensureReceivers(); return recv.options },
+  })
+  // yangi proba: sukut bo'yicha tizimga kirgan xodim
+  Object.defineProperty(field, 'default', {
+    enumerable: true, configurable: true,
+    get() { ensureReceivers(); return recv.me },
+  })
+  return field
+}
+
 const keyOf = (x) => x?.key
 
 /**
@@ -114,6 +149,18 @@ export function installSampleIntakeForm(resource = lab.sampleResource) {
       const at = sec.fields.findIndex((f) => keyOf(f) === 'customer_code')
       sec.fields.splice(at >= 0 ? at + 1 : sec.fields.length, 0,
         { key: 'handed_over_by', type: 'text', labelKey: 'intake.handedOverBy', hintKey: 'intake.handedOverByHint' })
+      changed = true
+    }
+  }
+
+  // [P33] Kim qabul qilib oldi — «Topshirgan shaxs» dan keyin
+  const all2 = sections.flatMap((s) => s.fields ?? [])
+  if (!all2.some((f) => keyOf(f) === 'received_by')) {
+    const sec = sections.find((s) => (s.fields ?? []).some((f) => keyOf(f) === 'handed_over_by'))
+      || sections.find((s) => (s.fields ?? []).some((f) => keyOf(f) === 'customer_department_id'))
+    if (sec) {
+      const at = sec.fields.findIndex((f) => keyOf(f) === 'handed_over_by')
+      sec.fields.splice(at >= 0 ? at + 1 : sec.fields.length, 0, receiverField())
       changed = true
     }
   }
