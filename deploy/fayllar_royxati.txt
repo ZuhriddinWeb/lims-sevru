@@ -254,7 +254,7 @@ app\Console\Commands\WorksheetPushResults.php | paket31_svodka_korish
 database\migrations\2026_11_02_100000_create_svodka_viewers_table.php | paket31_svodka_korish
 resources\js\modules\intake\svodka\components\ViewersDialog.vue | paket31_svodka_korish
 deploy\tekshir_versiyalar.ps1 | paket33_shablon_qabul
-app\Http\Controllers\Api\Svodka\ResultAnalysisController.php | paket33_shablon_qabul
+app\Http\Controllers\Api\Svodka\ResultAnalysisController.php | paket33_tuzatish_1
 app\Services\Svodka\ResultAnalysis.php | paket32_natija_tahlili
 resources\js\modules\intake\svodka\views\ResultAnalysis.vue | paket32_natija_tahlili
 app\Http\Controllers\Api\Intake\PortalTemplateController.php | paket33_shablon_qabul

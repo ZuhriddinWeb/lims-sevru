@@ -40,7 +40,7 @@ class ResultAnalysisController extends Controller
     {
         $this->guard($request);
         $depts = CustomerDepartment::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']);
-        $sections = SvodkaSection::with(['points' => fn ($q) => $q->orderBy('sort_order')->orderBy('id')])
+        $sections = SvodkaSection::with('points') // tartib — munosabatning o'zida (SQL Server ORDER BY takrorini qabul qilmaydi)
             ->whereIn('customer_department_id', $depts->pluck('id'))->orderBy('sort_order')->orderBy('id')->get();
         $symbols = DB::table('sample_elements')
             ->join('elements', 'elements.id', '=', 'sample_elements.element_id')
