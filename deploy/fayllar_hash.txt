@@ -204,7 +204,7 @@ resources\js\modules\worksheets\views\WorksheetEntry.vue | ee0f4c442b3a16cde1556
 resources\js\modules\worksheets\views\WorksheetList.vue | f7035f2e304c3156386201e9c54ecfb5a116c1622de39de749290c5e2e35fd80 | paket15_buyurtmachi_miqdor
 resources\js\modules\worksheets\views\WorksheetPrint.vue | 1d8f0a60a10d6b7a51a611de475db84305ca56b602fed6669d4cbc7dd113de90 | paket13_partiya_varaqlar
 resources\js\resources\admin.js | 5487963ff72fe838b8302ee482c687000c3b5c9dd63c7767b14e6f919e5581cf | paket25_formula
-resources\js\router\index.js | b36be82c3ab4c6c9b6fdbc511aedb3bb1acf4053c7cdcfa452919490cb51d157 | paket14_laboratoriyalararo_v2 | mahalliy
+resources\js\router\index.js | f011e9159b77282ebe61e342d3d8e30934bbca4182300e6e2feb0685c266c43b | paket15_33_marshrutlar
 resources\js\views\admin\RoleList.vue | eed3f34049505833b8fb74d554ecbca38b9da73ba32b98b53bb2321d96f46110 | tuzatish_rollar_ruxsatlar
 resources\js\views\samples\SampleList.vue | caf305c012d6ed88da138c49e6f35d5c0df0c620ca81ef456c5088b619382a79 | paket13_partiya_varaqlar
 routes\insights.php | 0a18f807e722d10de643c88156bb49fbd97d7db84b4e85e5edf2dcff07e09a5a | paket21_yordamchi | mahalliy
@@ -257,12 +257,13 @@ deploy\tekshir_versiyalar.ps1 | e5afec1f6e96aa3c67edd8066fe1865465f41294cbb68185
 app\Http\Controllers\Api\Svodka\ResultAnalysisController.php | c905205c0fc919ff5c465781f7fdfd389b3ffde2d0ef79a8c709ce1e0c0e5ab8 | paket33_shablon_qabul
 app\Services\Svodka\ResultAnalysis.php | 0d962f3806bb6c67bdddae7e4eabb2189cb9c319ac14b28628b98855b4988477 | paket32_natija_tahlili
 resources\js\modules\intake\svodka\views\ResultAnalysis.vue | c53cc9713625a43495166068747203b2cea4aa6aa3f3cae4b9098c5850acbf9d | paket32_natija_tahlili
-app\\Http\\Controllers\\Api\\Intake\\PortalTemplateController.php | 920d87b0b31101031dade64ca0679ed8957693979b87d54bbb181e69c050397f | paket33_shablon_qabul
-app\\Models\\PortalRequestTemplate.php | 9480d2d1b93f1113de140d001f4ad8ebd2f160de82d7adf141fec52e74fc2348 | paket33_shablon_qabul
-app\\Models\\Sample.php | 4a7d736fe5459df30d92b4a16de71a978925d22bd16f8647cb23da042f97df88 | paket33_shablon_qabul
-database\\migrations\\2026_11_11_100000_portal_templates_and_receipt_fields.php | 7787764c10d3e8948758c634bbb439701efed8aa9c3ae351c9ff417241fb5b2f | paket33_shablon_qabul
-resources\\js\\modules\\intake\\requests\\components\\TemplateBar.vue | fee4ea22550327dbeffdc2878a3b8a6a2b1626d277c59001eb1ff5b23b98178e | paket33_shablon_qabul
-resources\\js\\modules\\intake\\requests\\i18nP33.js | 6f11b65d225ef697be44ed873d215bd91b22fb72ffd96b42715bbf52ace83b72 | paket33_shablon_qabul
-resources\\js\\modules\\intake\\requests\\templates.js | 8b56707cc6f43664cfcb1cee9fb184e736302c7bc5b92961f8641ee330206595 | paket33_shablon_qabul
-resources\\js\\modules\\intake\\requests\\views\\PortalTemplates.vue | c89e9a8faaccf7ef5eba0517fe68197a13e747f7c50f0e38bffd29398267f903 | paket33_shablon_qabul
-resources\\js\\modules\\intake\\requests\\views\\TemplateEditor.vue | e9759b1c231b427fb985f2bf5e33c56ce53dc462f10b2a873233f684bf477c11 | paket33_shablon_qabul
+app\Http\Controllers\Api\Intake\PortalTemplateController.php | 920d87b0b31101031dade64ca0679ed8957693979b87d54bbb181e69c050397f | paket33_shablon_qabul
+app\Models\PortalRequestTemplate.php | 9480d2d1b93f1113de140d001f4ad8ebd2f160de82d7adf141fec52e74fc2348 | paket33_shablon_qabul
+app\Models\Sample.php | 4a7d736fe5459df30d92b4a16de71a978925d22bd16f8647cb23da042f97df88 | paket33_shablon_qabul
+database\migrations\2026_11_11_100000_portal_templates_and_receipt_fields.php | 7787764c10d3e8948758c634bbb439701efed8aa9c3ae351c9ff417241fb5b2f | paket33_shablon_qabul
+resources\js\modules\intake\requests\components\TemplateBar.vue | fee4ea22550327dbeffdc2878a3b8a6a2b1626d277c59001eb1ff5b23b98178e | paket33_shablon_qabul
+resources\js\modules\intake\requests\i18nP33.js | 6f11b65d225ef697be44ed873d215bd91b22fb72ffd96b42715bbf52ace83b72 | paket33_shablon_qabul
+resources\js\modules\intake\requests\templates.js | 8b56707cc6f43664cfcb1cee9fb184e736302c7bc5b92961f8641ee330206595 | paket33_shablon_qabul
+resources\js\modules\intake\requests\views\PortalTemplates.vue | c89e9a8faaccf7ef5eba0517fe68197a13e747f7c50f0e38bffd29398267f903 | paket33_shablon_qabul
+resources\js\modules\intake\requests\views\TemplateEditor.vue | e9759b1c231b427fb985f2bf5e33c56ce53dc462f10b2a873233f684bf477c11 | paket33_shablon_qabul
+app\Console\Commands\MigrationSync.php | 5ccba2195709c6defd60fb2dbf8d7e90a8c79b73b35ee610c9489b96d274d0b5 | paket33_shablon_qabul
