@@ -7,6 +7,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Copy, EyeOff, KeyRound, Plus, Trash2 } from 'lucide-vue-next'
 import AnalytePicker from './AnalytePicker.vue'
+import ContactPicker from './ContactPicker.vue' // [P34]
 import { blankItem, fieldError, nameOf } from '../shared'
 import '../i18n'
 import '../../svodka/i18n' // [P29]
@@ -19,6 +20,7 @@ const props = defineProps({
   fresh: { type: Boolean, default: false },     // [P29] yangi buyurtma (tahrirlash uchun yuklash emas)
   templateMode: { type: Boolean, default: false }, // [P33] shablon tahriri: sanalar (olib kelish, svodka) yo'q
 })
+const emit = defineEmits(['contact-pending']) // [P34] «bu … emasmi?» savoliga javob berilmagan
 const { t, locale } = useI18n()
 
 const err = (k) => fieldError(props.errors, k)
@@ -118,14 +120,12 @@ function remove(i) {
         </div>
         <p v-if="err('delivery_shift_id')" class="mt-1.5 text-[12.5px] text-crit">{{ err('delivery_shift_id') }}</p>
       </div>
-      <div>
-        <label class="field-label">{{ t('sreq.form.contact') }}</label>
-        <input v-model="form.contact_name" class="field-input" maxlength="191" data-f="contact">
-      </div>
-      <div>
-        <label class="field-label">{{ t('sreq.form.phone') }}</label>
-        <input v-model="form.contact_phone" class="field-input" maxlength="64" inputmode="tel">
-      </div>
+      <!-- [P34] kim olib keladi + telefon — bo'linma xodimlari ro'yxatidan (kombobox) -->
+      <ContactPicker
+        v-model:name="form.contact_name" v-model:phone="form.contact_phone" :department-id="form.department_id"
+        :name-label="t('sreq.form.contact')" :phone-label="t('sreq.form.phone')" data-name="f-contact"
+        @update:pending="emit('contact-pending', $event)"
+      />
       <div class="sm:col-span-2" :class="showDepartment && options.shifts?.length ? 'lg:col-span-2' : 'lg:col-span-3'">
         <label class="field-label">{{ t('sreq.form.notes') }}</label>
         <input v-model="form.notes" class="field-input" maxlength="2000" :placeholder="t('sreq.form.notesHint')">

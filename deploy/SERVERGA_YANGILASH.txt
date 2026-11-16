@@ -1,5 +1,5 @@
 ===========================================================================
- ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 33)
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 34)
  Holat: 2026-11-04
 ===========================================================================
 
@@ -78,7 +78,7 @@ TARTIB
        migrate + lims:upgrade: uchalasi bir xil yakuniy holatga keldi (31 migratsiya, 65 ruxsat,
        34 menyu, 223 yordamchi javobi); namuna, natija, foydalanuvchi, varaq soni o'zgarmadi.
     2) Ikkinchi marta ishga tushirish — bazada hech narsa o'zgarmadi.
-    3) Skript ishlatadigan barcha buyruqlar va 11 ta API yo'li tekshirildi.
+    3) Skript ishlatadigan barcha buyruqlar va 12 ta API yo'li tekshirildi.
     SQL Server: yangi migratsiyalar SQL Server grammatikasida yasalib tekshirildi. Skript (.bat)
     Windows'da bu yerda ishga tushirilmagan — birinchi serverda kuzatib turing.
 
@@ -108,7 +108,7 @@ TARTIB
 
   4. Tekshiruv — hamma fayl eng oxirgi versiyada va build yangi:
         powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
-     Natija: «Farq qiladi: 0    Yo'q: 0», «public\build: Paket 33 bilan yig'ilgan».
+     Natija: «Farq qiladi: 0    Yo'q: 0», «public\build: Paket 34 bilan yig'ilgan».
      «MAHALLIY» qatorlar — yuqoridagi 10 ta faylingiz, bu xato emas.
      Boshqa «ESKI/FARQ» yoki «YO'Q» chiqsa — ro'yxatni menga yuboring, push QILMANG.
 
@@ -148,7 +148,7 @@ TARTIB
 
      Skript qadamlari:
        1  kod to'liqligi: Paket 13–32 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
-          eng oxirgi versiyadami, public\build Paket 33 bilanmi). Farq bo'lsa so'raydi.
+          eng oxirgi versiyadami, public\build Paket 34 bilanmi). Farq bo'lsa so'raydi.
        2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
        3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
           (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)
@@ -159,7 +159,7 @@ TARTIB
        8  ixtiyoriy: ochiq varaqlarga «varaq bo'yicha jami» — so'raydi
        9  ixtiyoriy: tasdiqlangan, lekin probaga yozilmay qolgan natijalarni o'tkazish — so'raydi
       10  optimize:clear → php artisan up
-      11  tekshiradi: migratsiyalar, 11 ta API yo'li, rejalashtirgich
+      11  tekshiradi: migratsiyalar, 12 ta API yo'li, rejalashtirgich
       12  eslatma: Apache (yoki IIS) ni qayta ishga tushiring
 
      Skriptsiz — xuddi shu buyruqlar qo'lda (avval zaxira nusxa!):
@@ -179,19 +179,20 @@ TARTIB
 
   4-JADVAL. migrate:status da kutiladigan «Pending» — server holatiga qarab
      server oxirgi qaysi paketda      bajariladi
-     Paket 12 yoki undan oldin        hammasi, 17 ta
-     Paket 13                         2026_10_12_… dan boshlab 15 ta
-     Paket 14                         2026_10_13_… dan boshlab 13 ta
-     Paket 15                         2026_10_14_100000 dan boshlab 11 ta
-     Paket 16–18                      2026_10_14_120000 dan boshlab 10 ta
-     Paket 19–20                      9 ta
-     Paket 21–23                      7 ta (2026_10_20_100000 dan)
-     Paket 24–26                      6 ta (2026_10_22_100000 dan)
-     Paket 27                         5 ta
-     Paket 28                         4 ta
-     Paket 29                         3 ta
-     Paket 30                         2 ta (2026_11_02_100000 dan)
-     Paket 31–32                      1 ta (2026_11_11_100000)
+     Paket 12 yoki undan oldin        hammasi, 18 ta
+     Paket 13                         2026_10_12_… dan boshlab 16 ta
+     Paket 14                         2026_10_13_… dan boshlab 14 ta
+     Paket 15                         2026_10_14_100000 dan boshlab 12 ta
+     Paket 16–18                      2026_10_14_120000 dan boshlab 11 ta
+     Paket 19–20                      10 ta
+     Paket 21–23                      8 ta (2026_10_20_100000 dan)
+     Paket 24–26                      7 ta (2026_10_22_100000 dan)
+     Paket 27                         6 ta
+     Paket 28                         5 ta
+     Paket 29                         4 ta
+     Paket 30                         3 ta (2026_11_02_100000 dan)
+     Paket 31–32                      2 ta (2026_11_11_100000 dan)
+     Paket 33                         1 ta (2026_11_12_100000)
      Oraliq paketlar o'tkazib yuborilgan bo'lsa — ro'yxatdagi yo'qlari bajariladi, tartib muhim emas.
 
      2026_10_08_100000_create_worksheet_tables                 Paket 13
@@ -211,6 +212,7 @@ TARTIB
      2026_10_29_100000_add_group_to_sample_requests            Paket 30
      2026_11_02_100000_create_svodka_viewers_table             Paket 31
      2026_11_11_100000_portal_templates_and_receipt_fields     Paket 33
+     2026_11_12_100000_create_customer_contacts_table          Paket 34
      Bu ro'yxatda yo'q nom «Pending» bo'lsa — o'zingiz yozgan migratsiya: ichini ko'ring.
 
   SEEDERLAR — qo'lda ishga tushirish SHART EMAS. lims:upgrade quyidagilarni xavfsiz chaqiradi

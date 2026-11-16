@@ -9,7 +9,7 @@
 #   YO'Q       - fayl umuman yo'q
 #   MAHALLIY   - siz lokalda o'zgartirgan fayl (belgi "mahalliy"): farq qilishi kutilgan, xato emas
 #   belgi "ixtiyoriy" - fayl bo'lmasa ham xato emas
-# Qo'shimcha: public\build (interfeys) Paket 33 bilan yig'ilganmi.
+# Qo'shimcha: public\build (interfeys) Paket 34 bilan yig'ilganmi.
 # Chiqish kodi: 0 - hammasi joyida; 1 - farq yoki yo'q fayl bor.
 
 $ErrorActionPreference = 'Stop'
@@ -54,16 +54,16 @@ foreach ($line in [System.IO.File]::ReadAllLines($list, $utf8)) {
     }
 }
 
-# Interfeys (public\build) - Paket 33 dagi "Shablonlarim" bo'lishi kerak
+# Interfeys (public\build) - Paket 34 dagi "Kim olib keladi" ro'yxati bo'lishi kerak
 $build = 'yo''q'
 $assets = Join-Path $root 'public\build\assets'
 if (Test-Path -LiteralPath $assets) {
-    $hit = Get-ChildItem -LiteralPath $assets -Filter *.js | Select-String -SimpleMatch -Pattern 'portal/request-templates' -List | Select-Object -First 1
+    $hit = Get-ChildItem -LiteralPath $assets -Filter *.js | Select-String -SimpleMatch -Pattern 'portal/contacts/check' -List | Select-Object -First 1
     if ($hit) { $build = 'ok' } else { $build = 'eski' }
 }
 Write-Host ""
 if ($build -eq 'ok') {
-    Write-Host "public\build: Paket 33 bilan yig'ilgan" -ForegroundColor Green
+    Write-Host "public\build: Paket 34 bilan yig'ilgan" -ForegroundColor Green
 } else {
     Write-Host ("public\build: {0} - lokalda npm run build, git add -f public/build, commit, push" -f $build) -ForegroundColor Red
     $bad++

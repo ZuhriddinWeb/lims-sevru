@@ -107,7 +107,7 @@ class P33RequestsTest extends TestCase
         $req = $this->sendRequest($this->customer, ['A1']);
         $r = $this->receive($req, ['handed_over_by' => 'Rahimov A.', 'handed_over_phone' => '+998 90 999 00 11', 'received_by' => $this->head->id])->assertOk();
         $this->assertSame('Karimova N.', $r->json('request.received_by'));
-        $this->assertSame('+998 90 999 00 11', $r->json('request.handed_over_phone'));
+        $this->assertSame('+998 90 999-00-11', $r->json('request.handed_over_phone')); // [P34] bir xil ko'rinishda
         $s = Sample::where('customer_code', 'A1')->first();
         $this->assertSame($this->head->id, (int) $s->received_by);
         $this->assertSame($this->operator->id, (int) $s->registered_by);
@@ -121,7 +121,7 @@ class P33RequestsTest extends TestCase
         $req = $this->sendRequest($this->customer, ['B1']);
         $this->receive($req, ['received_by' => $this->customer->id])->assertStatus(422)->assertJsonValidationErrors('received_by');
         $r = $this->receive($req)->assertOk();   // received_by yo'q — joriy xodim; telefon — buyurtmadagi
-        $this->assertSame('+998 90 111 22 33', $r->json('request.handed_over_phone'));
+        $this->assertSame('+998 90 111-22-33', $r->json('request.handed_over_phone'));
         $this->assertSame($this->operator->id, (int) Sample::where('customer_code', 'B1')->value('received_by'));
     }
 

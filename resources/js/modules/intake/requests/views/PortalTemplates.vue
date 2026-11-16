@@ -13,6 +13,7 @@ import EmptyState from '@/components/ui/EmptyState.vue'
 import { useUiStore } from '@/stores/ui'
 import { formatDateTime } from '@/lib/format'
 import ReasonDialog from '../components/ReasonDialog.vue'
+import ContactsPanel from '../components/ContactsPanel.vue' // [P34] bo'linma xodimlari
 import { apiErrorMessage, nameOf } from '../shared'
 import '../i18n'
 import '../i18nGroup'
@@ -157,6 +158,9 @@ const use = (tpl) => router.push({ name: 'portal-request-new', query: { template
         </div>
       </div>
     </div>
+
+    <!-- [P34] Bo'linma xodimlari (kim olib keladi) — tuzatish va o'chirish -->
+    <ContactsPanel v-if="!loading && !loadError && departments.length" :departments="departments" class="mt-6" />
 
     <ReasonDialog
       :model-value="!!removing" :title="t('sreq.tpl.deleteTitle')" :body="removing ? t('sreq.tpl.deleteBody', { name: removing.name }) : ''"

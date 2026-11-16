@@ -41,6 +41,12 @@ class SampleRequests
     {
     }
 
+    /** [P34] bo'linma xodimlari ma'lumotnomasi */
+    private function contacts(): CustomerContacts
+    {
+        return app(CustomerContacts::class);
+    }
+
     /* =============================================================== tekshiruv qoidalari */
 
     /** Qoralamani saqlash: to'liq bo'lishi shart emas */
@@ -129,6 +135,12 @@ class SampleRequests
         foreach (['delivery_date', 'contact_name', 'contact_phone', 'notes'] as $k) {
             if (array_key_exists($k, $data)) {
                 $v = is_string($data[$k]) ? trim($data[$k]) : $data[$k];
+                // [P34] F.I.Sh. va telefon bir xil ko'rinishda saqlanadi (ortiqcha probel, +998 90 123-45-67)
+                if ($k === 'contact_name' && is_string($v)) {
+                    $v = CustomerContacts::cleanName($v);
+                } elseif ($k === 'contact_phone' && is_string($v)) {
+                    $v = CustomerContacts::phone($v)['display'];
+                }
                 $out[$k] = $v === '' ? null : $v;
             }
         }
@@ -282,6 +294,8 @@ class SampleRequests
         });
 
         $this->notifyLab($request);
+        // [P34] kim olib keladi — bo'linma xodimlari ma'lumotnomasiga (yangi bo'lsa qo'shiladi, telefon yangilanadi)
+        $this->contacts()->remember((int) $request->customer_department_id, $request->contact_name, $request->contact_phone, $user, 'buyurtma ' . $request->number);
 
         return $request->fresh('items');
     }
@@ -416,11 +430,11 @@ class SampleRequests
             throw ValidationException::withMessages($errors);
         }
 
-        $handedOver = trim((string) ($data['handed_over_by'] ?? '')) ?: ($request->contact_name ?: null);
+        $handedOver = CustomerContacts::cleanName((string) ($data['handed_over_by'] ?? '')) ?: ($request->contact_name ?: null); // [P34]
         $handedOver = $handedOver ? mb_substr($handedOver, 0, 191) : null;
 
         // [P33] olib kelgan shaxs telefoni (buyurtmadagi telefon — taklif) va qabul qilib olgan xodim (ro'yxatdan)
-        $handedPhone = trim((string) ($data['handed_over_phone'] ?? '')) ?: ($request->contact_phone ?: null);
+        $handedPhone = CustomerContacts::phoneValue((string) ($data['handed_over_phone'] ?? '')) ?: ($request->contact_phone ?: null); // [P34]
         $handedPhone = $handedPhone ? mb_substr($handedPhone, 0, 64) : null;
         $receiverId = (int) ($data['received_by'] ?? 0) ?: (int) $user->id;
         if ($receiverId !== (int) $user->id && ! SampleIntake::isReceiver($receiverId, $user)) {
@@ -499,6 +513,10 @@ class SampleRequests
 
         $request->refresh();
         $this->notifyCustomer($request, 'received', null, count($samples));
+        // [P34] olib kelgan shaxs — bo'linma ma'lumotnomasiga (laboratoriya yozgan yangi ism ham qo'shiladi)
+        if ($handedOver) {
+            $this->contacts()->remember((int) $request->customer_department_id, $handedOver, $handedPhone, $user, 'qabul ' . $request->number);
+        }
 
         return ['request' => $request->fresh('items'), 'samples' => $samples];
     }

@@ -18,7 +18,9 @@ import ItemsTable from '../components/ItemsTable.vue'
 import ReasonDialog from '../components/ReasonDialog.vue'
 import TemplateBar from '../components/TemplateBar.vue' // [P33] shablon tugmalari
 import { apiErrorMessage, blankItem, printSlip, toForm, toPayload } from '../shared'
+import { contactNotice } from '../contacts' // [P34]
 import '../i18n'
+import '../i18nP34'
 
 const route = useRoute()
 const router = useRouter()
@@ -104,7 +106,14 @@ watch(() => route.params.id, (v) => {
 
 onBeforeRouteLeave(() => (dirty.value && !busy.value && !window.confirm(t('sreq.msg.unsaved')) ? false : true))
 
+const contactPending = ref(false) // [P34] «bu … emasmi?» savoliga javob berilmagan
+
 async function save(submit = false) {
+  if (submit && contactPending.value) {
+    ui.error(t('sreq.p34.answerFirst'))
+    dialog.value = ''
+    return
+  }
   busy.value = true
   errors.value = {}
   try {
@@ -115,6 +124,12 @@ async function save(submit = false) {
     fill(data)
     if (submit) ui.success(t('sreq.msg.submitted', { n: data.number }))
     else ui.success(t('sreq.msg.saved'))
+    if (submit) {
+      // [P34] bo'linma xodimlari ro'yxati: yangi xodim / yangi telefon
+      contactNotice(data.department?.id ?? form.department_id, data.contact_name, data.contact_phone).then((n) => {
+        if (n) ui.info(t(n.type === 'added' ? 'sreq.p34.added' : 'sreq.p34.phoneUpdated', { name: n.name }))
+      })
+    }
     if (!id.value) {
       await router.replace({ name: mode.value === 'lab' ? 'sample-request-edit' : 'portal-request', params: { id: data.id } })
     }
@@ -192,7 +207,7 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
         <RequestInfo v-if="request" :request="request" :audience="mode" class="mb-4" />
         <!-- [P33] Shablondan to'ldirish — faqat buyurtmachi (o'z bo'linmasi shablonlari) -->
         <TemplateBar v-if="mode === 'portal' && options?.can_write" :form="form" :options="options" />
-        <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" :fresh="!id" />
+        <RequestForm :form="form" :options="options" :errors="errors" :show-department="showDepartment" :fresh="!id" @contact-pending="contactPending = $event" />
 
         <div class="sticky bottom-0 z-10 mt-4 pb-3">
           <div class="panel shadow-pop px-4 py-3 flex flex-wrap items-center gap-2">

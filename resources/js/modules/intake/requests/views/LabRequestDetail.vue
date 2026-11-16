@@ -14,11 +14,14 @@ import RequestInfo from '../components/RequestInfo.vue'
 import ItemsTable from '../components/ItemsTable.vue'
 import AnalytePicker from '../components/AnalytePicker.vue'
 import ReasonDialog from '../components/ReasonDialog.vue'
+import ContactPicker from '../components/ContactPicker.vue' // [P34]
+import { contactNotice } from '../contacts'
 import { apiErrorMessage, fieldError, nameOf, printSlip } from '../shared'
 import '../i18n'
 import '../../i18n'
 import '../i18nGroup' // [P30]
 import '../i18nP33' // [P33] qabul: telefon, kim qabul qilib oldi; shifr takrori ogohlantirishi
+import '../i18nP34' // [P34] bo'linma xodimlari ro'yxati
 
 const route = useRoute()
 const router = useRouter()
@@ -34,6 +37,7 @@ const rows = ref([])
 const handedOverBy = ref('')
 const handedOverPhone = ref('') // [P33]
 const receivedBy = ref('')      // [P33] qabul qilib olgan xodim (ro'yxatdan)
+const contactPending = ref(false) // [P34] «bu … emasmi?» savoliga javob berilmagan
 const errors = ref({})
 const sentIds = ref([])
 const created = ref([])
@@ -119,6 +123,10 @@ const rowErr = (row, key) => {
 async function receive() {
   const chosen = rows.value.filter((r) => r.take)
   if (!chosen.length) return
+  if (contactPending.value) {
+    ui.error(t('sreq.p34.answerFirst'))
+    return
+  }
   busy.value = true
   errors.value = {}
   sentIds.value = chosen.map((r) => r.id)
@@ -145,6 +153,10 @@ async function receive() {
     buildRows(data.request)
     sentIds.value = []
     ui.success(t('sreq.msg.received', { n: data.samples.length }))
+    // [P34] olib kelgan shaxs bo'linma ro'yxatiga qo'shildi / telefoni yangilandi
+    contactNotice(data.request.department?.id, data.request.handed_over_by, data.request.handed_over_phone).then((n) => {
+      if (n) ui.info(t(n.type === 'added' ? 'sreq.p34.added' : 'sreq.p34.phoneUpdated', { name: n.name }))
+    })
   } catch (e) {
     errors.value = e?.response?.data?.errors ?? {}
     ui.error(apiErrorMessage(e, t('sreq.loadError')))
@@ -215,15 +227,13 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
         </div>
 
         <div class="px-4 py-3 border-b border-line flex flex-wrap items-end gap-4">
-          <div class="min-w-[240px] flex-1 max-w-sm">
-            <label class="field-label">{{ t('sreq.receive.handedOverBy') }}</label>
-            <input v-model="handedOverBy" class="field-input" maxlength="191" :placeholder="t('sreq.p33.handedHint')" data-handed>
-          </div>
-          <!-- [P33] olib kelgan shaxs telefoni -->
-          <div class="w-[200px]">
-            <label class="field-label">{{ t('sreq.form.phone') }}</label>
-            <input v-model="handedOverPhone" class="field-input" maxlength="64" inputmode="tel" data-handed-phone>
-          </div>
+          <!-- [P33/P34] olib kelgan shaxs va telefoni — buyurtmachi bo'linmasi xodimlari ro'yxatidan -->
+          <ContactPicker
+            v-model:name="handedOverBy" v-model:phone="handedOverPhone" :department-id="request.department?.id"
+            :name-label="t('sreq.receive.handedOverBy')" :phone-label="t('sreq.form.phone')"
+            name-class="min-w-[240px] flex-1 max-w-sm" phone-class="w-[220px]" data-name="handed" data-phone="handed-phone"
+            @update:pending="contactPending = $event"
+          />
           <!-- [P33] kim qabul qilib oldi — laboratoriya xodimlari ro'yxatidan -->
           <div class="min-w-[240px] flex-1 max-w-sm">
             <label class="field-label">{{ t('sreq.p33.receivedBy') }} *</label>

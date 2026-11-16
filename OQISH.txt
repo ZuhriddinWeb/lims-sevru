@@ -1,132 +1,115 @@
-PAKET 33 — SHIFR TAKRORI, «KIM OLIB KELDI / KIM QABUL QILIB OLDI», BUYURTMACHI SHABLONLARI,
-           «SVODKA» → «JAMLANMA HISOBOT»  (+ Paket 31 va Paket 32 «Natijalar tahlili» ichida)
-=========================================================================================
-2026-11-11
-
-Bu to'plam TO'LIQ: Paket 11 … 33 ning eng oxirgi fayllari (P31 to'liq to'plami + P32 «Natijalar
-tahlili» + P33). Alohida toliq_yangilash_p31.zip yoki paket32_natija_tahlili.zip yoyish shart emas.
+PAKET 34 — «KIM OLIB KELADI» VA TELEFON: BO'LINMA XODIMLARI RO'YXATI (KOMBOBOKS)
+=================================================================================
+2026-11-12. Paket 33 (+ «Natijalar tahlili» tuzatishi) ustiga. Faqat o'zgargan va yangi fayllar.
 
 ---------------------------------------------------------------------------
  NIMA O'ZGARDI
 ---------------------------------------------------------------------------
- 1. SHIFR TAKRORLANAVERADI
-    - «Shifr oyida bir marta» cheklovi olib tashlandi: bir xil shifr shu oyda ham, keyingi
-      buyurtmalarda ham qayta ishlatiladi (portal buyurtmasi, laboratoriya qabuli, qo'lda ro'yxatga olish).
-    - Bitta buyurtma ichida shifr takrorlansa — faqat SARIQ OGOHLANTIRISH chiqadi
-      («Bu shifr shu buyurtmada takrorlangan…»), yuborish to'xtamaydi.
+ 1. Har bo'linmaning o'z xodimlari ro'yxati (F.I.Sh. + telefon). ALOHIDA TO'LDIRISH SHART EMAS:
+      - buyurtma YUBORILGANDA «Kim olib keladi» + telefon ro'yxatga yoziladi (qoralama — yozilmaydi);
+      - laboratoriya QABUL QILGANDA «Kim olib keldi» + telefon ham shu bo'linma ro'yxatiga qo'shiladi;
+      - telefon o'zgargan bo'lsa — ro'yxatda AVTOMATIK yangilanadi (eski raqam audit jurnalida qoladi).
+    Boshqa bo'linma ro'yxatini ko'rmaydi.
 
- 2. LABORATORIYA QABULIDA «KIM OLIB KELDI» VA «KIM QABUL QILIB OLDI»
-    - Buyurtmani qabul qilish oynasida: «Kim olib keldi» (F.I.Sh.) + Telefon — buyurtmachi
-      kiritgan qiymatlar oldindan qo'yiladi, o'zgartirish mumkin.
-    - «Kim qabul qilib oldi» — RO'YXATDAN tanlanadi: shu laboratoriyaning faol xodimlari
-      (buyurtmachilar ro'yxatda yo'q). Standart — tizimga kirgan xodimning o'zi.
-    - Probalar → «Yangi proba» (qo'lda ro'yxatga olish) formasida ham shu ro'yxat.
-    - Buyurtma ma'lumotida va proba kartasida «Kim olib keldi (telefon)» va «Kim qabul qilib oldi».
-    Bazada: sample_requests.handed_over_phone, samples.received_by (yangi ustunlar).
+ 2. «Yangi buyurtma» va laboratoriya «Qabul qilish» oynasida «Kim olib keladi» — kombobox:
+      - yozganda mos xodimlar chiqadi (lotin yoki kirillda, familiya/ism boshidan, telefon raqamidan);
+      - tanlansa telefon o'zi to'ladi, o'zgartirish mumkin («Yangi raqam ro'yxatda saqlanadi» deb ko'rsatadi);
+      - qo'lda yozilsa:
+          ortiqcha probel, nuqtalar, harf kattaligi — O'ZI tuzatiladi («rahimov   AKMAL» → «Rahimov Akmal»);
+          ro'yxatdagiga o'xshasa — SO'RAYDI: «Rahimov A.» / «Akmal Rahimov» / «Raximov Akmal» /
+          «Рахимов Акмал» → «ro'yxatdagi Rahimov Akmal emasmi?»  [Rahimov Akmal]  [Yo'q, bu yangi xodim];
+          savolga javob berilmasa — buyurtma yuborilmaydi (xabar chiqadi);
+          yangi bo'lsa — «Yangi xodim — yuborilganda ro'yxatga qo'shiladi».
+      - ro'yxatdagi noto'g'ri yozuvni kombobox ichida «×» bilan o'chirish mumkin (buyurtmachi).
 
- 3. BUYURTMACHI SHABLONLARI («Shablonlarim»)
-    - Buyurtmachi menyusida yangi band «Shablonlarim» (portal.request ruxsati bilan ko'rinadi).
-    - Shablon FAQAT o'z bo'linmasiniki: boshqa bo'linma ko'rmaydi, o'zgartira olmaydi —
-      o'zi uchun alohida yaratadi. Nom bo'linma ichida takrorlanmaydi.
-    - Shablonga saqlanadi: guruh, smena, kim olib keladi, telefon, izoh, namunalar (shifr, holati,
-      profil, elementlar, miqdor, nuqta, guruh kodi). SANA saqlanmaydi — har buyurtmada yangidan.
-    - «Yangi buyurtma» tepasida shablon tugmalari: bosilsa forma to'ladi; formada allaqachon
-      ma'lumot bo'lsa — «Almashtirish» yoki «Oxiriga qo'shish» so'raladi. Keyin hammasi o'zgartiriladi.
-    - Shu panelda «Shablon sifatida saqlash» — joriy formadan bir bosishda shablon.
-    - «Shablonlarim» sahifasida: yangi, tahrirlash, o'chirish, tartib (yuqoriga/pastga — tugmalar
-      tartibi), «Yangi buyurtma» (shablon bilan ochadi).
-    Bazada: portal_request_templates (yangi jadval).
+ 3. Telefon bir xil ko'rinishda saqlanadi:
+      901234567, +998(90)1234567, 8 90 123 45 67   →  +998 90 123-45-67
+      ichki raqam (2–7 raqam: 4523, 2-34-56)        →  yozilganicha
+      boshqa (xorijiy, raqam soni noto'g'ri)          →  saqlanadi, lekin sariq ogohlantirish
 
- 4. «SVODKA» → «JAMLANMA HISOBOT» (faqat o'zbekcha; ruscha «Сводка» o'zgarmaydi)
-    - Menyu: «Jamlanma hisobot», «Jamlanma hisobotlar», «Bo'limlar jamlanma hisoboti».
-      Admin menyu nomini o'zi o'zgartirgan bo'lsa — uning nomi saqlanadi.
-    - Sahifalar, xabarnomalar, ruxsat nomlari, Excel varaq nomi va fayl nomi (jamlanma_hisobot_…xlsx).
+ 4. «Shablonlarim» sahifasi pastida — «Bo'linma xodimlari» jadvali: qidirish, F.I.Sh./telefonni tuzatish,
+    ortiqchasini o'chirish. Buyurtmalardagi eski yozuvlar O'ZGARMAYDI.
 
- 5. PAKET 32 «NATIJALAR TAHLILI (AI)» — to'liq ichida (tavsifi avvalgi paketdagi OQISH.txt da).
+ 5. Bir martalik: eski buyurtmalardan ro'yxatni to'ldirish —  php artisan lims:kontaktlar
+      (avval faqat hisobot; --yoz bilan yozadi; o'xshash juftliklar uchun «Bitta odammi?» deb so'raydi —
+       «yes» yoki «no» deb javob bering, sukut — «no»).
+
+ Qo'lda proba ro'yxatga olish formasi («Probalar» → «Yangi proba») dagi «Kim olib keldi» — o'zgarmagan.
 
 ---------------------------------------------------------------------------
- YANGI FAYLLAR
+ FAYLLAR
 ---------------------------------------------------------------------------
-   database/migrations/2026_11_11_100000_portal_templates_and_receipt_fields.php
-   app/Models/PortalRequestTemplate.php
-   app/Http/Controllers/Api/Intake/PortalTemplateController.php
-   resources/js/modules/intake/requests/components/TemplateBar.vue
-   resources/js/modules/intake/requests/views/PortalTemplates.vue
-   resources/js/modules/intake/requests/views/TemplateEditor.vue
-   resources/js/modules/intake/requests/templates.js
-   resources/js/modules/intake/requests/i18nP33.js
-   tests/Feature/P33RequestsTest.php                 (avtomatik test, ixtiyoriy)
-
- O'ZGARGAN (P33)
-   app/Services/Samples/SampleIntake.php, SampleRequests.php
-   app/Http/Controllers/Api/Intake/SampleIntakeController.php, SampleRequestController.php
-   app/Models/Sample.php, SampleRequest.php
-   app/Services/Svodka/SvodkaService.php, SvodkaXlsx.php
-   app/Http/Controllers/Api/Svodka/PortalSvodkaController.php, SvodkaReleaseController.php,
-     ResultAnalysisController.php
-   app/Console/Commands/LimsUpgrade.php, database/seeders/SvodkaModuleSeeder.php
-   routes/sample_intake.php, routes/sample_requests.php
-   resources/js/modules/intake/: routes.js, guard.js, sampleForm.js, components/SampleIntakePanel.vue,
-     requests/components/RequestForm.vue, RequestInfo.vue,
-     requests/views/LabRequestDetail.vue, RequestEditor.vue, svodka/i18n.js, svodka/shared.js
-   deploy/: server_yangilash.bat, server_yangi_ornatish.bat, tekshir_versiyalar.ps1,
-     SERVERGA_YANGILASH.txt, fayllar_hash.txt, fayllar_royxati.txt
-   Farqlar: _ozgarishlar/paket33.diff
-
- TEGILMAGAN (siz lokalda o'zgartirgan fayllar — to'plamda YO'Q, sizdagicha qoladi):
-   HelpController.php, HelpEntry.php, Services/Help/HelpAssistant.php, HelpAssistant.vue,
-   modules/help/i18n.js, AppLayout.vue, PortalRequests.vue, SampleRequestModuleSeeder.php,
-   routes/insights.php, DefaultTemplates.php, resources/js/router/index.js
+ Yangi:
+   database/migrations/2026_11_12_100000_create_customer_contacts_table.php
+   app/Models/CustomerContact.php
+   app/Services/Samples/CustomerContacts.php              (tozalash, o'xshashlik, telefon, ro'yxatga yozish)
+   app/Http/Controllers/Api/Intake/CustomerContactController.php   (/api/portal/contacts)
+   app/Console/Commands/ContactsCollect.php               (php artisan lims:kontaktlar)
+   resources/js/modules/intake/requests/components/ContactPicker.vue   (kombobox)
+   resources/js/modules/intake/requests/components/ContactsPanel.vue   («Bo'linma xodimlari»)
+   resources/js/modules/intake/requests/contacts.js, i18nP34.js
+   tests/Feature/P34ContactsTest.php
+ O'zgargan:
+   app/Services/Samples/SampleRequests.php, routes/sample_requests.php,
+   resources/js/modules/intake/requests/components/RequestForm.vue,
+   resources/js/modules/intake/requests/views/RequestEditor.vue, LabRequestDetail.vue, PortalTemplates.vue,
+   tests/Feature/P33RequestsTest.php (telefon endi +998 90 111-22-33 ko'rinishida),
+   deploy/: server_yangilash.bat, server_yangi_ornatish.bat, tekshir_versiyalar.ps1, SERVERGA_YANGILASH.txt,
+            fayllar_hash.txt, fayllar_royxati.txt
+ Siz lokalda o'zgartirgan fayllarga tegilmagan.
 
 ---------------------------------------------------------------------------
  A) LOKALDA (E:\ai projects\lims-sevru), PowerShell
 ---------------------------------------------------------------------------
-  1. Yoyish (ustidan yozadi):
-       Expand-Archive -Path "$env:USERPROFILE\Downloads\paket33_shablon_qabul.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
-  2. cd "E:\ai projects\lims-sevru"
-     php artisan migrate               (1 ta yangi: 2026_11_11_100000_portal_templates_and_receipt_fields)
-     php artisan lims:upgrade          («Shablonlarim» menyusi, nomlar «Jamlanma hisobot»)
+  1. Expand-Archive -Path "$env:USERPROFILE\Downloads\paket34_xodimlar.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+  2. php artisan migrate                (1 ta yangi: 2026_11_12_100000_create_customer_contacts_table)
      php artisan optimize:clear
-  3. npm run build                     (SHART — interfeys o'zgargan)
-  4. Ixtiyoriy:  php artisan test --filter=P33      (6 ta test o'tishi kerak)
-  5. Tekshiruv:  powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
-       «Farq qiladi: 0  Yo'q: 0», «public\build: Paket 33 bilan yig'ilgan»
-  6. git add -A
+  3. npm run build
+     Tekshirish:  Select-String -Path public\build\assets\*.js -SimpleMatch -Pattern 'portal/contacts/check' -List | Select-Object Path
+     (kamida bitta fayl chiqishi kerak)
+  4. Ixtiyoriy:  php artisan test --filter=P34       (6 ta test)
+  5. git add -A
      git add -f public/build
-     git commit -m "Paket 33: shifr takrori, qabulda kim olib keldi/qabul qildi, shablonlar, jamlanma hisobot"
+     git commit -m "Paket 34: kim olib keladi - bo'linma xodimlari ro'yxati"
      git push
 
 ---------------------------------------------------------------------------
- B) SERVERDA (C:\xampp\htdocs\LIMS), Administrator cmd
+ B) SERVERDA (VS Code, \\192.168.26.8\xampp\htdocs\LIMS, terminal)
 ---------------------------------------------------------------------------
-  1. cd /d C:\xampp\htdocs\LIMS
-     git log -1 --oneline          (raqamni yozib qo'ying)
-     git pull
-  2. deploy\server_yangilash.bat   (zaxira nusxa so'raydi → migrate → lims:upgrade → kesh)
-     Qo'lda bo'lsa:  php artisan down --retry=60
-                     php artisan migrate --force
-                     php artisan lims:upgrade
-                     php artisan optimize:clear
-                     php artisan up
-  3. iisreset, brauzerda Ctrl+F5.
+  0. SSMS — zaxira nusxa (lims3):
+       USE master;
+       DECLARE @bak nvarchar(400) = CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS nvarchar(400)) + N'\lims3_p34_oldin.bak';
+       BACKUP DATABASE [lims3] TO DISK = @bak WITH COPY_ONLY, INIT, STATS = 10;
+  1. git fetch origin
+     git reset --hard origin/main
+     git log -1 --oneline                         (Paket 34 commiti)
+  2. php artisan config:clear
+     php artisan migrate:status | Select-String Pending      → faqat 2026_11_12_100000_create_customer_contacts_table
+     php artisan migrate --force
+     php artisan optimize:clear
+  3. Ro'yxatni eski buyurtmalardan to'ldirish:
+     php artisan lims:kontaktlar                  (hisobot — hech narsa o'zgarmaydi)
+     php artisan lims:kontaktlar --yoz            (o'xshash juftliklarga «yes»/«no»)
+  4. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+       «Farq qiladi: 0», «public\build: Paket 34 bilan yig'ilgan»
+  5. Brauzerda Ctrl+F5.
 
-  SERVERDA HECH QACHON:
-     db:seed (--class siz), migrate:fresh / refresh / reset / rollback, db:wipe,
-     key:generate, git clean, help:import --force
+  SERVERDA HECH QACHON: db:seed (--class siz), migrate:fresh/refresh/reset/rollback, db:wipe,
+  key:generate, git clean, help:import --force
 
 ---------------------------------------------------------------------------
- C) QO'LDA TEKSHIRISH (npm run build dan keyin)
+ C) QO'LDA TEKSHIRISH
 ---------------------------------------------------------------------------
-  [ ] Buyurtmachi: «Yangi buyurtma» — ikki namunaga bir xil shifr → sariq ogohlantirish, yuborish ishlaydi.
-  [ ] Shu oyda ishlatilgan shifr bilan yana buyurtma → xato chiqmaydi.
-  [ ] Menyuda «Shablonlarim» → «Yangi shablon» → nom + namunalar → Saqlash.
-  [ ] «Yangi buyurtma» tepasida shablon tugmasi → forma to'ladi, sana bo'sh; o'zgartirib yuborish.
-  [ ] Formada ma'lumot bor paytda tugma → «Almashtirish / Oxiriga qo'shish» oynasi.
-  [ ] «Shablon sifatida saqlash» → «Shablonlarim» da paydo bo'ladi; tartibni o'zgartirish → tugmalar tartibi.
-  [ ] Boshqa bo'linma vakili bu shablonlarni KO'RMAYDI.
-  [ ] Laboratoriya: buyurtmani qabul qilish — «Kim olib keldi», Telefon (oldindan to'lgan),
-      «Kim qabul qilib oldi» ro'yxati (faqat laboratoriya xodimlari, standart — o'zingiz).
-  [ ] Qabuldan keyin buyurtma ma'lumotida va proba kartasida shu ma'lumotlar.
-  [ ] O'zbekcha menyu va sahifalarda «Svodka» so'zi qolmagan («Jamlanma hisobot»); ruschada «Сводка».
-  [ ] «Natijalar tahlili (AI)» sahifasi ochiladi (Paket 32).
-  Muammo bo'lsa — brauzer konsoli (F12) va storage\logs\laravel.log oxirgi qatorlarini yuboring.
+  [ ] Buyurtmachi → «Yangi buyurtma» → «Kim olib keladi» ga 2–3 harf yozing → ro'yxat chiqadi;
+      tanlang → telefon o'zi to'ladi.
+  [ ] «rahimov   akmal» deb yozib boshqa maydonga o'ting → «Rahimov Akmal» bo'lib qoladi.
+  [ ] Ro'yxatdagi odamni «Rahimov A.» yoki kirillda yozing → «… emasmi?» savoli; javob bermay
+      yuborishga urinib ko'ring → «savolga javob bering» xabari.
+  [ ] Telefonni o'zgartirib yuboring → «telefon ro'yxatda yangilandi»; keyingi buyurtmada yangi raqam chiqadi.
+  [ ] Yangi odam yozib yuboring → «ro'yxatga qo'shildi»; keyingi buyurtmada ro'yxatda bor.
+  [ ] Telefon: 4523 yoki 2-34-56 → «Ichki raqam»; 12345678901 → sariq ogohlantirish.
+  [ ] Laboratoriya → buyurtmani qabul qilish → «Kim olib keldi» — shu bo'linma ro'yxati; yangi ism
+      qabuldan keyin bo'linma ro'yxatida paydo bo'ladi.
+  [ ] «Shablonlarim» pastida «Bo'linma xodimlari» — tahrirlash, o'chirish; boshqa bo'linma vakili
+      bu ro'yxatni ko'rmaydi.
+  Muammo bo'lsa — ekran va storage\logs\laravel.log oxirgi xatosi (parol/.env qatorlarisiz).

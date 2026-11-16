@@ -9,6 +9,7 @@
 |   /api/sample-requests/*   — laboratoriya
 */
 
+use App\Http\Controllers\Api\Intake\CustomerContactController;
 use App\Http\Controllers\Api\Intake\PortalRequestController;
 use App\Http\Controllers\Api\Intake\PortalTemplateController;
 use App\Http\Controllers\Api\Intake\SampleRequestController;
@@ -36,6 +37,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/order', [PortalTemplateController::class, 'order']);
         Route::put('/{id}', [PortalTemplateController::class, 'update'])->whereNumber('id');
         Route::delete('/{id}', [PortalTemplateController::class, 'destroy'])->whereNumber('id');
+    });
+
+    /* ---------- [P34] Bo'linma xodimlari ma'lumotnomasi (kim olib keladi + telefon) ---------- */
+    Route::prefix('portal/contacts')->group(function () {
+        Route::get('/', [CustomerContactController::class, 'index']);
+        Route::post('/check', [CustomerContactController::class, 'check'])->middleware('throttle:120,1');
+        Route::put('/{id}', [CustomerContactController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [CustomerContactController::class, 'destroy'])->whereNumber('id');
     });
 
     /* ---------- Laboratoriya: Buyurtmalar ---------- */
