@@ -10,6 +10,10 @@
 */
 
 use App\Http\Controllers\Api\Intake\CustomerContactController;
+use App\Http\Controllers\Api\Intake\LabScheduleController;
+use App\Http\Controllers\Api\Intake\PortalScheduleController;
+use App\Http\Controllers\Api\Intake\PortalScheduleSheetController;
+use App\Http\Controllers\Api\Intake\ScheduleSheetController;
 use App\Http\Controllers\Api\Intake\PortalRequestController;
 use App\Http\Controllers\Api\Intake\PortalTemplateController;
 use App\Http\Controllers\Api\Intake\SampleRequestController;
@@ -45,6 +49,53 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/check', [CustomerContactController::class, 'check'])->middleware('throttle:120,1');
         Route::put('/{id}', [CustomerContactController::class, 'update'])->whereNumber('id');
         Route::delete('/{id}', [CustomerContactController::class, 'destroy'])->whereNumber('id');
+    });
+
+    /* ---------- [P36] Buyurtmachi: Grafigim (grafik bo'yicha namunalar) ---------- */
+    Route::prefix('portal/schedules')->group(function () {
+        Route::get('/', [PortalScheduleController::class, 'index']);
+        Route::post('/', [PortalScheduleController::class, 'store'])->middleware('throttle:30,1');
+        Route::put('/{id}', [PortalScheduleController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [PortalScheduleController::class, 'destroy'])->whereNumber('id');
+    });
+    Route::prefix('portal/schedule-runs')->group(function () {
+        Route::get('/', [PortalScheduleController::class, 'runs']);
+        Route::get('/history', [PortalScheduleController::class, 'history']);
+        Route::get('/{id}', [PortalScheduleController::class, 'show'])->whereNumber('id');
+        Route::put('/{id}', [PortalScheduleController::class, 'customize'])->whereNumber('id');
+        Route::post('/{id}/skip', [PortalScheduleController::class, 'skip'])->whereNumber('id');
+        Route::post('/{id}/unskip', [PortalScheduleController::class, 'unskip'])->whereNumber('id');
+        Route::post('/{id}/reset', [PortalScheduleController::class, 'reset'])->whereNumber('id');
+    });
+
+    /* ---------- [P36] Laboratoriya: Grafik bo'yicha qabul ---------- */
+    Route::prefix('schedule-board')->group(function () {
+        Route::get('/', [LabScheduleController::class, 'index'])->middleware('permission:schedules.receive');
+        Route::post('/{id}/arrive', [LabScheduleController::class, 'arrive'])->whereNumber('id')
+            ->middleware(['permission:schedules.receive', 'throttle:60,1']);
+        Route::get('/settings', [LabScheduleController::class, 'settings']);
+        Route::put('/settings/{departmentId}', [LabScheduleController::class, 'saveSettings'])->whereNumber('departmentId');
+    });
+
+    /* ---------- [P37] Grafik jadvallari (Excel ko'rinishida) ---------- */
+    Route::prefix('portal/schedule-sheets')->group(function () {
+        Route::get('/', [PortalScheduleSheetController::class, 'index']);
+        Route::get('/{id}', [PortalScheduleSheetController::class, 'show'])->whereNumber('id');
+        Route::get('/{id}/export', [PortalScheduleSheetController::class, 'export'])->whereNumber('id');
+    });
+    Route::prefix('schedule-sheets')->middleware('permission:schedule_sheets.view|schedule_sheets.enter')->group(function () {
+        Route::get('/', [ScheduleSheetController::class, 'index']);
+        Route::get('/{id}', [ScheduleSheetController::class, 'show'])->whereNumber('id');
+        Route::get('/{id}/export', [ScheduleSheetController::class, 'export'])->whereNumber('id');
+        Route::put('/{id}/cell', [ScheduleSheetController::class, 'cell'])->whereNumber('id')
+            ->middleware(['permission:schedule_sheets.enter', 'throttle:240,1']);
+    });
+    Route::prefix('schedule-sheet-templates')->middleware('permission:schedule_sheets.manage')->group(function () {
+        Route::get('/', [ScheduleSheetController::class, 'templates']);
+        Route::get('/options', [ScheduleSheetController::class, 'options']);
+        Route::post('/', [ScheduleSheetController::class, 'store']);
+        Route::put('/{id}', [ScheduleSheetController::class, 'update'])->whereNumber('id');
+        Route::delete('/{id}', [ScheduleSheetController::class, 'destroy'])->whereNumber('id');
     });
 
     /* ---------- Laboratoriya: Buyurtmalar ---------- */

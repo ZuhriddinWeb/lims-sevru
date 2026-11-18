@@ -41,6 +41,9 @@
       <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
       <remove fileExtension=".webmanifest" />
       <mimeMap fileExtension=".webmanifest" mimeType="application/manifest+json" />
+      <!-- video qo'llanma subtitrlari (Foydalanish yo'riqnomasi) -->
+      <remove fileExtension=".vtt" />
+      <mimeMap fileExtension=".vtt" mimeType="text/vtt" />
     </staticContent>
   </system.webServer>
 </configuration>

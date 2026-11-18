@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 34 holati, 2026-11-12)
+rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 37 holati, 2026-11-18)
 rem
 rem  Oldindan (SERVERGA_NOLDAN_ORNATISH.txt, 1-4 bo'limlar):
 rem    - PHP 8.2+, ODBC + pdo_sqlsrv, Composer, Git, IIS; SQL Server'da BO'SH baza va login
@@ -86,6 +86,10 @@ call :need database\migrations\2026_11_11_100000_portal_templates_and_receipt_fi
 call :need app\Http\Controllers\Api\Intake\PortalTemplateController.php "Paket 33: buyurtmachi shablonlari"
 call :need database\migrations\2026_11_12_100000_create_customer_contacts_table.php "Paket 34: bo'linma xodimlari"
 call :need app\Services\Samples\CustomerContacts.php "Paket 34: kim olib keladi ro'yxati"
+call :need database\migrations\2026_11_18_100000_create_request_schedules_tables.php "Paket 36: grafik bo'yicha namunalar"
+call :need app\Services\Samples\RequestSchedules.php "Paket 36: grafik bo'yicha namunalar"
+call :need database\migrations\2026_11_18_110000_create_schedule_sheets_tables.php "Paket 37: grafik jadvallari"
+call :need app\Services\Samples\ScheduleSheets.php "Paket 37: grafik jadvallari"
 call :need database\seeders\SvodkaModuleSeeder.php "seeder: SvodkaModuleSeeder"
 call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
 call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"

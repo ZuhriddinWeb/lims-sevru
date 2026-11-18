@@ -12,6 +12,8 @@ export const PORTAL_PAGES = [
   'portal-requests', 'portal-request-new', 'portal-request', // [P24] Buyurtmalarim
   'portal-svodka', // [P29] Svodka
   'portal-templates', 'portal-template-new', 'portal-template', // [P33] Shablonlarim
+  'portal-schedule', 'portal-schedule-new', 'portal-schedule-edit', 'portal-schedule-run', 'portal-schedule-day', // [P36] Grafigim
+  'portal-schedule-sheets', // [P37] Grafik jadvali
 ]
 
 export function isPortalUser(user) {

@@ -68,6 +68,7 @@ class PortalExportController extends Controller
         } elseif ($status && $status !== 'all') {
             $query->where('status', $status);
         }
+        \App\Services\Samples\SampleSource::apply($query, $request); // [P36] manba: buyurtma / grafik / hammasi; partiya
         if ($request->filled('date_from')) {
             $query->whereDate('registered_at', '>=', $request->input('date_from'));
         }
@@ -130,7 +131,9 @@ class PortalExportController extends Controller
         unset($c);
 
         // ---- 1-varaq: Natijalar (keng jadval) ----
-        $head = [$L['customer_code'], $L['lab_code'], $L['number'], $L['department'], $L['registered'], $L['state']];
+        $sources = \App\Services\Samples\SampleSource::labels($samples->pluck('id')->map(fn ($v) => (int) $v)->all()); // [P36]
+        $srcText = fn ($id) => isset($sources[$id]) ? trim($L['src_' . $sources[$id]['source']] . ' ' . $sources[$id]['label']) : $L['src_other'];
+        $head = [$L['customer_code'], $L['lab_code'], $L['number'], $L['department'], $L['source'], $L['registered'], $L['state']];
         foreach ($columns as $c) {
             $head[] = trim($c['symbol'] . ' — ' . $c['name'] . ($c['unit'] ? ', ' . $c['unit'] : ''));
         }
@@ -145,6 +148,7 @@ class PortalExportController extends Controller
                 $s->code,
                 $s->sample_number,
                 $s->customerDepartment?->name ?? '',
+                $srcText((int) $s->id),
                 $s->registered_at?->format('d.m.Y') ?? '',
                 $this->stateLabel($s, $r['stage'], $L),
             ];
@@ -234,7 +238,7 @@ class PortalExportController extends Controller
 
         $name = 'natijalar_' . now()->format('Y-m-d_Hi');
         if (SimpleXlsx::available()) {
-            $widths = array_merge([14, 18, 12, 24, 12, 22], array_fill(0, count($columns), 16), $vis['preliminary'] ? [18] : []);
+            $widths = array_merge([14, 18, 12, 24, 22, 12, 22], array_fill(0, count($columns), 16), $vis['preliminary'] ? [18] : []);
             $x = (new SimpleXlsx())
                 ->sheet($L['sheet_results'], $wide, $widths)
                 ->sheet($L['sheet_detail'], $detail, [14, 18, 12, 9, 26, 12, 10, 16, 17, 12]);
@@ -307,6 +311,7 @@ class PortalExportController extends Controller
                 'template' => 'Shablon (usul)', 'ws_date' => 'Varaq sanasi', 'samples' => 'Namunalar',
                 'note_totals' => "«Varaqlar jami» — har varaq bo'yicha jami faqat sizning namunalaringiz qatorlaridan; «3 / 6» — varaqdagi 6 tadan 3 tasi sizniki.",
                 'customer_code' => 'Shifr', 'lab_code' => 'Laboratoriya shifri', 'number' => 'Namuna raqami',
+                'source' => 'Manba', 'src_request' => 'Buyurtma', 'src_schedule' => 'Grafik', 'src_other' => "Laboratoriyada ro'yxatga olingan",
                 'department' => "Bo'lim", 'registered' => 'Topshirilgan', 'state' => 'Bosqich',
                 'prelim_col' => 'Dastlabki (tasdiqlanmagan)', 'element' => 'Belgi', 'element_name' => "Ko'rsatkich",
                 'value' => 'Natija', 'unit' => 'Birlik', 'status' => 'Holati', 'entered' => 'Kiritilgan', 'worksheet' => 'Ishchi varaq',
@@ -327,6 +332,7 @@ class PortalExportController extends Controller
                 'template' => 'Шаблон (методика)', 'ws_date' => 'Дата листа', 'samples' => 'Пробы',
                 'note_totals' => '«Итоги по листам» — итог по каждому листу только по строкам ваших проб; «3 / 6» — ваши 3 из 6 проб листа.',
                 'customer_code' => 'Шифр', 'lab_code' => 'Шифр лаборатории', 'number' => 'Номер пробы',
+                'source' => 'Источник', 'src_request' => 'Заявка', 'src_schedule' => 'График', 'src_other' => 'Зарегистрирована в лаборатории',
                 'department' => 'Подразделение', 'registered' => 'Сдана', 'state' => 'Этап',
                 'prelim_col' => 'Предварительные (не утверждены)', 'element' => 'Символ', 'element_name' => 'Показатель',
                 'value' => 'Результат', 'unit' => 'Ед.', 'status' => 'Статус', 'entered' => 'Внесён', 'worksheet' => 'Рабочий лист',
@@ -347,6 +353,7 @@ class PortalExportController extends Controller
                 'template' => 'Template (method)', 'ws_date' => 'Worksheet date', 'samples' => 'Samples',
                 'note_totals' => '"Worksheet totals" — each worksheet total uses only the rows of your samples; "3 / 6" — 3 of the 6 samples are yours.',
                 'customer_code' => 'Code', 'lab_code' => 'Lab code', 'number' => 'Sample no.',
+                'source' => 'Source', 'src_request' => 'Request', 'src_schedule' => 'Schedule', 'src_other' => 'Registered in lab',
                 'department' => 'Department', 'registered' => 'Submitted', 'state' => 'Stage',
                 'prelim_col' => 'Preliminary (not approved)', 'element' => 'Symbol', 'element_name' => 'Analyte',
                 'value' => 'Result', 'unit' => 'Unit', 'status' => 'Status', 'entered' => 'Entered', 'worksheet' => 'Worksheet',

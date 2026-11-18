@@ -18,6 +18,7 @@ import { apiErrorMessage, formatValue, label, templateName } from '../helpers'
 import { downloadPortalExport, visibilityOf } from '../portalVisibility' // [P27]
 import '../i18n'
 import '../svodka/i18n' // [P29]
+import '../schedule/i18n' // [P36]
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -36,6 +37,7 @@ const filters = reactive({
   department_id: route.query.department_id ?? '',
   date_from: route.query.date_from ?? '',
   date_to: route.query.date_to ?? '',
+  source: route.query.source ?? '', // [P36] '' — hali aniqlanmagan (kontekstdan keyin: buyurtma / hammasi)
 })
 let timer = null
 
@@ -61,6 +63,7 @@ async function load(page = 1) {
         department_id: filters.department_id || undefined,
         date_from: filters.date_from || undefined,
         date_to: filters.date_to || undefined,
+        source: hasSchedule.value ? filters.source || undefined : undefined, // [P36]
       },
     })
     items.value = data.data
@@ -78,17 +81,20 @@ async function load(page = 1) {
 
 onMounted(async () => {
   await loadContext()
+  // [P36] grafik rejimi bo'lsa — standart: oddiy buyurtmalar (grafik bo'yicha namunalar «Grafigim» da, umumiy — «Hammasi»)
+  if (!filters.source) filters.source = hasSchedule.value ? 'request' : 'all'
   loading.value = false
   if (ctx.value) load(1)
 })
 
-watch(() => [filters.status, filters.department_id, filters.date_from, filters.date_to], () => load(1))
+watch(() => [filters.status, filters.department_id, filters.date_from, filters.date_to, filters.source], () => load(1))
 watch(() => filters.search, () => {
   clearTimeout(timer)
   timer = setTimeout(() => load(1), 300)
 })
 
 const departments = computed(() => ctx.value?.departments ?? [])
+const hasSchedule = computed(() => (ctx.value?.schedule_departments ?? []).length > 0) // [P36]
 const showDeptSelect = computed(() => ctx.value?.preview || departments.value.length > 1)
 const notLinked = computed(() => ctx.value?.portal && departments.value.length === 0)
 
@@ -181,6 +187,12 @@ function open(row) {
             <Search :size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
             <input v-model="filters.search" class="field-input pl-9" :placeholder="t('intake.portal.search')">
           </div>
+          <!-- [P36] manba: buyurtma / grafik / hammasi (umumiy hisobot — «Hammasi» + Excel) -->
+          <select v-if="hasSchedule" v-model="filters.source" class="field-input w-auto min-w-[170px]" :title="t('sched.sourceHint')" data-source-select>
+            <option value="request">{{ t('sched.source.request') }}</option>
+            <option value="schedule">{{ t('sched.source.schedule') }}</option>
+            <option value="all">{{ t('sched.source.all') }}</option>
+          </select>
           <select v-if="showDeptSelect" v-model="filters.department_id" class="field-input w-auto min-w-[200px]" data-dept-select>
             <option value="">{{ t('intake.portal.allDepartments') }}</option>
             <option v-for="d in departments" :key="d.id" :value="d.id">{{ d.name }}<template v-if="d.code"> ({{ d.code }})</template></option>

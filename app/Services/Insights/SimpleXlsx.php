@@ -22,10 +22,12 @@ class SimpleXlsx
     }
 
     /** @param array<int, array<int, string|int|float|null>> $rows */
-    public function sheet(string $name, array $rows, array $widths = [], bool $boldLastRow = false): self
+    /** @param int[] $yellowCols [P37] shu ustunlar (0 dan) sariq fonda — hisoblanadigan ustunlar */
+    public function sheet(string $name, array $rows, array $widths = [], bool $boldLastRow = false, array $yellowCols = []): self
     {
         $name = mb_substr(preg_replace('/[\\\\\/\?\*\[\]:]/u', ' ', $name), 0, 31) ?: 'Sheet' . (count($this->sheets) + 1);
-        $this->sheets[] = compact('name', 'rows', 'widths', 'boldLastRow');
+        $yellow = array_flip(array_map('intval', $yellowCols));
+        $this->sheets[] = compact('name', 'rows', 'widths', 'boldLastRow', 'yellow');
 
         return $this;
     }
@@ -75,14 +77,16 @@ class SimpleXlsx
         $zip->addFromString('xl/styles.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             . '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             . '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>'
-            . '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
-            . '<fill><patternFill patternType="solid"><fgColor rgb="FFEFEFEF"/><bgColor indexed="64"/></patternFill></fill></fills>'
+            . '<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFEFEFEF"/><bgColor indexed="64"/></patternFill></fill>'
+            . '<fill><patternFill patternType="solid"><fgColor rgb="FFF4C430"/><bgColor indexed="64"/></patternFill></fill></fills>'
             . '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'
             . '<border><left/><right/><top/><bottom style="thin"><color rgb="FF999999"/></bottom><diagonal/></border></borders>'
             . '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-            . '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+            . '<cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
             . '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"><alignment wrapText="1" vertical="center"/></xf>'
-            . '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>'
+            . '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>'
+            . '<xf numFmtId="0" fontId="0" fillId="3" borderId="0" xfId="0" applyFill="1"/></cellXfs>'
             . '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>'
             . '</styleSheet>');
 
@@ -112,11 +116,15 @@ class SimpleXlsx
             $style = $r === 0 ? 1 : ($s['boldLastRow'] && $r === $last && $r > 0 ? 2 : 0);
             $x .= '<row r="' . ($r + 1) . '">';
             foreach (array_values($row) as $c => $v) {
+                $cellStyle = $style ?: ($r > 0 && isset($s['yellow'][$c]) ? 3 : 0); // [P37] sariq ustun
                 if ($v === null || $v === '') {
+                    if ($cellStyle === 3) {
+                        $x .= '<c r="' . self::col($c) . ($r + 1) . '" s="3"/>';
+                    }
                     continue;
                 }
                 $ref = self::col($c) . ($r + 1);
-                $st = $style ? ' s="' . $style . '"' : '';
+                $st = $cellStyle ? ' s="' . $cellStyle . '"' : '';
                 if (is_int($v) || is_float($v)) {
                     $x .= '<c r="' . $ref . '"' . $st . '><v>' . $v . '</v></c>';
                 } else {

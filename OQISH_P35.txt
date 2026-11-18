@@ -1,0 +1,74 @@
+PAKET 35 — «FOYDALANISH YO'RIQNOMASI» GA VIDEO QO'LLANMA
+==========================================================
+2026-11-17. Paket 34 ustiga (repodagi «new version for» commitidan keyin).
+
+NIMA O'ZGARDI
+  1. «Foydalanish yo'riqnomasi» sahifasining tepasida — video qo'llanma (10 daqiqa):
+       - o'zbekcha subtitr (yoqib/o'chirib qo'yish mumkin), «Yuklab olish» tugmasi;
+       - o'ng tomonda 15 ta bo'lim (buyurtma, qabul, ishchi varaq, tasdiq, jamlanma hisobot,
+         rahbariyat paneli, uskunalar, admin, yordamchi …) — bosilsa video shu joyidan boshlanadi,
+         ko'rilayotgan bo'lim belgilanib turadi;
+       - bo'lim nomlari uch tilda; video fayli serverda bo'lmasa — bu blok umuman ko'rinmaydi.
+  2. TUZATISH (avvalgi «paket34_demo_baza» ichida edi, push qilinmagan): «Jamlanma hisobotlar»
+     sahifasida probasi yo'q kun tanlansa 500 xato chiqardi.
+  3. deploy\: yangilangan SERVERGA_NOLDAN_ORNATISH.txt (boshqa zavod uchun), SERVERGA_YANGILASH.txt
+     (P33–P35 + VS Code orqali yangilash, B2), web.config.example (.vtt), tekshiruv ro'yxatlari.
+  4. app\Console\Commands\DemoData.php (lims:demo-malumot — faqat bo'sh sinov bazasi uchun, o'zi to'xtaydi).
+  Bazaga hech narsa qo'shilmaydi — migratsiya YO'Q.
+
+FAYLLAR
+  resources/js/views/dashboard/Manual.vue        video bloki
+  public/manuals/LIMS_video_uz.vtt               subtitr (videodagi .srt dan)
+  public/.htaccess, deploy/web.config.example    .vtt / .mp4 turi (Apache / IIS)
+  app/Services/Svodka/SvodkaService.php          tuzatish
+  app/Console/Commands/DemoData.php, tests/Feature/DemoDataTest.php
+  deploy/SERVERGA_NOLDAN_ORNATISH.txt, SERVERGA_YANGILASH.txt, tekshir_versiyalar.ps1,
+         fayllar_hash.txt, fayllar_royxati.txt
+
+---------------------------------------------------------------------------
+ A) LOKALDA (E:\ai projects\lims-sevru), PowerShell
+---------------------------------------------------------------------------
+  1. Expand-Archive -Path "$env:USERPROFILE\Downloads\paket35_video.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+
+  2. VIDEO FAYLINI QO'YING. G:\LIMS dagi videolardan SUBTITRSIZ («toza») nusxasini oling
+     (subtitr endi alohida, .vtt faylda) va shu nom bilan ko'chiring:
+       Copy-Item "G:\LIMS\<toza_video_nomi>.mp4" "public\manuals\LIMS_video_uz.mp4"
+     Faqat subtitrli nusxa bo'lsa ham ishlaydi — u holda pleyerda «CC» (subtitr) tugmasini o'chiring.
+
+  3. Hajmini tekshiring:
+       "{0:N1} MB" -f ((Get-Item public\manuals\LIMS_video_uz.mp4).Length / 1MB)
+       - 95 MB dan kichik — git orqali (4-qadam), hamma serverga o'zi boradi;
+       - 95 MB dan katta — GitHub qabul qilmaydi (100 MB chegara). Shunda .gitignore oxiriga:
+             /public/manuals/LIMS_video_uz.mp4
+         qo'shing va videoni har serverga qo'lda ko'chiring (B-3).
+
+  4. npm run build
+     Select-String -Path public\build\assets\*.js -SimpleMatch -Pattern 'LIMS_video_uz.mp4' -List | Select-Object Path
+       → kamida bitta fayl
+     Brauzerda (lokal sayt) «Foydalanish yo'riqnomasi» → video, subtitr, bo'limlar.
+     git add -A
+     git add -f public/build
+     git commit -m "Paket 35: video qo'llanma, jamlanma hisobot bo'sh kun tuzatish"
+     git push
+
+---------------------------------------------------------------------------
+ B) SERVERDA (VS Code, \\192.168.26.8\xampp\htdocs\LIMS, terminal)
+---------------------------------------------------------------------------
+  1. git fetch origin
+     git reset --hard origin/main
+     php artisan optimize:clear
+  2. IIS bo'lsa (public\web.config bor) — public\web.config ni oching, <staticContent> ichiga qo'shing
+     (usiz subtitr chiqmaydi — IIS .vtt ni bermaydi):
+         <remove fileExtension=".vtt" />
+         <mimeMap fileExtension=".vtt" mimeType="text/vtt" />
+     <staticContent> bo'lmasa — </system.webServer> dan oldin:
+         <staticContent>
+           <remove fileExtension=".vtt" />
+           <mimeMap fileExtension=".vtt" mimeType="text/vtt" />
+         </staticContent>
+     Apache (XAMPP) bo'lsa — hech narsa kerak emas (.htaccess repoda).
+  3. Video git'da bo'lmasa (A-3, 95 MB dan katta): kompyuteringizdan
+       Copy-Item "E:\ai projects\lims-sevru\public\manuals\LIMS_video_uz.mp4" "\\192.168.26.8\xampp\htdocs\LIMS\public\manuals\"
+  4. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+       → «Farq qiladi: 0», «public\build: Paket 35 bilan yig'ilgan»
+  5. Brauzerda Ctrl+F5 → «Foydalanish yo'riqnomasi».

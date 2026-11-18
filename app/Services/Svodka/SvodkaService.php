@@ -160,7 +160,7 @@ class SvodkaService
 
         $ids = array_values(array_unique(array_merge($manualIds, $requestIds, $windowIds)));
         if (! $ids) {
-            return collect();
+            return new \Illuminate\Database\Eloquent\Collection(); // bo'sh bo'lsa ham Eloquent — chaqiruvchi loadMissing() qiladi
         }
         $q = Sample::query()->where('customer_department_id', $deptId)->whereIn('id', $ids);
         if ($withElements) {

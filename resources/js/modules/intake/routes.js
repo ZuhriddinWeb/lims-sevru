@@ -115,4 +115,51 @@ export default [
     component: () => import('./views/SampleBalanceReport.vue'),
     meta: { permission: 'samples.view' },
   },
+  /* ---- [P36] Grafik bo'yicha namunalar: buyurtmachi «Grafigim», laboratoriya «Grafik bo'yicha qabul» ---- */
+  {
+    path: 'portal/schedule', name: 'portal-schedule',
+    component: () => import('./schedule/views/PortalSchedule.vue'),
+    meta: { permission: PORTAL },
+  },
+  {
+    path: 'portal/schedule/new', name: 'portal-schedule-new',
+    component: () => import('./schedule/views/ScheduleEditor.vue'),
+    meta: { permission: 'portal.request' },
+  },
+  {
+    path: 'portal/schedule/:id(\\d+)/edit', name: 'portal-schedule-edit',
+    component: () => import('./schedule/views/ScheduleEditor.vue'),
+    meta: { permission: 'portal.request' },
+  },
+  {
+    path: 'portal/schedule/runs/:id(\\d+)', name: 'portal-schedule-run',
+    component: () => import('./schedule/views/PortalScheduleRun.vue'),
+    meta: { permission: PORTAL },
+  },
+  {
+    path: 'portal/schedule/runs/:id(\\d+)/day', name: 'portal-schedule-day',
+    component: () => import('./schedule/views/ScheduleEditor.vue'),
+    meta: { permission: 'portal.request' },
+  },
+  {
+    path: 'schedule-board/:id(\\d+)?', name: 'lab-schedule',
+    component: () => import('./schedule/views/LabSchedule.vue'),
+    meta: { permission: 'schedules.receive' },
+  },
+  /* ---- [P37] Grafik jadvallari (Excel ko'rinishida) ---- */
+  {
+    path: 'schedule-sheets', name: 'schedule-sheets',
+    component: () => import('./schedule/sheets/ScheduleSheets.vue'),
+    meta: { permission: ['schedule_sheets.view', 'schedule_sheets.enter'] },
+  },
+  {
+    path: 'schedule-sheet-templates', name: 'schedule-sheet-templates',
+    component: () => import('./schedule/sheets/ScheduleSheetBuilder.vue'),
+    meta: { permission: 'schedule_sheets.manage' },
+  },
+  {
+    path: 'portal/schedule-sheets', name: 'portal-schedule-sheets',
+    component: () => import('./schedule/sheets/ScheduleSheets.vue'),
+    meta: { permission: PORTAL, portal: true },
+  },
 ]

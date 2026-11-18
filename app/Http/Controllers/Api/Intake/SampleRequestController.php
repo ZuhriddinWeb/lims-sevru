@@ -116,6 +116,7 @@ class SampleRequestController extends Controller
         ];
 
         $base = $this->visible(SampleRequest::query(), $request->user());
+        $base->where('origin', '!=', 'schedule'); // [P36] grafik bo'yicha — «Grafik bo'yicha qabul» sahifasida
         if ($request->filled('department_id')) {
             $base->where('customer_department_id', (int) $request->input('department_id'));
         }

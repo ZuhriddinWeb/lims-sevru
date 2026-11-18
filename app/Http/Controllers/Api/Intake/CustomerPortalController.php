@@ -46,6 +46,8 @@ class CustomerPortalController extends Controller
             // [P27] nima ko'rinadi (interfeys bo'sh bo'limlarni yashiradi; ma'lumotning o'zi serverda olib tashlanadi)
             'visibility'    => $this->visibility->get(),
             'can_configure' => ! $isPortal && $user->hasPermission('portal.settings'),
+            // [P36] grafik rejimi yoqilgan bo'limlar (bo'lsa — «Mening probalarim» da manba tanlovi chiqadi)
+            'schedule_departments' => \App\Services\Samples\SampleSource::scheduleDepartments($departments->pluck('id')->map(fn ($v) => (int) $v)->all()),
         ]);
     }
 
@@ -81,6 +83,7 @@ class CustomerPortalController extends Controller
         } elseif ($status && $status !== 'all') {
             $query->where('status', $status);
         }
+        \App\Services\Samples\SampleSource::apply($query, $request); // [P36] manba: buyurtma / grafik / hammasi; partiya
         if ($request->filled('date_from')) {
             $query->whereDate('registered_at', '>=', $request->input('date_from'));
         }

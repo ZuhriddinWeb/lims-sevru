@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 34), 2026-11-12
+rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 37), 2026-11-18
 rem  Server qaysi holatda bo'lishidan qat'i nazar: faqat yetishmaganini qo'shadi.
 rem  Oraliq paketlar o'tkazib yuborilgan server ham shu bitta skript bilan to'liq bo'ladi.
 rem
@@ -66,6 +66,10 @@ call :need database\migrations\2026_11_11_100000_portal_templates_and_receipt_fi
 call :need app\Http\Controllers\Api\Intake\PortalTemplateController.php "Paket 33: buyurtmachi shablonlari"
 call :need database\migrations\2026_11_12_100000_create_customer_contacts_table.php "Paket 34: bo'linma xodimlari"
 call :need app\Services\Samples\CustomerContacts.php "Paket 34: kim olib keladi ro'yxati"
+call :need database\migrations\2026_11_18_100000_create_request_schedules_tables.php "Paket 36: grafik bo'yicha namunalar"
+call :need app\Services\Samples\RequestSchedules.php "Paket 36: grafik bo'yicha namunalar"
+call :need database\migrations\2026_11_18_110000_create_schedule_sheets_tables.php "Paket 37: grafik jadvallari"
+call :need app\Services\Samples\ScheduleSheets.php "Paket 37: grafik jadvallari"
 call :need app\Console\Commands\WorksheetPushResults.php "Paket 31: worksheets:natija-otkaz"
 call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
 call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"
@@ -179,7 +183,7 @@ if errorlevel 1 (
   goto :after_migrate
 )
 echo.
-echo   Server holatiga qarab 1 tadan 18 tagacha bo'lishi mumkin - ro'yxat SERVERGA_YANGILASH.txt, 4-jadvalda.
+echo   Server holatiga qarab 1 tadan 20 tagacha bo'lishi mumkin - ro'yxat SERVERGA_YANGILASH.txt, 4-jadvalda.
 echo   Nomi 2026_10_ yoki 2026_11_ bilan boshlanmagan migratsiya bo'lsa - to'xtating va ichini ko'ring.
 set /p GO=Shu migratsiyalar bajarilsinmi? [ha/yoq]:
 if /i not "%GO%"=="ha" (
@@ -220,7 +224,7 @@ echo.
 echo === 11/12  Tekshirish ===
 php artisan migrate:status | findstr /i "Pending" >nul
 if errorlevel 1 (echo   [ok] Barcha migratsiyalar bajarilgan) else (echo   [!] Bajarilmagan migratsiya qoldi)
-for %%R in (help/status sample-requests portal/requests portal/svodka portal/request-templates portal/contacts sample-intake/receivers svodka-releases result-analysis insights/desk lab-shifts customer-departments interlab/v1/identity) do (
+for %%R in (help/status sample-requests portal/requests portal/svodka portal/request-templates portal/contacts portal/schedules schedule-board schedule-sheets portal/schedule-sheets sample-intake/receivers svodka-releases result-analysis insights/desk lab-shifts customer-departments interlab/v1/identity) do (
   php artisan route:list --path=%%R 2>nul | findstr /c:"api/" >nul && (echo   [ok] /api/%%R) || (echo   [X] /api/%%R topilmadi)
 )
 echo.

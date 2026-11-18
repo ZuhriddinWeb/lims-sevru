@@ -18,6 +18,7 @@ class SampleRequestServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(config_path('sample_requests.php'), 'sample_requests');
         $this->app->scoped(SampleRequests::class);
+        $this->app->scoped(\App\Services\Samples\RequestSchedules::class);
     }
 
     public function boot(): void
@@ -27,12 +28,14 @@ class SampleRequestServiceProvider extends ServiceProvider
         }
 
         if ($this->app->runningInConsole()) {
-            $this->commands([SampleRequestsExpire::class]);
+            $this->commands([SampleRequestsExpire::class, \App\Console\Commands\SchedulesTick::class]);
         }
 
         // Yuborilgan, lekin muddatida olib kelinmagan so'rovlar — har soatda (php artisan schedule:run)
         $this->callAfterResolving(Schedule::class, function (Schedule $schedule) {
             $schedule->command('sample-requests:expire')->hourly()->withoutOverlapping(30);
+            // [P36] grafik bo'yicha namunalar: partiyalar, kechikish xabari
+            $schedule->command('schedules:tick')->everyFiveMinutes()->withoutOverlapping(10);
         });
     }
 }

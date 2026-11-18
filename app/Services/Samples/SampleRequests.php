@@ -37,6 +37,9 @@ class SampleRequests
     public const PORTAL_PERMISSION = 'portal.request';
     public const STATES = ['liquid', 'solid'];
 
+    /** [P36] grafik bo'yicha qabul: oddiy «yangi buyurtma» / «qabul qilindi» xabarlari yuborilmaydi (o'zinikini yuboradi) */
+    public bool $quiet = false;
+
     public function __construct(private CustomerPortal $portal)
     {
     }
@@ -639,6 +642,9 @@ class SampleRequests
     /** Laboratoriya: so'rovni qabul qila oladigan faol xodimlarga bildirishnoma */
     private function notifyLab(SampleRequest $request): void
     {
+        if ($this->quiet) {
+            return;
+        }
         try {
             $dept = $request->department?->name ?? '';
             $count = $request->items()->count();
@@ -682,6 +688,9 @@ class SampleRequests
     /** Buyurtmachi: so'rovni tuzgan/yuborgan portal foydalanuvchisiga */
     private function notifyCustomer(SampleRequest $request, string $event, ?string $reason = null, int $count = 0): void
     {
+        if ($this->quiet) {
+            return;
+        }
         try {
             $ids = array_unique(array_filter([(int) $request->created_by, (int) $request->submitted_by]));
             $titles = [

@@ -15,3 +15,9 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Video qo'llanma subtitrlari (Foydalanish yo'riqnomasi)
+<IfModule mod_mime.c>
+    AddType text/vtt .vtt
+    AddType video/mp4 .mp4
+</IfModule>

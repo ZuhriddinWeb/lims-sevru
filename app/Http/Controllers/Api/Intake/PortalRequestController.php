@@ -177,6 +177,7 @@ class PortalRequestController extends Controller
     {
         $ctx = $this->ctx($request);
         $q = $this->visible(SampleRequest::query(), $ctx)->with('items:id,sample_request_id,customer_code,status');
+        $q->where('origin', '!=', 'schedule'); // [P36] grafik bo'yicha qabul qilinganlar — «Grafigim» da
 
         if ($request->filled('department_id')) {
             $q->where('customer_department_id', (int) $request->input('department_id'));

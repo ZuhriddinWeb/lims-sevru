@@ -1,6 +1,6 @@
 ===========================================================================
  ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 34)
- Holat: 2026-11-04
+ Holat: 2026-11-15
 ===========================================================================
 
 Bu yo'riqnoma ma'lumotli, ishlab turgan serverlar uchun. Yangi (bo'sh) server uchun —
@@ -14,6 +14,7 @@ bor narsaga tegmaydi.
 TARTIB
   A) Lokal kompyuterda — bir marta: to'liq to'plam, tekshiruv, build, push
   B) Har bir serverda — git pull → deploy\server_yangilash.bat → Apache qayta ishga tushirish
+  B2) RDP yo'q — serverga faqat tarmoq papkasi (VS Code) orqali kirilsa: qo'lda buyruqlar
   C) Har bir serverda — keyin bir marta sozlash va tekshirish
   D) Muammo bo'lsa — ortga qaytish
   E) Xatolar jadvali
@@ -42,6 +43,20 @@ TARTIB
   30  Buyurtma guruhga, guruh shifri         3 bo'sh ustun
   31  Svodkani ko'ruvchilar, natija o'tkazish 1 jadval (svodka_viewers), ruxsat + 1 menyu
   32  Natijalar tahlili («AI tahlil» o'rniga) — (ruxsat; «AI tahlil» menyu bandi yangi sahifaga)
+  33  Shifr takrori, qabulda telefon va      1 jadval (portal_request_templates), 2 bo'sh ustun,
+      «Kim qabul qilib oldi», shablonlar,    «Shablonlarim» menyusi; o'zbekcha «Svodka» →
+      «Jamlanma hisobot»                     «Jamlanma hisobot» (admin o'zgartirgan nom saqlanadi)
+  34  «Kim olib keladi» — bo'linma xodimlari 1 jadval (customer_contacts); bir martalik to'ldirish:
+      ro'yxati (kombobox)                    php artisan lims:kontaktlar  →  --yoz
+  35  Video qo'llanma («Foydalanish         — (fayllar: public\manuals\LIMS_video_uz.mp4 + .vtt);
+      yo'riqnomasi» sahifasida, bo'limlari   «Jamlanma hisobotlar»: probasi yo'q kun — 500 xato tuzatildi
+      bilan)
+  36  Grafik bo'yicha namunalar («Grafigim»,  2 jadval (request_schedules, schedule_runs), bo'limga 2 ustun;
+      «Grafik bo'yicha qabul»); manba        ruxsatlar schedules.receive/.manage, 2 menyu; rejalashtirgich
+      filtri va umumiy Excel                 schedules:tick (har 5 daqiqa). Bo'limga laboratoriya yoqadi.
+  37  Grafik jadvallari (Excel ko'rinishida: 2 jadval (schedule_sheets, schedule_sheet_values);
+      oq — kiritiladi, sariq — formula va    ruxsatlar schedule_sheets.view/.enter/.manage, 3 menyu.
+      o'rtacha); admin konstruktori          Ustun va formulalarni admin belgilaydi.
   Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
   natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
 
@@ -159,7 +174,7 @@ TARTIB
        8  ixtiyoriy: ochiq varaqlarga «varaq bo'yicha jami» — so'raydi
        9  ixtiyoriy: tasdiqlangan, lekin probaga yozilmay qolgan natijalarni o'tkazish — so'raydi
       10  optimize:clear → php artisan up
-      11  tekshiradi: migratsiyalar, 12 ta API yo'li, rejalashtirgich
+      11  tekshiradi: migratsiyalar, 17 ta API yo'li, rejalashtirgich
       12  eslatma: Apache (yoki IIS) ni qayta ishga tushiring
 
      Skriptsiz — xuddi shu buyruqlar qo'lda (avval zaxira nusxa!):
@@ -179,20 +194,22 @@ TARTIB
 
   4-JADVAL. migrate:status da kutiladigan «Pending» — server holatiga qarab
      server oxirgi qaysi paketda      bajariladi
-     Paket 12 yoki undan oldin        hammasi, 18 ta
-     Paket 13                         2026_10_12_… dan boshlab 16 ta
-     Paket 14                         2026_10_13_… dan boshlab 14 ta
-     Paket 15                         2026_10_14_100000 dan boshlab 12 ta
-     Paket 16–18                      2026_10_14_120000 dan boshlab 11 ta
-     Paket 19–20                      10 ta
-     Paket 21–23                      8 ta (2026_10_20_100000 dan)
-     Paket 24–26                      7 ta (2026_10_22_100000 dan)
-     Paket 27                         6 ta
-     Paket 28                         5 ta
-     Paket 29                         4 ta
-     Paket 30                         3 ta (2026_11_02_100000 dan)
-     Paket 31–32                      2 ta (2026_11_11_100000 dan)
-     Paket 33                         1 ta (2026_11_12_100000)
+     Paket 12 yoki undan oldin        hammasi, 20 ta
+     Paket 13                         2026_10_12_… dan boshlab 18 ta
+     Paket 14                         2026_10_13_… dan boshlab 16 ta
+     Paket 15                         2026_10_14_100000 dan boshlab 14 ta
+     Paket 16–18                      2026_10_14_120000 dan boshlab 13 ta
+     Paket 19–20                      12 ta
+     Paket 21–23                      10 ta (2026_10_20_100000 dan)
+     Paket 24–26                      9 ta (2026_10_22_100000 dan)
+     Paket 27                         8 ta
+     Paket 28                         7 ta
+     Paket 29                         6 ta
+     Paket 30                         5 ta (2026_11_02_100000 dan)
+     Paket 31–32                      4 ta (2026_11_11_100000 dan)
+     Paket 33                         3 ta (2026_11_12_100000 dan)
+     Paket 34–35                      2 ta (2026_11_18_100000 dan)
+     Paket 36                         1 ta (2026_11_18_110000)
      Oraliq paketlar o'tkazib yuborilgan bo'lsa — ro'yxatdagi yo'qlari bajariladi, tartib muhim emas.
 
      2026_10_08_100000_create_worksheet_tables                 Paket 13
@@ -213,16 +230,46 @@ TARTIB
      2026_11_02_100000_create_svodka_viewers_table             Paket 31
      2026_11_11_100000_portal_templates_and_receipt_fields     Paket 33
      2026_11_12_100000_create_customer_contacts_table          Paket 34
+     2026_11_18_100000_create_request_schedules_tables         Paket 36
+     2026_11_18_110000_create_schedule_sheets_tables           Paket 37
      Bu ro'yxatda yo'q nom «Pending» bo'lsa — o'zingiz yozgan migratsiya: ichini ko'ring.
 
   SEEDERLAR — qo'lda ishga tushirish SHART EMAS. lims:upgrade quyidagilarni xavfsiz chaqiradi
   (faqat yo'q ruxsat/menyu/rolni yaratadi):
      WorksheetModuleSeeder      — FAQAT ishchi varaqlar moduli hali yo'q bo'lsa
      InterlabModuleSeeder, SampleIntakeModuleSeeder, InsightsModuleSeeder,
-     SampleRequestModuleSeeder, SvodkaModuleSeeder
+     SampleRequestModuleSeeder, SvodkaModuleSeeder, ScheduleModuleSeeder, ScheduleSheetModuleSeeder
   + help:import (yordamchi), worksheets:add-totals va worksheets:eritish-stages (bir martalik).
   Qo'lda kerak bo'lsa — faqat --class bilan:  php artisan db:seed --class=SvodkaModuleSeeder --force
 
+
+---------------------------------------------------------------------------
+ B2) RDP YO'Q — VS CODE / TARMOQ PAPKASI ORQALI (\\SERVER\xampp\htdocs\LIMS)
+---------------------------------------------------------------------------
+  server_yangilash.bat tarmoq yo'lidan ishlamaydi (cmd UNC ni qo'llamaydi) — o'zi to'xtaydi.
+  Shu holda skript ishini qo'lda, VS Code terminalida (PowerShell), shu papkada bajaring.
+  Faqat .env da DB_HOST aniq IP bo'lsa (localhost EMAS) — aks holda php artisan sizning
+  kompyuteringizdagi bazaga ulanadi. Kompyuteringizdagi PHP ham pdo_sqlsrv bilan bo'lsin.
+
+  0. SSMS — zaxira nusxa (baza nomi .env dagi DB_DATABASE):
+       USE master;
+       DECLARE @bak nvarchar(400) = CAST(SERVERPROPERTY('InstanceDefaultBackupPath') AS nvarchar(400)) + N'\BAZA_NOMI_oldin.bak';
+       BACKUP DATABASE [BAZA_NOMI] TO DISK = @bak WITH COPY_ONLY, INIT, STATS = 10;
+  1. git log -1 --oneline                         (ortga qaytish uchun yozib qo'ying)
+     git fetch origin
+     git reset --hard origin/main                 (serverdagi qo'lda o'zgartirishlar yo'qoladi —
+                                                   kerak bo'lsa avval: git stash push -u -m "server_oldin")
+  2. php artisan config:clear
+     php artisan lims:install-state               → existing (… foydalanuvchi). Boshqasi bo'lsa TO'XTANG.
+     php artisan migrate:status | Select-String Pending
+                                                  → faqat shu paketning yangi migratsiyalari.
+                                                    2024_… yoki begona nom bo'lsa TO'XTANG.
+  3. php artisan migrate --force
+     php artisan lims:upgrade
+     php artisan optimize:clear
+  4. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
+                                                  → «Farq qiladi: 0», «public\build: … yig'ilgan»
+  5. Brauzerda Ctrl+F5. (iisreset / Apache qayta ishga tushirish RDP'siz bo'lmaydi — odatda shart emas.)
 
 ---------------------------------------------------------------------------
  C) KEYIN — har bir serverda bir marta
@@ -233,7 +280,7 @@ TARTIB
 
   2. Rejalashtirgich (skript 11-qadamda «[!] LIMS Scheduler yo'q» desa):
         schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"C:\xampp\php\php.exe\" \"C:\xampp\htdocs\LIMS\artisan\" schedule:run"
-     Tekshirish:  php artisan schedule:list  → interlab:sync, sample-requests:expire, lims:check-reminders
+     Tekshirish:  php artisan schedule:list  → interlab:sync, sample-requests:expire, schedules:tick
 
   3. Rollar va ruxsatlar (admin) — yangi ruxsatlar faqat yangi yaratilganda rollarga beriladi.
      Sizdagi rollar boshqacha bo'lsa — «Rollar va ruxsatlar» sahifasida moslang.

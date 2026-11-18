@@ -1,0 +1,95 @@
+PAKET 36 — GRAFIK BO'YICHA NAMUNALAR  (+ Paket 35: video qo'llanma, jamlanma hisobot tuzatishi)
+=================================================================================================
+2026-11-18. Repodagi «new version for» (Paket 34) ustiga. Paket 35 ham shu to'plam ichida —
+paket35_video.zip ni alohida yoyish shart emas (video faylini qo'yish — A-3).
+
+---------------------------------------------------------------------------
+ NIMA O'ZGARDI (P36)
+---------------------------------------------------------------------------
+ IXTIYORIY: laboratoriya har bo'linma uchun alohida yoqadi. Yoqilmagan bo'linmada hech narsa o'zgarmaydi
+ (menyuda «Grafigim» ham ko'rinmaydi).
+
+ 1. Buyurtmachi — «Grafigim» (menyu):
+      «Grafik» bo'limi — qatorlar: vaqt (08:00), nomi, kunlari (Du…Ya, «Har kuni», «Ish kunlari»),
+        namunalar (buyurtma formasi bilan bir xil; «Shablondan olish» — Shablonlarim'dan). Faqat buyurtmachi tuzadi,
+        faqat o'z bo'linmasiniki.
+      «Kun» bo'limi — bugungi (yoki tanlangan kun) partiyalar va holati: Kutilmoqda / Kechikmoqda /
+        Qabul qilindi / Qisman / Kelmadi / Bugun yo'q. Shu kun uchun: namunalarni o'zgartirish (grafikning
+        o'zi o'zgarmaydi), «Bugun yo'q» (laboratoriyaga xabar boradi), «Qaytarish».
+      «Tarix» — kunlar bo'yicha: nechta partiya keldi, nechta namuna.
+      Partiya sahifasi — namunalar va NATIJALAR (jamlanma hisobot qoidasi bilan, «Mening probalarim» dagidek).
+ 2. Laboratoriya — «Grafik bo'yicha qabul» (menyu):
+      kunning partiyalari (vaqt bo'yicha), bo'lim, nechta namuna, ko'rsatkichlar. Namuna olish nuqtasi KO'RINMAYDI.
+      «Keldi» → ro'yxat (hammasi belgilangan) — kelmaganidan belgini olib tashlang; «Kim olib keldi»
+      (bo'linma xodimlari ro'yxati), «Kim qabul qilib oldi» → «Qabul qilish». Proba raqamlari beriladi,
+      «Yorliqlar / probalar» tugmasi — yorliqlarni chop etish.
+      «Sozlama» (laboratoriya boshlig'i): bo'limga grafik rejimini yoqish, kechikish daqiqasi (standart 30).
+      Guruhga biriktirilgan xodim — faqat o'z guruhiga yuborilgan partiyalarni ko'radi.
+ 3. Xabarlar:
+      qabul qilindi → buyurtmachiga: «Grafik 08:00: 20 ta namunangiz qabul qilindi (08:12, qabul qilib oldi: …)»,
+        qisman bo'lsa «… 2 tasi kelmadi»;
+      vaqtidan N daqiqa o'tib kelmasa → laboratoriyaga VA buyurtmachiga (bir marta);
+      buyurtmachi «Bugun yo'q» desa → laboratoriyaga.
+      Kun oxirigacha kelmagan partiya ertasi kuni «Kelmadi» bo'ladi.
+ 4. ALOHIDA va UMUMIY:
+      grafik bo'yicha buyurtmalar «Buyurtmalarim» va laboratoriya «Buyurtmalar» ro'yxatida chiqmaydi;
+      «Mening probalarim» da «Manba» tanlovi: Buyurtma bo'yicha (standart) / Grafik bo'yicha / Hammasi (umumiy);
+      Excel'ga yuklash tanlangan manba bo'yicha, yangi «Manba» ustuni bilan («Hammasi» → umumiy hisobot).
+      Jamlanma hisobotga ikkalasi ham odatdagidek tushadi (nuqta tanlangan bo'lsa; navbatchilik — grafik vaqtidan).
+
+ Rejalashtirgich: schedules:tick — har 5 daqiqada (Task Scheduler'dagi «LIMS Scheduler» o'zi chaqiradi).
+ Bazada: request_schedules, schedule_runs (yangi), customer_departments.schedule_enabled / schedule_late_minutes.
+ Ruxsatlar: schedules.receive (lab_head, operator), schedules.manage (lab_head) — lims:upgrade qo'shadi.
+
+ P35 (shu to'plamda): «Foydalanish yo'riqnomasi» da video qo'llanma (subtitr, 15 bo'lim), «Jamlanma
+ hisobotlar» da probasi yo'q kun — 500 xato tuzatildi, yangilangan deploy yo'riqnomalari.
+
+---------------------------------------------------------------------------
+ A) LOKALDA (E:\ai projects\lims-sevru), PowerShell
+---------------------------------------------------------------------------
+  1. Expand-Archive -Path "$env:USERPROFILE\Downloads\paket36_grafik.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+  2. php artisan migrate               (1 ta yangi: 2026_11_18_100000_create_request_schedules_tables)
+     php artisan lims:upgrade          (ruxsatlar, «Grafigim» va «Grafik bo'yicha qabul» menyulari)
+     php artisan optimize:clear
+  3. (P35) Video: G:\LIMS dagi subtitrsiz videoni  public\manuals\LIMS_video_uz.mp4  nomi bilan ko'chiring.
+     95 MB dan katta bo'lsa — .gitignore ga  /public/manuals/LIMS_video_uz.mp4  va serverga qo'lda.
+  4. npm run build
+     Select-String -Path public\build\assets\*.js -SimpleMatch -Pattern 'schedule-board' -List | Select-Object Path
+  5. Ixtiyoriy: php artisan test --filter=P36     (5 ta test)
+  6. git add -A
+     git add -f public/build
+     git commit -m "Paket 36: grafik bo'yicha namunalar; P35 video qo'llanma"
+     git push
+
+---------------------------------------------------------------------------
+ B) SERVERDA (VS Code, \\192.168.26.8\xampp\htdocs\LIMS, terminal)  — SERVERGA_YANGILASH.txt, B2
+---------------------------------------------------------------------------
+  0. SSMS — zaxira nusxa (lims3).
+  1. git fetch origin
+     git reset --hard origin/main
+  2. php artisan config:clear
+     php artisan lims:install-state                          → existing
+     php artisan migrate:status | Select-String Pending      → faqat 2026_11_18_100000_create_request_schedules_tables
+  3. php artisan migrate --force
+     php artisan lims:upgrade
+     php artisan optimize:clear
+  4. IIS bo'lsa — public\web.config ga .vtt (OQISH_P35 / web.config.example dagi 2 qator).
+  5. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1   → «Farq qiladi: 0», «Paket 36 bilan yig'ilgan»
+  6. Task Scheduler'da «LIMS Scheduler» (schedule:run har daqiqa) ishlayotganini tekshiring — usiz partiyalar
+     sahifa ochilganda tayyorlanadi, lekin KECHIKISH XABARI bormaydi.
+  7. Brauzerda Ctrl+F5.
+
+---------------------------------------------------------------------------
+ C) QO'LDA TEKSHIRISH
+---------------------------------------------------------------------------
+  [ ] Laboratoriya boshlig'i → «Grafik bo'yicha qabul» → «Sozlama» → OTK uchun yoqish, kechikish 30.
+  [ ] OTK buyurtmachisi: menyuda «Grafigim» paydo bo'ldi (boshqa bo'linmada — yo'q).
+  [ ] «Grafik» → «Yangi qator»: 09:00, «Ertalabki», Ish kunlari, 3–4 namuna (yoki «Shablondan olish») → Saqlash.
+  [ ] «Kun»: bugungi 09:00 partiyasi «Kutilmoqda». «Shu kunga o'zgartirish» — bitta namuna qo'shing.
+  [ ] Laboratoriya → «Grafik bo'yicha qabul»: shu partiya, nuqta nomi yo'q. «Keldi» → bittasidan belgini oling →
+      «Qabul qilish». Holat «Qisman», buyurtmachiga xabar keldi.
+  [ ] Buyurtmachi: partiyani oching — namunalar; natija kiritilgach shu yerda ko'rinadi.
+  [ ] «Buyurtmalarim» da bu buyurtma YO'Q; «Mening probalarim» → Manba: Grafik / Buyurtma / Hammasi; Excel — «Manba» ustuni.
+  [ ] Ertangi kun uchun «Bugun yo'q» → laboratoriyaga xabar; «Qaytarish».
+  [ ] Kechikish: vaqti 30 daqiqadan oshgan partiya «Kechikmoqda», ikkala tomonga bir marta xabar.
+  [ ] «Foydalanish yo'riqnomasi» — video (P35).
