@@ -1,6 +1,6 @@
 ===========================================================================
  LIMS — YANGI SERVERGA NOLDAN O'RNATISH (BOSHQA ZAVOD / LABORATORIYA UCHUN)
- Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 34, 2026-11-15
+ Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 37, 2026-11-18
 ===========================================================================
 
 Bu yo'riqnoma dastur BIRINCHI MARTA qo'yiladigan server uchun (bo'sh baza).
@@ -31,7 +31,7 @@ TARTIB
 ---------------------------------------------------------------------------
  [ ] Repoda eng oxirgi versiya bo'lsin. Lokal kompyuterda (E:\ai projects\lims-sevru):
          git status --short          → bo'sh
-         git log -1 --oneline        → oxirgi paket (hozir: Paket 34)
+         git log -1 --oneline        → oxirgi paket (hozir: Paket 37)
      Yoyilmagan paket bo'lsa — avval yoying, npm run build, git add -f public/build, commit, push.
  [ ] Server: Windows Server 2019/2022 (yoki Windows 10/11), 4+ GB RAM, 20+ GB bo'sh disk.
  [ ] Server IP manzili va port (masalan 192.168.X.Y : 3010).
@@ -135,6 +135,8 @@ TARTIB
  Tekshirish:
         dir vendor\autoload.php
         dir public\build\manifest.json
+ Video qo'llanma (ixtiyoriy): public\manuals\LIMS_video_uz.mp4 — katta fayl, repoda bo'lmasligi mumkin;
+ bo'lmasa lokal kompyuterdan shu nomda qo'lda ko'chiring (.vtt subtitr repoda bor).
 
 
 ---------------------------------------------------------------------------
@@ -191,7 +193,8 @@ TARTIB
         php artisan lims:set-password admin --create
 
  5.5  Barcha modullar (ishchi varaqlar, buyurtmachi portali, buyurtmalar, shablonlar,
-      jamlanma hisobot, laboratoriyalararo, rahbariyat paneli, yordamchi, natijalar tahlili)
+      jamlanma hisobot, laboratoriyalararo, rahbariyat paneli, yordamchi, natijalar tahlili,
+      grafik bo'yicha namunalar, grafik jadvallari)
         php artisan lims:upgrade
 
  5.6  Fayllar va kesh
@@ -308,6 +311,10 @@ TARTIB
  12  Laboratoriyalararo (kerak bo'lsa): Laboratoriyalararo → o'z nomi va manzili → taklifnoma;
      GMZ-3 laboratoriyasi bilan bog'lanish — taklifnomani u yerga yuborib.
  13  Menyu — kerakmas bandlarni yashirish (Administratsiya → Menyu).
+ 14  Grafik bo'yicha namunalar (kerak bo'lsa): «Grafik bo'yicha qabul» → «Sozlama» → bo'linmani yoqish,
+     kechikish daqiqasi. Bo'linma buyurtmachisi «Grafigim» da grafikni o'zi tuzadi.
+ 15  Grafik jadvallari (14 dan keyin, kerak bo'lsa): Kataloglar → «Grafik jadvali konstruktori» →
+     bo'linma uchun jadval: ustunlar — Kiritiladi / Namuna natijasi / Formula / O'rtacha.
 
 
 ---------------------------------------------------------------------------
@@ -320,6 +327,9 @@ TARTIB
  [ ] Excel'ga yuklash (zip kengaytmasi)
  [ ] Buyurtmachi hisobi bilan kirish → «Yangi buyurtma» (shablon, «Kim olib keladi» ro'yxati)
      → yuborish → laboratoriya «Buyurtmalar» da qabul qiladi («Kim qabul qilib oldi»)
+ [ ] (14–15 qilingan bo'lsa) grafik qatori → «Grafik bo'yicha qabul» da «Keldi» →
+     «Grafik jadvallari» da oq katakka qiymat, sariq ustun hisoblanadi; «Excel»
+ [ ] «Foydalanish yo'riqnomasi» — video (public\manuals\LIMS_video_uz.mp4 qo'yilgan bo'lsa)
  [ ] Yordamchi tugmasi (o'ng pastda) javob beradi
  [ ] storage\logs\ da yangi xato yo'q
 
