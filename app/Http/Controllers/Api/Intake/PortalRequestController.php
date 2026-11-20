@@ -70,7 +70,7 @@ class PortalRequestController extends Controller
             'edit'     => $own && $r->status === 'draft',
             'delete'   => $own && $r->status === 'draft',
             'submit'   => $own && $r->status === 'draft',
-            'withdraw' => $ctx['write'] && in_array($r->status, ['submitted', 'expired'], true) && $received === 0,
+            'withdraw' => $ctx['write'] && in_array($r->status, ['submitted', 'expired'], true) && $received === 0 && $r->origin !== 'schedule', // [P39]
             'cancel'   => $ctx['write'] && in_array($r->status, ['draft', 'submitted', 'expired'], true) && $received === 0,
             'print'    => $r->status !== 'draft' && $r->number !== null,
         ];
@@ -177,7 +177,12 @@ class PortalRequestController extends Controller
     {
         $ctx = $this->ctx($request);
         $q = $this->visible(SampleRequest::query(), $ctx)->with('items:id,sample_request_id,customer_code,status');
-        $q->where('origin', '!=', 'schedule'); // [P36] grafik bo'yicha qabul qilinganlar — «Grafigim» da
+        // [P39] grafik buyurtmalari ham shu ro'yxatda; manba filtri
+        if ($request->input('source') === 'schedule') {
+            $q->where('origin', 'schedule');
+        } elseif ($request->input('source') === 'request') {
+            $q->where('origin', '!=', 'schedule');
+        }
 
         if ($request->filled('department_id')) {
             $q->where('customer_department_id', (int) $request->input('department_id'));
@@ -293,8 +298,8 @@ class PortalRequestController extends Controller
         $ctx = $this->ctx($request);
         $r = $this->find($request, $id, $ctx);
         abort_unless($ctx['write'], 403, "Ruxsat yo'q");
-        $data = $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:500'], 'reason_id' => ['nullable', 'integer']]); // [P39]
 
-        return response()->json($this->payload($this->requests->cancel($r, $request->user(), $data['reason'] ?? null), $ctx));
+        return response()->json($this->payload($this->requests->cancel($r, $request->user(), $data['reason'] ?? null, isset($data['reason_id']) ? (int) $data['reason_id'] : null), $ctx));
     }
 }

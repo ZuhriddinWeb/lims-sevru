@@ -1,92 +1,98 @@
-PAKET 37 — GRAFIK JADVALLARI (Excel ko'rinishida)   (+ Paket 35 va Paket 36 shu to'plam ichida)
-=================================================================================================
-2026-11-18. Repodagi «new version for» (Paket 34) ustiga. To'plamda P35 + P36 + P37 ning BARCHA
-fayllari bor (paket36_grafik.zip da P35 fayllari va fayllar ro'yxati tushib qolgan edi — endi to'liq).
-Paket 36 ni allaqachon yoygan bo'lsangiz ham — shu to'plamni ustidan yoying, zarari yo'q.
+PAKET 39 — GRAFIK = ODDIY BUYURTMA; KECHIKTIRIB KIRITISH; SABAB BILAN YOPISH   (+ Paket 38 shu to'plamda)
+==========================================================================================================
+2026-11-19. Repodagi hozirgi holat (P37 bilan, «texts» commit) ustiga. Paket 38 (P37 ni bekor qilish)
+ham shu to'plam ichida — paket38_tozalash.zip ni alohida yoyish shart emas.
 
 ---------------------------------------------------------------------------
- NIMA O'ZGARDI (P37)
+ NIMA O'ZGARDI
 ---------------------------------------------------------------------------
- 1. Administrator — «Kataloglar» → «Grafik jadvali konstruktori»:
-      jadval = bitta buyurtmachi bo'linmasi (+ kerak bo'lsa faqat tanlangan grafik qatorlari).
-      Ustunlar (tartibini o'zgartirish mumkin), har birining turi:
-        Kiritiladi        — laboratoriya qo'lda yozadi (OQ katak). Masalan: KSP zichligi, +0,15, +0,074
-        Namuna natijasi   — partiyadagi N-namunaning ko'rsatkichi (tasdiqlangan natija o'zi tushadi).
-                            Natija hali yo'q bo'lsa — qo'lda kiritsa ham bo'ladi (ishchi varaqsiz namunalar)
-        Formula           — shu qatordagi ustunlardan (SARIQ). Ishchi varaq formulalari bilan bir xil:
-                            + - * / ^, qavslar, round, trunc, floor, ceil, abs, sqrt, pow, min, max, avg, sum, count
-                            Masalan:  round(zich * p015 / 10, 2)      100 - p015
-        O'rtacha          — tanlangan ustunning o'rtachasi (SARIQ): «Kun bo'yicha» (hamma qatorda bir xil)
-                            yoki «Shu qatorgacha» (yig'ilib boradi)
-      Har ustunda: kalit (formulada ishlatiladi: zich, p015 …), sarlavha, birlik, verguldan keyingi xona.
-      Saqlashda tekshiriladi: yo'q ustunga havola, takror kalit, aylana bog'langan formulalar.
- 2. Laboratoriya va rahbariyat — «Grafik jadvallari» (menyu):
-      Excel ko'rinishi: № | Boshlanish soati | ustunlar. Qatorlar — shu kunning grafik partiyalari.
-      Oq katakka yozing → katakdan chiqqanda (yoki Enter/↓/↑) saqlanadi; sariqlar darhol qayta hisoblanadi.
-      Bo'sh qoldirsangiz — qiymat o'chadi. Esc — bekor. Sana bo'yicha oldinga/orqaga, «Excel» tugmasi
-      (sariq ustunlar Excel'da ham sariq).
-      Kiritish — lab_head, operator, analyst; viewer (rahbariyat) — faqat ko'radi.
- 3. Buyurtmachi — «Grafik jadvali» (menyu; bo'linmasi uchun jadval bo'lsagina ko'rinadi):
-      o'z bo'linmasining jadvallari, faqat ko'rish va Excel. Namuna natijalari — jamlanma hisobot qoidasi bilan
-      (chiqarilmagan natija qulf belgisi bilan).
- Formula va o'rtachalar bazada saqlanmaydi — har ochilganda hisoblanadi (formulani o'zgartirsangiz,
- eski kunlar ham yangi formula bilan ko'rinadi).
+ 1. GRAFIK — ODDIY BUYURTMA. «Grafik bo'yicha qabul» sahifasi OLIB TASHLANDI.
+      - grafik vaqtidan N daqiqa oldin (sozlama, sukut 60) har qatordan oddiy buyurtma o'zi yaratiladi
+        va yuboriladi. Laboratoriya uni odatiy «Buyurtmalar» da ko'radi («Grafik 08:00» belgisi) va
+        odatiy forma bilan qabul qiladi: qisman qabul, kim olib keldi, kim qabul qilib oldi, rad etish.
+      - «Buyurtmalar» da yangi filtrlar: Manba (Hammasi / Odatiy buyurtma / Grafik bo'yicha) va
+        «Faqat kechiktirib kiritilganlar». Grafik buyurtmalari navbatda grafik vaqti bo'yicha turadi.
+      - buyurtmachi «Grafigim» → «Kun»: har partiyada «Buyurtma B-…» havolasi yoki «Buyurtma 07:00 da
+        yaratiladi». Buyurtma yaratilguncha shu kunga o'zgartirish mumkin; keyin — faqat «Bugun yo'q».
+ 2. SHIFR: grafikdagi «Shifr» — prefiks; buyurtmada «Xvost-08:00» (bo'sh bo'lsa «08:00»).
+      Bir qatorda bir xil prefiks — «Xvost-08:00/1», «/2». Grafik formasida har namuna ostida
+      «Buyurtmada: Xvost-08:00» ko'rinadi. Laboratoriya proba raqami — shifrdan emas: «B-2026-0412-1»
+      (har kuni takrorlanmasin). Qo'lda beriladigan buyurtmada — hammasi avvalgidek.
+      DIQQAT: avval (P36) grafikda shifrga vaqtni o'zi yozgan bo'lsa (masalan «Xvost 08:00») —
+      grafikni oching va faqat prefiksni qoldiring, aks holda «Xvost 08:00-08:00» bo'ladi.
+ 3. «MUDDATI O'TDI» (grafik buyurtmasi) — sozlamada: kun oxirida / smena oxirida / keyingi grafik
+      vaqtida / N soatdan keyin. Kechikish xabari (grafik vaqti + N daqiqa) — avvalgidek.
+ 4. KECHIKTIRIB KIRITISH: qabul formasida «Haqiqiy qabul vaqti (avval kelgan)». Muddati o'tgan buyurtmada
+      o'zi yoqiladi. Probalar shu vaqt bilan yoziladi (jamlanma hisobot davri ham). 72 soatdan (sozlama)
+      eskisini faqat laboratoriya boshlig'i kiritadi. Belgi «Kechiktirib kiritilgan», kim/qachon — audit jurnali.
+ 5. SABAB BILAN YOPISH: muddati o'tgan yoki grafik buyurtmasini buyurtmachi faqat ro'yxatdan sabab
+      bilan yopadi («Yopish (sabab bilan)»); «Bugun yo'q» ham sabab bilan; laboratoriya rad etishda ham
+      ro'yxatdan tanlaydi. «Boshqa» — izoh majburiy. Muddati o'tib 7 kun (sozlama) sababsiz qolsa —
+      «Avtomatik yopilgan». Har kuni 09:10 da yopilmaganlar haqida eslatma (buyurtmachi + lab. boshlig'i).
+ 6. YANGI SAHIFALAR:
+      «Buyurtma sozlamalari» (Kataloglar; lab_head, admin) — umumiy qiymatlar, bo'linmalar (grafik yoqish,
+        kechikish, oldin yaratish, muddat qoidasi; bo'sh — umumiy), yopish sabablari ro'yxati.
+      «Buyurtmalar nazorati» (lab_head, viewer — rahbariyat) — davr/bo'linma/manba bo'yicha: o'z vaqtida,
+        kechiktirib kiritilgan, sabab bilan yopilgan (sabablar kesimida), avtomatik yopilgan, yopilmagan; Excel.
+ 7. P38 (shu to'plamda): P37 «Grafik jadvallari» izlari o'chiriladi; «Manba» standarti — «Hammasi».
 
- Bazada: schedule_sheets, schedule_sheet_values (yangi).
- Ruxsatlar: schedule_sheets.view (lab_head, operator, analyst, viewer), schedule_sheets.enter (lab_head,
- operator, analyst), schedule_sheets.manage (faqat admin; kerak bo'lsa «Rollar» da boshqa rolga bering).
+ «Buyurtmalarim» (PortalRequests.vue) — sizdagi lokal o'zgarishlar sababli TEGILMADI: grafik buyurtmalari
+ u yerda ham chiqadi (filtrsiz), «Grafik 08:00» belgisi buyurtma sahifasining o'zida ko'rinadi.
 
- P36 (grafik bo'yicha namunalar) va P35 (video qo'llanma) — OQISH_P36.txt va OQISH_P35.txt ga qarang.
+ Bazada: 2026_11_19_100000 (P38) va 2026_11_19_110000 (P39): sample_requests ga 5 ustun, close_reasons
+ (yangi), customer_departments ga 3 ustun, schedule_runs.reason_id; «Grafik bo'yicha qabul» menyusi va
+ schedules.receive ruxsati o'chiriladi. lims:upgrade: ruxsatlar sample_requests.settings / .late_entry
+ (lab_head), .control (lab_head, viewer), 2 menyu, boshlang'ich sabablar ro'yxati.
+ Rejalashtirgich: schedules:tick (5 daq.) — avtomatik buyurtma; «LIMS Scheduler» ishlamasa buyurtmalar
+ YARATILMAYDI.
 
 ---------------------------------------------------------------------------
  A) LOKALDA (E:\ai projects\lims-sevru), PowerShell
 ---------------------------------------------------------------------------
-  1. Expand-Archive -Path "$env:USERPROFILE\Downloads\paket37_jadval.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
-  2. php artisan migrate               (P36 yoyilmagan bo'lsa 2 ta, aks holda 1 ta:
-                                         2026_11_18_100000_create_request_schedules_tables   — P36
-                                         2026_11_18_110000_create_schedule_sheets_tables     — P37)
-     php artisan lims:upgrade          (ruxsatlar va menyular)
+  1. git pull
+  2. Expand-Archive -Path "$env:USERPROFILE\Downloads\paket39_grafik_buyurtma.zip" -DestinationPath "E:\ai projects\lims-sevru" -Force
+  3. Eski fayllarni O'CHIRING (zip o'chira olmaydi):
+       git rm -q --ignore-unmatch app/Http/Controllers/Api/Intake/LabScheduleController.php app/Http/Controllers/Api/Intake/PortalScheduleSheetController.php app/Http/Controllers/Api/Intake/ScheduleSheetController.php app/Models/ScheduleSheet.php app/Models/ScheduleSheetValue.php app/Services/Samples/ScheduleSheets.php database/seeders/ScheduleSheetModuleSeeder.php resources/js/modules/intake/schedule/views/LabSchedule.vue tests/Feature/P36ScheduleTest.php tests/Feature/P37ScheduleSheetTest.php
+       git rm -rq --ignore-unmatch resources/js/modules/intake/schedule/sheets
+  4. php artisan migrate               (2 ta: 2026_11_19_100000, 2026_11_19_110000)
+     php artisan lims:upgrade
      php artisan optimize:clear
-  3. (P35) Video: subtitrsiz videoni  public\manuals\LIMS_video_uz.mp4  nomi bilan ko'chiring (hali qilmagan bo'lsangiz).
-  4. npm run build
-     Select-String -Path public\build\assets\*.js -SimpleMatch -Pattern 'schedule-sheet-templates' -List | Select-Object Path
-  5. Ixtiyoriy: php artisan test --filter="P36|P37"     (8 ta test)
-  6. git add -A
+  5. npm run build
+     Select-String -Path public\build\assets\*.js -SimpleMatch -Pattern 'data-late-filter' -List | Select-Object Path   → topiladi
+  6. Ixtiyoriy: php artisan test --filter="P38|P39"     (8 ta test)
+  7. git add -A
      git add -f public/build
-     git commit -m "Paket 37: grafik jadvallari; P36 grafik; P35 video"
+     git commit -m "Paket 39: grafik - oddiy buyurtma; kechiktirib kiritish; sabab bilan yopish (+P38)"
      git push
 
 ---------------------------------------------------------------------------
- B) SERVERDA (VS Code, \\192.168.26.8\xampp\htdocs\LIMS, terminal)  — SERVERGA_YANGILASH.txt, B2
+ B) SERVERLARDA — SERVERGA_YANGILASH.txt, B2 (hamma serverda bir xil)
 ---------------------------------------------------------------------------
-  0. SSMS — zaxira nusxa (lims3).
+  0. SSMS — zaxira nusxa.
   1. git fetch origin
      git reset --hard origin/main
   2. php artisan config:clear
-     php artisan lims:install-state                          → existing
-     php artisan migrate:status | Select-String Pending      → faqat 2026_11_18_100000 va/yoki 2026_11_18_110000
+     php artisan migrate:status | Select-String Pending
+        P37 qo'yilgan server → 2026_11_19_100000, 2026_11_19_110000
+        P36 da turgan server → 2026_11_18_110000 (bo'sh), 2026_11_19_100000, 2026_11_19_110000
   3. php artisan migrate --force
      php artisan lims:upgrade
      php artisan optimize:clear
-  4. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1   → «Farq qiladi: 0», «Paket 37 bilan yig'ilgan»
-  5. Brauzerda Ctrl+F5.
+  4. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1  → «Farq qiladi: 0», «Paket 39 bilan yig'ilgan»
+  5. Task Scheduler — «LIMS Scheduler» (schedule:run har daqiqa) ishlayotganini TEKSHIRING.
+  6. Brauzerda Ctrl+F5.
 
 ---------------------------------------------------------------------------
  C) QO'LDA TEKSHIRISH
 ---------------------------------------------------------------------------
-  [ ] Lab boshlig'i → «Grafik bo'yicha qabul» → «Sozlama»: OTK uchun grafik yoqilgan; OTK buyurtmachisi
-      «Grafigim» da 2–3 ta qator tuzgan (08:00, 10:00, 12:00).
-  [ ] Admin → Kataloglar → «Grafik jadvali konstruktori» → «Yangi jadval»: OTK, «KSP bo'tana zichligi»,
-      ustunlar:  zich (Kiritiladi), p015 (Kiritiladi, %), p0074 (Kiritiladi, %),
-                 mtb (Formula: round(zich * p015 / 10, 2)), tayyor (Formula: 100 - p0074),
-                 mtb_ort (O'rtacha: mtb, Kun bo'yicha) → Saqlash.
-      Xato formula (masalan  zich * abc) — saqlamaydi, xatoni ko'rsatadi.
-  [ ] Operator → «Grafik jadvallari»: qatorlar — 08:00, 10:00, 12:00; oq kataklarga yozing (vergul ham bo'ladi),
-      sariq ustunlar darhol hisoblanadi. «Excel» — sariq ustunlar sariq.
-  [ ] Viewer (rahbariyat): ko'radi, katak tahrirlanmaydi.
-  [ ] «Namuna natijasi» ustuni: partiya qabul qilinib natija tasdiqlangach — qiymat o'zi chiqadi (kulrang katak),
-      ustiga bosilsa namuna raqami ko'rinadi.
-  [ ] OTK buyurtmachisi: menyuda «Grafik jadvali» — o'z jadvali, faqat ko'rish. Boshqa bo'linmada menyu yo'q.
-
- Haqiqiy Excel faylingizni (rasmdagi jadval) yuborsangiz — birinchi jadval shablonini aynan shu ustun va
- formulalar bilan tayyorlab beraman.
+  [ ] Lab boshlig'i → Kataloglar → «Buyurtma sozlamalari»: sabablar ro'yxatini ko'rib chiqing; OTK uchun
+      grafik yoqilgan, «Buyurtma necha daqiqa oldin» — masalan 30.
+  [ ] Menyuda «Grafik bo'yicha qabul» YO'Q; «Buyurtmalar nazorati» bor.
+  [ ] OTK: «Grafigim» → grafik qatori, shifr «Xvost» → ostida «Buyurtmada: Xvost-08:00».
+      «Kun» bo'limida «Buyurtma 07:30 da yaratiladi».
+  [ ] Vaqti kelganda (yoki «php artisan schedules:tick») laboratoriya «Buyurtmalar» da «Grafik 08:00» buyurtmasi;
+      odatdagidek qabul — proba raqami «B-…-1», shifr «Xvost-08:00».
+  [ ] Buyurtmachi: «Bugun yo'q» — sabab so'raladi; «Boshqa» — izohsiz bo'lmaydi.
+  [ ] Muddati o'tgan buyurtma: laboratoriya «Haqiqiy qabul vaqti» bilan qabul qiladi → «Kechiktirib kiritilgan».
+      Buyurtmachi esa — «Yopish (sabab bilan)».
+  [ ] «Buyurtmalar nazorati» — sonlar, Excel (3 varaq).

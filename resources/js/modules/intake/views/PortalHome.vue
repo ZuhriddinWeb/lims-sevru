@@ -37,7 +37,7 @@ const filters = reactive({
   department_id: route.query.department_id ?? '',
   date_from: route.query.date_from ?? '',
   date_to: route.query.date_to ?? '',
-  source: route.query.source ?? '', // [P36] '' — hali aniqlanmagan (kontekstdan keyin: buyurtma / hammasi)
+  source: route.query.source ?? '', // [P36] '' — hali aniqlanmagan (kontekstdan keyin: hammasi)
 })
 let timer = null
 
@@ -82,7 +82,7 @@ async function load(page = 1) {
 onMounted(async () => {
   await loadContext()
   // [P36] grafik rejimi bo'lsa — standart: oddiy buyurtmalar (grafik bo'yicha namunalar «Grafigim» da, umumiy — «Hammasi»)
-  if (!filters.source) filters.source = hasSchedule.value ? 'request' : 'all'
+  if (!filters.source) filters.source = 'all' // [P38] standart — hammasi (grafik namunalari ham odatiy probalar qatorida)
   loading.value = false
   if (ctx.value) load(1)
 })
@@ -188,10 +188,10 @@ function open(row) {
             <input v-model="filters.search" class="field-input pl-9" :placeholder="t('intake.portal.search')">
           </div>
           <!-- [P36] manba: buyurtma / grafik / hammasi (umumiy hisobot — «Hammasi» + Excel) -->
-          <select v-if="hasSchedule" v-model="filters.source" class="field-input w-auto min-w-[170px]" :title="t('sched.sourceHint')" data-source-select>
+          <select v-if="hasSchedule" v-model="filters.source" class="field-input w-auto min-w-[170px]" :title="t('sched.sourceHint')" data-source-select data-source-v38>
+            <option value="all">{{ t('sched.source.all') }}</option>
             <option value="request">{{ t('sched.source.request') }}</option>
             <option value="schedule">{{ t('sched.source.schedule') }}</option>
-            <option value="all">{{ t('sched.source.all') }}</option>
           </select>
           <select v-if="showDeptSelect" v-model="filters.department_id" class="field-input w-auto min-w-[200px]" data-dept-select>
             <option value="">{{ t('intake.portal.allDepartments') }}</option>

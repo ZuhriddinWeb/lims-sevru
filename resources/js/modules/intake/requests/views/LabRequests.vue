@@ -3,7 +3,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeft, ChevronRight, ClipboardList, Plus, Search, UsersRound } from 'lucide-vue-next'
+import { CalendarClock, ChevronLeft, ChevronRight, ClipboardList, History, Plus, Search, UsersRound } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -14,6 +14,7 @@ import { apiErrorMessage, nameOf } from '../shared'
 import '../i18n'
 import '../../i18n'
 import '../i18nGroup' // [P30]
+import '../i18nP39' // [P39] grafik buyurtmalari, kechiktirib kiritish
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -32,6 +33,8 @@ const filters = reactive({
   search: route.query.search ?? '',
   department_id: route.query.department_id ?? '',
   group_id: route.query.group_id ?? '', // [P30]
+  source: ['request', 'schedule'].includes(route.query.source) ? route.query.source : '', // [P39]
+  late: route.query.late === '1', // [P39] faqat kechiktirib kiritilganlar
 })
 let timer = null
 
@@ -39,13 +42,16 @@ async function load(page = 1) {
   loading.value = true
   try {
     const { data } = await api.get('/sample-requests', {
-      params: { page, tab: filters.tab, search: filters.search || undefined, department_id: filters.department_id || undefined, group_id: filters.group_id || undefined },
+      params: {
+        page, tab: filters.tab, search: filters.search || undefined, department_id: filters.department_id || undefined, group_id: filters.group_id || undefined,
+        source: filters.source || undefined, late_entry: filters.late ? 1 : undefined,
+      },
     })
     items.value = data.data
     counts.value = data.tab_counts ?? {}
     samples.value = data.tab_samples ?? {}
     Object.assign(meta, { current_page: data.current_page, last_page: data.last_page, total: data.total, from: data.from ?? 0, to: data.to ?? 0 })
-    router.replace({ query: { ...(filters.tab !== 'waiting' ? { tab: filters.tab } : {}), ...(filters.search ? { search: filters.search } : {}), ...(filters.department_id ? { department_id: filters.department_id } : {}), ...(filters.group_id ? { group_id: filters.group_id } : {}) } })
+    router.replace({ query: { ...(filters.tab !== 'waiting' ? { tab: filters.tab } : {}), ...(filters.search ? { search: filters.search } : {}), ...(filters.department_id ? { department_id: filters.department_id } : {}), ...(filters.group_id ? { group_id: filters.group_id } : {}), ...(filters.source ? { source: filters.source } : {}), ...(filters.late ? { late: '1' } : {}) } })
   } catch (e) {
     ui.error(apiErrorMessage(e, t('sreq.loadError')))
   } finally {
@@ -60,7 +66,8 @@ onMounted(async () => {
   load(1)
 })
 
-watch(() => [filters.tab, filters.department_id, filters.group_id], () => load(1))
+watch(() => [filters.tab, filters.department_id, filters.group_id, filters.source, filters.late], () => load(1))
+const hhmm = (dt) => (dt ? String(dt).slice(11, 16) : '')
 
 /* [P30] guruh: guruhdagi xodim — faqat o'z guruhi; guruhsiz xodim/admin — filtr va ustun */
 const ownGroup = computed(() => !!options.value?.own_group)
@@ -126,6 +133,16 @@ function onEnter() {
         <option v-for="g in options.groups" :key="g.id" :value="g.id">{{ nameOf(g, locale) }}</option>
         <option value="none">{{ t('sreq.group.none') }}</option>
       </select>
+      <!-- [P39] manba: odatiy buyurtma / grafik -->
+      <select v-model="filters.source" class="field-input w-auto min-w-[170px]" :aria-label="t('sreq.p39.source')" data-source-filter>
+        <option value="">{{ t('sreq.p39.sourceAll') }}</option>
+        <option value="request">{{ t('sreq.p39.sourceRequest') }}</option>
+        <option value="schedule">{{ t('sreq.p39.sourceSchedule') }}</option>
+      </select>
+      <label class="inline-flex items-center gap-1.5 text-[13px] text-ink-muted cursor-pointer" data-late-filter>
+        <input v-model="filters.late" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500">
+        {{ t('sreq.p39.lateOnly') }}
+      </label>
     </div>
 
     <!-- [P30] guruh va namunalar yig'indisi -->
@@ -158,6 +175,12 @@ function onEnter() {
             <tr v-for="row in items" :key="row.id" class="hover:bg-surface-sunken/60 cursor-pointer transition-colors" :data-request="row.id" @click="open(row)">
               <td class="px-4 py-2.5">
                 <span class="font-mono font-semibold text-ink">{{ row.number || t('sreq.status.draft') }}</span>
+                <span v-if="row.origin === 'schedule'" class="ml-2 inline-flex items-center gap-1 rounded bg-aqua-50 px-1.5 py-0.5 text-[11.5px] font-medium text-aqua-700 dark:bg-aqua-800/30 dark:text-aqua-200" data-sched-badge>
+                  <CalendarClock :size="12" /> {{ t('sreq.p39.schedBadge', { time: hhmm(row.scheduled_at) }) }}
+                </span>
+                <span v-if="row.late_entry" class="ml-1.5 inline-flex items-center gap-1 rounded bg-warn-light/70 px-1.5 py-0.5 text-[11.5px] font-medium text-warn-dark dark:bg-warn-dark/25 dark:text-warn-light" :title="t('sreq.p39.lateEntry')" data-late-badge>
+                  <History :size="12" /> {{ t('sreq.p39.lateShort') }}
+                </span>
                 <span v-if="row.codes?.length" class="block text-[12px] text-ink-faint font-mono truncate max-w-[240px]">{{ row.codes.join(', ') }}</span>
               </td>
               <td class="px-4 py-2.5 text-ink">{{ row.department?.name }}</td>

@@ -8,6 +8,7 @@ import StatusPill from './StatusPill.vue'
 import { deliveryText, nameOf } from '../shared'
 import '../i18n'
 import '../../svodka/i18n' // [P29]
+import '../i18nP39' // [P39]
 
 const props = defineProps({
   request: { type: Object, required: true },
@@ -19,6 +20,7 @@ const r = computed(() => props.request)
 const rows = computed(() => [
   [t('sreq.col.department'), r.value.department ? r.value.department.name + (r.value.department.code ? ` (${r.value.department.code})` : '') : '—'],
   r.value.laboratory_group && [t('sreq.group.label'), nameOf(r.value.laboratory_group, locale.value)], // [P30]
+  r.value.scheduled_at && [t('sreq.p39.scheduledAt'), formatDateTime(r.value.scheduled_at)], // [P39]
   [t('sreq.info.created'), `${formatDateTime(r.value.created_at)}${r.value.created_by ? ' · ' + r.value.created_by : ''}`],
   r.value.submitted_at && [t('sreq.info.submitted'), `${formatDateTime(r.value.submitted_at)}${r.value.submitted_by ? ' · ' + r.value.submitted_by : ''}`],
   (r.value.delivery_date || r.value.delivery_shift) && [t('sreq.col.delivery'), deliveryText(r.value)],
@@ -28,6 +30,8 @@ const rows = computed(() => [
   (r.value.contact_name || r.value.contact_phone) && [t('sreq.col.contact'), [r.value.contact_name, r.value.contact_phone].filter(Boolean).join(', ')],
   // [P33] «Qabul qilindi: sana · kim qabul qilib oldi»; «Olib keldi: F.I.Sh., telefon»
   r.value.received_at && [t('sreq.info.received'), `${formatDateTime(r.value.received_at)}${r.value.received_by ? ' · ' + r.value.received_by : ''}`],
+  // [P39] kechiktirib kiritilgan: dasturga qachon kiritilgan
+  r.value.late_entry && r.value.received_entered_at && [t('sreq.p39.enteredAt'), formatDateTime(r.value.received_entered_at)],
   (r.value.handed_over_by || r.value.handed_over_phone) && [t('sreq.receive.handedOverBy'), [r.value.handed_over_by, r.value.handed_over_phone].filter(Boolean).join(', ')],
   r.value.closed_at && ['rejected', 'cancelled'].includes(r.value.status) && [t('sreq.info.closed'), `${formatDateTime(r.value.closed_at)}${r.value.closed_by ? ' · ' + r.value.closed_by : ''}`],
   r.value.notes && [t('sreq.form.notes'), r.value.notes],
@@ -37,7 +41,7 @@ const note = computed(() => {
   if (props.audience !== 'portal') return null
   if (r.value.status === 'draft') return { tone: 'info', text: t('sreq.info.draftNote') }
   if (r.value.status === 'submitted' || r.value.status === 'partial') return { tone: 'info', text: t('sreq.info.sentNote') }
-  if (r.value.status === 'expired') return { tone: 'warn', text: t('sreq.info.expiredNote') }
+  if (r.value.status === 'expired') return { tone: 'warn', text: t('sreq.p39.expiredNote') } // [P39] sabab bilan yopish
   return null
 })
 </script>
@@ -49,6 +53,9 @@ const note = computed(() => {
       <StatusPill :status="r.status" />
       <span v-if="r.counts.items" class="text-[13px] text-ink-muted tnum">{{ t('sreq.progress', { r: r.counts.received, n: r.counts.items }) }}</span>
       <span v-if="r.origin === 'lab'" class="text-[12px] text-ink-faint">· {{ t('sreq.info.byLab') }}</span>
+      <span v-if="r.origin === 'schedule'" class="rounded bg-aqua-50 px-1.5 py-0.5 text-[12px] font-medium text-aqua-700 dark:bg-aqua-800/30 dark:text-aqua-200" data-sched-badge>{{ t('sreq.p39.schedBadge', { time: (r.scheduled_at || '').slice(11, 16) }) }}</span>
+      <span v-if="r.late_entry" class="rounded bg-warn-light/70 px-1.5 py-0.5 text-[12px] font-medium text-warn-dark dark:bg-warn-dark/25 dark:text-warn-light" data-late-badge>{{ t('sreq.p39.lateEntry') }}</span>
+      <span v-if="r.auto_closed" class="rounded bg-crit-light/60 px-1.5 py-0.5 text-[12px] font-medium text-crit-dark dark:bg-crit-dark/25 dark:text-crit-light">{{ t('sreq.p39.autoClosed') }}</span>
     </div>
 
     <dl class="grid gap-x-6 gap-y-1.5 sm:grid-cols-[max-content_1fr] text-[13.5px]">

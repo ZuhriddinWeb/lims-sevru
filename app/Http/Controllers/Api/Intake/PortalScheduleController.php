@@ -27,7 +27,7 @@ use Illuminate\Validation\ValidationException;
  *   GET    /api/portal/schedule-runs/history?from=&to=   kunlar bo'yicha
  *   GET    /api/portal/schedule-runs/{id}
  *   PUT    /api/portal/schedule-runs/{id}           shu kunga namunalarni o'zgartirish {payload}
- *   POST   /api/portal/schedule-runs/{id}/skip      «Bugun yo'q» {note}
+ *   POST   /api/portal/schedule-runs/{id}/skip      «Bugun yo'q» {reason_id, note} — buyurtma yaratilgan bo'lsa, u sabab bilan yopiladi
  *   POST   /api/portal/schedule-runs/{id}/unskip
  *   POST   /api/portal/schedule-runs/{id}/reset     shu kunning o'zgarishlarini bekor qilish (grafikdagidek)
  *
@@ -108,6 +108,7 @@ class PortalScheduleController extends Controller
             'enabled_departments' => CustomerDepartment::whereIn('id', $ctx['enabled'] ?: [0])->orderBy('name')->get(['id', 'name'])
                 ->map(fn ($d) => ['id' => (int) $d->id, 'name' => $d->name])->values(),
             'data'                => $list->map(fn ($s) => $this->schedules->presentSchedule($s))->values(),
+            'reasons'             => app(\App\Services\Samples\SampleRequests::class)->reasons(), // [P39] «Bugun yo'q» sabablari
         ]);
     }
 
@@ -268,8 +269,8 @@ class PortalScheduleController extends Controller
     {
         $ctx = $this->ctx($request);
         abort_unless($ctx['write'], 403, "Ruxsat yo'q");
-        $data = $request->validate(['note' => ['nullable', 'string', 'max:500']]);
-        $this->schedules->skip($this->findRun($id, $ctx), $request->user(), $data['note'] ?? null);
+        $data = $request->validate(['note' => ['nullable', 'string', 'max:500'], 'reason_id' => ['nullable', 'integer']]); // [P39] sabab
+        $this->schedules->skip($this->findRun($id, $ctx), $request->user(), $data['note'] ?? null, isset($data['reason_id']) ? (int) $data['reason_id'] : null);
 
         return $this->show($request, $id);
     }

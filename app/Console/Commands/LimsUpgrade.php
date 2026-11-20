@@ -44,7 +44,6 @@ class LimsUpgrade extends Command
         'SampleRequestModuleSeeder' => 'Qoralama buyurtma',
         'SvodkaModuleSeeder'        => 'Jamlanma hisobot (svodka), natijalar tahlili, buyurtma shablonlari — ruxsat va menyu',
         'ScheduleModuleSeeder'      => "Grafik bo'yicha namunalar — ruxsat va menyu",
-        'ScheduleSheetModuleSeeder' => 'Grafik jadvallari (Excel ko\'rinishida) — ruxsat va menyu',
     ];
 
     public function handle(): int

@@ -39,8 +39,8 @@ const uz = {
     runTitle: '{time} — {name}', plannedItems: "Rejadagi namunalar", results: 'Namunalar va natijalar',
     resultsWait: 'Laboratoriya namunani qabul qilgach, natijalar shu yerda chiqadi.', point: 'Nuqta',
     // umumiy
-    source: { all: 'Hammasi (umumiy)', request: "Buyurtma bo'yicha", schedule: "Grafik bo'yicha" },
-    sourceHint: "Manba: oddiy buyurtmalar va grafik bo'yicha namunalar alohida. «Hammasi» tanlab Excel'ga yuklasangiz — umumiy hisobot.",
+    source: { all: 'Hammasi', request: "Buyurtma bo'yicha", schedule: "Grafik bo'yicha" },
+    sourceHint: "Manba: hammasi yoki faqat oddiy buyurtmalar, yoki faqat grafik bo'yicha namunalar. Excel tanlangan manba bo'yicha, «Manba» ustuni bilan.",
     loadError: "Ma'lumotni yuklab bo'lmadi",
     // laboratoriya
     lab: {
@@ -91,8 +91,8 @@ const ru = {
     period: 'Период', histEmpty: 'За период партий нет', histDay: 'Партий {received}/{planned} · проб {samples}',
     runTitle: '{time} — {name}', plannedItems: 'Пробы по плану', results: 'Пробы и результаты',
     resultsWait: 'Результаты появятся здесь после приёма проб лабораторией.', point: 'Точка',
-    source: { all: 'Все (общий)', request: 'По заявкам', schedule: 'По графику' },
-    sourceHint: 'Источник: обычные заявки и пробы по графику — отдельно. Выберите «Все» и выгрузите в Excel — получится общий отчёт.',
+    source: { all: 'Все', request: 'По заявкам', schedule: 'По графику' },
+    sourceHint: 'Источник: все, только обычные заявки или только пробы по графику. Excel — по выбранному источнику, со столбцом «Источник».',
     loadError: 'Не удалось загрузить данные',
     lab: {
       title: 'Приём по графику',
@@ -142,8 +142,8 @@ const en = {
     period: 'Period', histEmpty: 'No batches in this period', histDay: '{received}/{planned} batches · {samples} samples',
     runTitle: '{time} — {name}', plannedItems: 'Planned samples', results: 'Samples and results',
     resultsWait: 'Results appear here after the lab receives the samples.', point: 'Point',
-    source: { all: 'All (combined)', request: 'By request', schedule: 'By schedule' },
-    sourceHint: 'Source: regular requests and scheduled samples are kept apart. Choose «All» and export to Excel for a combined report.',
+    source: { all: 'All', request: 'By request', schedule: 'By schedule' },
+    sourceHint: 'Source: everything, only regular requests or only scheduled samples. Excel follows the chosen source, with a «Source» column.',
     loadError: 'Could not load data',
     lab: {
       title: 'Scheduled intake',

@@ -23,6 +23,7 @@ class SampleRequest extends Model
         'svodka_date', 'svodka_shift',          // [P29] namuna olingan sana va navbatchilik (buyurtmachi svodkasi uchun)
         'laboratory_group_id',                  // [P30] buyurtmachi tanlagan laboratoriya guruhi
         'handed_over_phone',                    // [P33] olib kelgan shaxs telefoni (qabulda)
+        'scheduled_at', 'late_entry', 'received_entered_at', 'close_reason_id', 'auto_closed', // [P39]
     ];
 
     // SQL Server butun sonlarni satr qilib qaytaradi — JSON'da doim son bo'lsin
@@ -43,6 +44,11 @@ class SampleRequest extends Model
         'expires_at'             => 'datetime',
         'received_at'            => 'datetime',
         'closed_at'              => 'datetime',
+        'scheduled_at'           => 'datetime', // [P39] grafik vaqti
+        'received_entered_at'    => 'datetime', // [P39] qabul dasturga kiritilgan vaqt
+        'late_entry'             => 'boolean',
+        'auto_closed'            => 'boolean',
+        'close_reason_id'        => 'integer',
     ];
 
     public function items(): HasMany
@@ -73,6 +79,12 @@ class SampleRequest extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by')->withTrashed();
+    }
+
+    /** [P39] yopish sababi */
+    public function closeReason(): BelongsTo
+    {
+        return $this->belongsTo(CloseReason::class, 'close_reason_id');
     }
 
     /** [P30] Namunani qabul qiladigan laboratoriya guruhi */

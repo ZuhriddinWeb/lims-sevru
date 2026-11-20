@@ -22,6 +22,7 @@ import '../../i18n'
 import '../i18nGroup' // [P30]
 import '../i18nP33' // [P33] qabul: telefon, kim qabul qilib oldi; shifr takrori ogohlantirishi
 import '../i18nP34' // [P34] bo'linma xodimlari ro'yxati
+import '../i18nP39' // [P39] kechiktirib kiritish, sabab bilan yopish
 
 const route = useRoute()
 const router = useRouter()
@@ -38,6 +39,8 @@ const handedOverBy = ref('')
 const handedOverPhone = ref('') // [P33]
 const receivedBy = ref('')      // [P33] qabul qilib olgan xodim (ro'yxatdan)
 const contactPending = ref(false) // [P34] «bu … emasmi?» savoliga javob berilmagan
+const lateOn = ref(false)         // [P39] haqiqiy qabul vaqti (kechiktirib kiritish)
+const receivedAt = ref('')
 const errors = ref({})
 const sentIds = ref([])
 const created = ref([])
@@ -79,6 +82,9 @@ function buildRows(r) {
     group_code: i.group_code ?? '', // [P30] faqat o'sha guruh xodimiga keladi
     notes: i.notes ?? '',
   }))
+  // [P39] muddati o'tgan buyurtma — namuna qachon kelganini kiritish taklif qilinadi
+  lateOn.value = r.status === 'expired'
+  receivedAt.value = lateOn.value && r.scheduled_at ? r.scheduled_at.replace(' ', 'T').slice(0, 16) : ''
   handedOverBy.value = r.handed_over_by || r.contact_name || ''
   handedOverPhone.value = r.handed_over_phone || r.contact_phone || ''
   // sukut bo'yicha — tizimga kirgan xodim (ro'yxatda bo'lsa)
@@ -135,6 +141,7 @@ async function receive() {
       handed_over_by: handedOverBy.value || null,
       handed_over_phone: handedOverPhone.value || null, // [P33]
       received_by: receivedBy.value || null,            // [P33]
+      received_at: lateOn.value && receivedAt.value ? receivedAt.value.replace('T', ' ') : null, // [P39]
       items: chosen.map((r) => ({
         id: r.id,
         sample_number: r.sample_number || null,
@@ -165,10 +172,10 @@ async function receive() {
   }
 }
 
-async function reject(reason) {
+async function reject(reason, reasonId) {
   busy.value = true
   try {
-    const { data } = await api.post(`/sample-requests/${request.value.id}/reject`, { reason })
+    const { data } = await api.post(`/sample-requests/${request.value.id}/reject`, { reason: reason || null, reason_id: reasonId ?? null })
     request.value = data
     buildRows(data)
     ui.success(t('sreq.msg.rejected'))
@@ -181,6 +188,9 @@ async function reject(reason) {
 }
 
 const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
+/* [P39] grafik buyurtmasida proba raqami shifrdan emas — buyurtma raqamidan (har kuni takrorlanmasin) */
+const numberHint = (row) => (request.value?.origin === 'schedule' ? `${request.value.number}-${row.position}` : (row.customer_code || '—'))
+const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16) }
 </script>
 
 <template>
@@ -242,6 +252,18 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
             </select>
             <p v-if="fieldError(errors, 'received_by')" class="mt-1 text-[12px] text-crit">{{ fieldError(errors, 'received_by') }}</p>
           </div>
+          <!-- [P39] kechiktirib kiritish: haqiqiy qabul vaqti -->
+          <div class="min-w-[220px]" data-late-entry>
+            <label class="inline-flex items-center gap-2 text-[13px] text-ink cursor-pointer mb-1.5">
+              <input v-model="lateOn" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500" data-late-toggle>
+              {{ t('sreq.p39.actualTime') }}
+            </label>
+            <input v-if="lateOn" v-model="receivedAt" type="datetime-local" :max="nowLocal()" class="field-input" :class="fieldError(errors, 'received_at') && 'field-input-error'" data-received-at>
+            <p v-if="fieldError(errors, 'received_at')" class="mt-1 text-[12px] text-crit">{{ fieldError(errors, 'received_at') }}</p>
+            <p v-else-if="lateOn" class="mt-1 text-[11.5px] text-ink-faint max-w-xs">
+              {{ options?.can_late_entry ? t('sreq.p39.actualHintHead') : t('sreq.p39.actualHint', { h: options?.late_entry_hours ?? 72 }) }}
+            </p>
+          </div>
           <label class="inline-flex items-center gap-2 pb-2 text-[13.5px] text-ink cursor-pointer">
             <input v-model="allTaken" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500" data-all>
             {{ t('sreq.receive.selectAll') }}
@@ -271,7 +293,7 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
             </div>
             <div class="col-start-2 xl:col-start-auto min-w-0">
               <label class="field-label">{{ t('sreq.receive.sampleNumber') }}</label>
-              <input v-model="row.sample_number" class="field-input h-[34px]" :placeholder="row.customer_code || '—'" :disabled="!row.take">
+              <input v-model="row.sample_number" class="field-input h-[34px]" :placeholder="numberHint(row)" :disabled="!row.take">
             </div>
             <div class="col-start-2 xl:col-start-auto">
               <label class="field-label">{{ t('sreq.form.state') }}</label>
@@ -333,6 +355,7 @@ const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
     <ReasonDialog
       v-model="rejectOpen" :title="t('sreq.confirm.rejectTitle')" :body="t('sreq.confirm.rejectBody')"
       :placeholder="t('sreq.confirm.rejectPlaceholder')" required :confirm-label="t('sreq.actions.reject')" :loading="busy"
+      :reasons="options?.reasons ?? []"
       @confirm="reject"
     />
   </div>

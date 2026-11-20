@@ -1,6 +1,6 @@
 ===========================================================================
  LIMS — YANGI SERVERGA NOLDAN O'RNATISH (BOSHQA ZAVOD / LABORATORIYA UCHUN)
- Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 37, 2026-11-18
+ Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 39, 2026-11-19
 ===========================================================================
 
 Bu yo'riqnoma dastur BIRINCHI MARTA qo'yiladigan server uchun (bo'sh baza).
@@ -31,7 +31,7 @@ TARTIB
 ---------------------------------------------------------------------------
  [ ] Repoda eng oxirgi versiya bo'lsin. Lokal kompyuterda (E:\ai projects\lims-sevru):
          git status --short          → bo'sh
-         git log -1 --oneline        → oxirgi paket (hozir: Paket 37)
+         git log -1 --oneline        → oxirgi paket (hozir: Paket 39)
      Yoyilmagan paket bo'lsa — avval yoying, npm run build, git add -f public/build, commit, push.
  [ ] Server: Windows Server 2019/2022 (yoki Windows 10/11), 4+ GB RAM, 20+ GB bo'sh disk.
  [ ] Server IP manzili va port (masalan 192.168.X.Y : 3010).
@@ -194,7 +194,7 @@ TARTIB
 
  5.5  Barcha modullar (ishchi varaqlar, buyurtmachi portali, buyurtmalar, shablonlar,
       jamlanma hisobot, laboratoriyalararo, rahbariyat paneli, yordamchi, natijalar tahlili,
-      grafik bo'yicha namunalar, grafik jadvallari)
+      grafik bo'yicha namunalar)
         php artisan lims:upgrade
 
  5.6  Fayllar va kesh
@@ -311,10 +311,10 @@ TARTIB
  12  Laboratoriyalararo (kerak bo'lsa): Laboratoriyalararo → o'z nomi va manzili → taklifnoma;
      GMZ-3 laboratoriyasi bilan bog'lanish — taklifnomani u yerga yuborib.
  13  Menyu — kerakmas bandlarni yashirish (Administratsiya → Menyu).
- 14  Grafik bo'yicha namunalar (kerak bo'lsa): «Grafik bo'yicha qabul» → «Sozlama» → bo'linmani yoqish,
-     kechikish daqiqasi. Bo'linma buyurtmachisi «Grafigim» da grafikni o'zi tuzadi.
- 15  Grafik jadvallari (14 dan keyin, kerak bo'lsa): Kataloglar → «Grafik jadvali konstruktori» →
-     bo'linma uchun jadval: ustunlar — Kiritiladi / Namuna natijasi / Formula / O'rtacha.
+ 14  Buyurtma sozlamalari: Kataloglar → «Buyurtma sozlamalari» — yopish sabablari ro'yxati (zavodga moslang),
+     kechiktirib kiritish chegarasi (72 soat), avtomatik yopish (7 kun). Grafik kerak bo'lsa — «Bo'linmalar»
+     bo'limida bo'linmani yoqish; buyurtmachi «Grafigim» da grafikni o'zi tuzadi, buyurtmalar vaqtidan N daqiqa
+     oldin o'zi yaratiladi («LIMS Scheduler» ishlab turishi shart).
 
 
 ---------------------------------------------------------------------------
@@ -327,8 +327,8 @@ TARTIB
  [ ] Excel'ga yuklash (zip kengaytmasi)
  [ ] Buyurtmachi hisobi bilan kirish → «Yangi buyurtma» (shablon, «Kim olib keladi» ro'yxati)
      → yuborish → laboratoriya «Buyurtmalar» da qabul qiladi («Kim qabul qilib oldi»)
- [ ] (14–15 qilingan bo'lsa) grafik qatori → «Grafik bo'yicha qabul» da «Keldi» →
-     «Grafik jadvallari» da oq katakka qiymat, sariq ustun hisoblanadi; «Excel»
+ [ ] (grafik yoqilgan bo'lsa) grafik qatori → vaqtidan oldin «Buyurtmalar» da «Grafik 08:00» buyurtmasi →
+     odatdagidek qabul → buyurtmachi «Mening probalarim» da ko'radi; «Buyurtmalar nazorati» ochiladi
  [ ] «Foydalanish yo'riqnomasi» — video (public\manuals\LIMS_video_uz.mp4 qo'yilgan bo'lsa)
  [ ] Yordamchi tugmasi (o'ng pastda) javob beradi
  [ ] storage\logs\ da yangi xato yo'q

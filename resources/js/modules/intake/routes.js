@@ -141,25 +141,19 @@ export default [
     component: () => import('./schedule/views/ScheduleEditor.vue'),
     meta: { permission: 'portal.request' },
   },
+  /* ---- [P39] «Grafik bo'yicha qabul» olib tashlandi — eski havolalar «Buyurtmalar» ga ---- */
   {
     path: 'schedule-board/:id(\\d+)?', name: 'lab-schedule',
-    component: () => import('./schedule/views/LabSchedule.vue'),
-    meta: { permission: 'schedules.receive' },
-  },
-  /* ---- [P37] Grafik jadvallari (Excel ko'rinishida) ---- */
-  {
-    path: 'schedule-sheets', name: 'schedule-sheets',
-    component: () => import('./schedule/sheets/ScheduleSheets.vue'),
-    meta: { permission: ['schedule_sheets.view', 'schedule_sheets.enter'] },
+    redirect: { name: 'sample-requests', query: { source: 'schedule' } },
   },
   {
-    path: 'schedule-sheet-templates', name: 'schedule-sheet-templates',
-    component: () => import('./schedule/sheets/ScheduleSheetBuilder.vue'),
-    meta: { permission: 'schedule_sheets.manage' },
+    path: 'request-settings', name: 'request-settings',
+    component: () => import('./requests/views/RequestSettings.vue'),
+    meta: { permission: 'sample_requests.settings' },
   },
   {
-    path: 'portal/schedule-sheets', name: 'portal-schedule-sheets',
-    component: () => import('./schedule/sheets/ScheduleSheets.vue'),
-    meta: { permission: PORTAL, portal: true },
+    path: 'request-control', name: 'request-control',
+    component: () => import('./requests/views/RequestControl.vue'),
+    meta: { permission: 'sample_requests.control' },
   },
 ]

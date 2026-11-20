@@ -207,23 +207,8 @@ class CustomerPortalFence
 
             return $schedule;
         };
-        // [P37] «Grafik jadvali» — bo'linmasi uchun faol jadval bo'lsa
-        $sheets = null;
-        $hasSheets = function () use (&$sheets) {
-            if ($sheets === null) {
-                $sheets = false;
-                $user = $this->user();
-                if ($user && class_exists(\App\Services\Samples\ScheduleSheets::class) && \App\Services\Samples\ScheduleSheets::available()) {
-                    $ids = $this->portal->linkedDepartments($user)->pluck('id')->map(fn ($v) => (int) $v)->all();
-                    $sheets = \App\Models\ScheduleSheet::where('is_active', true)->whereIn('customer_department_id', $ids ?: [0])->exists();
-                }
-            }
-
-            return $sheets;
-        };
         $keep = fn ($item) => is_array($item) && str_starts_with((string) ($item['permission'] ?? ''), 'portal.')
-            && (($item['route'] ?? null) !== 'portal-schedule' || $hasSchedule())
-            && (($item['route'] ?? null) !== 'portal-schedule-sheets' || $hasSheets());
+            && (($item['route'] ?? null) !== 'portal-schedule' || $hasSchedule());
 
         $out = [];
         foreach ($data as $item) {

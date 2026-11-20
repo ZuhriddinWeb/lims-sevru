@@ -15,6 +15,7 @@ import ReasonDialog from '../../requests/components/ReasonDialog.vue'
 import { apiErrorMessage } from '../../requests/shared'
 import { RUN_TONE, daysText, isoDate, niceDate, shiftDate } from '../shared'
 import '../i18n'
+import '../i18nP39' // [P39]
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -74,6 +75,9 @@ async function act(run, action, body = {}) {
   }
 }
 const editable = (r) => canWrite.value && ['planned', 'late'].includes(r.status) && r.date >= today
+// [P39] buyurtma yaratilgandan keyin shu kunga o'zgartirib bo'lmaydi — faqat «Bugun yo'q» (buyurtma sabab bilan yopiladi)
+const changeable = (r) => editable(r) && !r.request_id
+const reasons = computed(() => meta.value?.reasons ?? [])
 
 /* ---------- grafik qatorlari ---------- */
 const removing = ref(null)
@@ -198,16 +202,21 @@ const timeOf = (dt) => (dt ? dt.slice(11, 16) : '')
                   <span v-if="r.received_by">{{ t('sched.receivedBy', { name: r.received_by }) }}</span>
                 </template>
                 <span v-if="r.note" class="italic">{{ r.note }}</span>
+                <!-- [P39] buyurtma: yaratilgan bo'lsa — raqami, aks holda — qachon yaratiladi -->
+                <router-link v-if="r.request_id" :to="{ name: 'portal-request', params: { id: r.request_id } }" class="font-mono text-assay-700 hover:underline dark:text-assay-200" data-run-request>
+                  {{ t('sched.p39.order', { n: r.request_number }) }}
+                </router-link>
+                <span v-else-if="r.order_at && ['planned', 'late'].includes(r.status)" class="text-ink-faint" data-order-at>{{ t('sched.p39.orderAt', { time: r.order_at.slice(11, 16) }) }}</span>
               </p>
             </div>
             <div class="flex flex-wrap items-center gap-1">
               <button class="btn-outline btn-sm" @click="openRun(r)">{{ t('sched.open') }}</button>
               <template v-if="editable(r)">
-                <button class="btn-ghost btn-sm" :data-edit-day="r.id" @click="editDay(r)"><Pencil :size="14" /> {{ t('sched.editDay') }}</button>
-                <button v-if="r.customized" class="btn-ghost btn-sm" :disabled="busy" @click="act(r, 'reset')"><RotateCcw :size="14" /> {{ t('sched.resetDay') }}</button>
+                <button v-if="changeable(r)" class="btn-ghost btn-sm" :data-edit-day="r.id" @click="editDay(r)"><Pencil :size="14" /> {{ t('sched.editDay') }}</button>
+                <button v-if="r.customized && changeable(r)" class="btn-ghost btn-sm" :disabled="busy" @click="act(r, 'reset')"><RotateCcw :size="14" /> {{ t('sched.resetDay') }}</button>
                 <button class="btn-ghost btn-sm hover:text-crit" :data-skip="r.id" @click="skipping = r"><XCircle :size="14" /> {{ t('sched.skip') }}</button>
               </template>
-              <button v-if="canWrite && r.status === 'skipped' && r.date >= today" class="btn-ghost btn-sm" :disabled="busy" :data-unskip="r.id" @click="act(r, 'unskip')">
+              <button v-if="canWrite && r.status === 'skipped' && r.date >= today && !r.request_id" class="btn-ghost btn-sm" :disabled="busy" :data-unskip="r.id" @click="act(r, 'unskip')">
                 <Undo2 :size="14" /> {{ t('sched.unskip') }}
               </button>
             </div>
@@ -273,7 +282,8 @@ const timeOf = (dt) => (dt ? dt.slice(11, 16) : '')
     <ReasonDialog
       :model-value="!!skipping" :title="t('sched.skipTitle')" :body="skipping ? t('sched.skipBody', { name: skipping.name, time: skipping.time }) : ''"
       :confirm-label="t('sched.skip')" :placeholder="t('sched.skipNote')" :loading="busy"
-      @update:model-value="!$event && (skipping = null)" @confirm="act(skipping, 'skip', { note: $event || null })"
+      :reasons="reasons" :reason-required="reasons.length > 0"
+      @update:model-value="!$event && (skipping = null)" @confirm="(note, reasonId) => act(skipping, 'skip', { note: note || null, reason_id: reasonId })"
     />
     <ReasonDialog
       :model-value="!!removing" :title="t('sched.removeTitle')" :body="removing ? t('sched.removeBody', { name: removing.name, time: removing.time }) : ''"

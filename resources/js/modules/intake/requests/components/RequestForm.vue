@@ -11,6 +11,7 @@ import ContactPicker from './ContactPicker.vue' // [P34]
 import { blankItem, fieldError, nameOf } from '../shared'
 import '../i18n'
 import '../../svodka/i18n' // [P29]
+import '../i18nP39' // [P39]
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -19,6 +20,7 @@ const props = defineProps({
   showDepartment: { type: Boolean, default: true },
   fresh: { type: Boolean, default: false },     // [P29] yangi buyurtma (tahrirlash uchun yuklash emas)
   templateMode: { type: Boolean, default: false }, // [P33] shablon tahriri: sanalar (olib kelish, svodka) yo'q
+  codeTime: { type: String, default: '' },         // [P39] grafik: shifr — prefiks, buyurtmada «prefiks-08:00»
 })
 const emit = defineEmits(['contact-pending']) // [P34] «bu … emasmi?» savoliga javob berilmagan
 const { t, locale } = useI18n()
@@ -35,6 +37,14 @@ const dupCodes = computed(() => {
   return seen
 })
 const isDup = (item) => (dupCodes.value[(item.customer_code || '').trim()] || 0) > 1
+/* [P39] grafik buyurtmasidagi shifr (server RequestSchedules::codesFor bilan bir xil) */
+function previewCode(i) {
+  const list = props.form.items.map((x) => (x.customer_code || '').trim())
+  const p = list[i]
+  let code = p ? `${p}-${props.codeTime}` : props.codeTime
+  if (list.filter((x) => x === p).length > 1) code += `/${list.slice(0, i + 1).filter((x) => x === p).length}`
+  return code
+}
 const groups = computed(() => props.options.groups ?? []) // [P30]
 
 /* [P29] Svodka: bo'lim svodka rejimida bo'lsa — sana/navbatchilik va har namunaga nuqta (faqat buyurtmachiga keladi) */
@@ -183,7 +193,8 @@ function remove(i) {
               :class="err(`items.${i}.customer_code`) && 'field-input-error'" :placeholder="t('sreq.form.codeHint')" data-f="code"
             >
             <p v-if="err(`items.${i}.customer_code`)" class="mt-1 text-[12px] text-crit">{{ err(`items.${i}.customer_code`) }}</p>
-            <p v-else-if="isDup(item)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
+            <p v-else-if="isDup(item) && !codeTime" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
+            <p v-if="codeTime" class="mt-1 text-[11.5px] text-ink-faint" data-code-preview>{{ t('sreq.p39.codePreview', { code: previewCode(i) }) }}</p>
             <!-- [P29] svodka nuqtasi — faqat buyurtmachiga -->
             <template v-if="sv">
               <label class="field-label lg:sr-only mt-2">{{ t('svodka.form.point') }}</label>

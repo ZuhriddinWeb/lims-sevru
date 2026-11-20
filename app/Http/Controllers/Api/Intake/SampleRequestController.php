@@ -75,6 +75,8 @@ class SampleRequestController extends Controller
             'submit'  => $create && $labDraft,
             'receive' => $receive && in_array($r->status, SampleRequest::WAITING, true),
             'reject'  => $receive && in_array($r->status, SampleRequest::WAITING, true),
+            // [P39] haqiqiy qabul vaqtini sozlamadagi chegaradan eskiroq kiritish
+            'late_entry' => $user->isAdmin() || $user->hasPermission('sample_requests.late_entry'),
             'print'   => $r->status !== 'draft' && $r->number !== null,
         ];
 
@@ -101,6 +103,7 @@ class SampleRequestController extends Controller
             // [P30] xodimning guruhi: faqat o'z guruhini ko'rsa — own_group; hammasini ko'rsa — guruh filtri
             'my_group'    => $user->laboratory_group_id ? $this->requests->groupInfo((int) $user->laboratory_group_id) : null,
             'own_group'   => $this->ownGroup($user),
+            'can_late_entry' => $user->isAdmin() || $user->hasPermission('sample_requests.late_entry'), // [P39]
         ]);
     }
 
@@ -116,7 +119,15 @@ class SampleRequestController extends Controller
         ];
 
         $base = $this->visible(SampleRequest::query(), $request->user());
-        $base->where('origin', '!=', 'schedule'); // [P36] grafik bo'yicha — «Grafik bo'yicha qabul» sahifasida
+        // [P39] grafik buyurtmalari ham shu ro'yxatda; manba filtri: request (odatiy) | schedule (grafik)
+        if ($request->input('source') === 'schedule') {
+            $base->where('origin', 'schedule');
+        } elseif ($request->input('source') === 'request') {
+            $base->where('origin', '!=', 'schedule');
+        }
+        if ($request->boolean('late_entry') && $this->requests->hasP39Columns()) {
+            $base->where('late_entry', true);
+        }
         if ($request->filled('department_id')) {
             $base->where('customer_department_id', (int) $request->input('department_id'));
         }
@@ -147,7 +158,8 @@ class SampleRequestController extends Controller
             $q->whereIn('status', $tabs[$tab]);
         }
         $q = $tab === 'waiting' || $tab === 'expired'
-            ? $q->orderBy('submitted_at')->orderBy('id')        // eng eskisi birinchi — navbat
+            // eng eskisi birinchi — navbat; [P39] grafik buyurtmasi — grafik vaqti bo'yicha
+            ? ($this->requests->hasP39Columns() ? $q->orderByRaw('COALESCE(scheduled_at, submitted_at)') : $q->orderBy('submitted_at'))->orderBy('id')
             : $q->orderByDesc('updated_at')->orderByDesc('id');
 
         $page = $q->paginate(min(50, max(5, (int) $request->input('per_page', 20))));
@@ -236,6 +248,7 @@ class SampleRequestController extends Controller
             'handed_over_by'            => ['nullable', 'string', 'max:191'],
             'handed_over_phone'         => ['nullable', 'string', 'max:64'],   // [P33]
             'received_by'               => ['nullable', 'integer'],             // [P33] qabul qilib olgan xodim
+            'received_at'               => ['nullable', 'date'],                // [P39] haqiqiy qabul vaqti (kechiktirib kiritish)
             'items'                     => ['required', 'array', 'min:1'],
             'items.*.id'                => ['required', 'integer'],
             'items.*.sample_number'     => ['nullable', 'string', 'max:191'],
@@ -261,8 +274,9 @@ class SampleRequestController extends Controller
 
     public function reject(Request $request, int $id)
     {
-        $data = $request->validate(['reason' => ['required', 'string', 'min:3', 'max:500']]);
+        // [P39] ro'yxatdan sabab (reason_id) yoki matn
+        $data = $request->validate(['reason' => ['nullable', 'string', 'max:500'], 'reason_id' => ['nullable', 'integer']]);
 
-        return response()->json($this->payload($this->requests->reject($this->find($id), $request->user(), $data['reason']), $request));
+        return response()->json($this->payload($this->requests->reject($this->find($id), $request->user(), $data['reason'] ?? null, isset($data['reason_id']) ? (int) $data['reason_id'] : null), $request));
     }
 }

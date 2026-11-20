@@ -201,7 +201,8 @@ async function save() {
       </div>
 
       <p v-if="fieldError(errors, 'department_id')" class="mb-3 text-[13px] text-crit">{{ fieldError(errors, 'department_id') }}</p>
-      <RequestForm :form="form" :options="deptOptions" :errors="errors" :show-department="showDepartment" fresh template-mode />
+      <RequestForm :form="form" :options="deptOptions" :errors="errors" :show-department="showDepartment" fresh template-mode
+                   :code-time="mode === 'day' ? (run?.time || '') : (head.time || '')" />
 
       <div class="sticky bottom-0 z-10 mt-4 pb-3">
         <div class="panel shadow-pop px-4 py-3 flex flex-wrap items-center gap-2">

@@ -1,6 +1,6 @@
 ===========================================================================
- ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 37)
- Holat: 2026-11-18
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 39)
+ Holat: 2026-11-19
 ===========================================================================
 
 Bu yo'riqnoma ma'lumotli, ishlab turgan serverlar uchun. Yangi (bo'sh) server uchun —
@@ -54,9 +54,20 @@ TARTIB
   36  Grafik bo'yicha namunalar («Grafigim»,  2 jadval (request_schedules, schedule_runs), bo'limga 2 ustun;
       «Grafik bo'yicha qabul»); manba        ruxsatlar schedules.receive/.manage, 2 menyu; rejalashtirgich
       filtri va umumiy Excel                 schedules:tick (har 5 daqiqa). Bo'limga laboratoriya yoqadi.
-  37  Grafik jadvallari (Excel ko'rinishida: 2 jadval (schedule_sheets, schedule_sheet_values);
-      oq — kiritiladi, sariq — formula va    ruxsatlar schedule_sheets.view/.enter/.manage, 3 menyu.
-      o'rtacha); admin konstruktori          Ustun va formulalarni admin belgilaydi.
+  37  Grafik jadvallari — BEKOR QILINDI    P38 o'zi olib tashlaydi. P37 qo'yilgan serverda ham, qo'yilmaganda
+      (Paket 38 da olib tashlandi)           ham shunchaki P38 gacha yangilang.
+  38  P37 tozalash; «Mening probalarim»     1 migratsiya (2026_11_19_100000): schedule_sheets jadvallari,
+      da «Manba» standarti — «Hammasi»       «Grafik jadvallari» menyulari va schedule_sheets.* ruxsatlari
+      (grafik namunalari odatiy probalar     o'chiriladi (bo'lmasa — hech narsa qilmaydi).
+      qatorida)
+  39  Grafik — ODDIY BUYURTMA: vaqtidan N    1 migratsiya (2026_11_19_110000): sample_requests ga 5 ustun,
+      daqiqa oldin avtomatik yaratiladi;     close_reasons (yangi), bo'limga 3 ustun, schedule_runs.reason_id.
+      «Grafik bo'yicha qabul» olib tashlandi; «Grafik bo'yicha qabul» menyusi va schedules.receive o'chiriladi.
+      shifr «prefiks-08:00»; kechiktirib      Yangi ruxsatlar (lims:upgrade): sample_requests.settings,
+      kiritish (haqiqiy vaqt, 72 soat);       .late_entry (lab_head), .control (lab_head, viewer);
+      sabab bilan yopish; avtomatik yopish;   menyular «Buyurtma sozlamalari», «Buyurtmalar nazorati»;
+      «Buyurtma sozlamalari», «Buyurtmalar    boshlang'ich yopish sabablari. Rejalashtirgich: schedules:tick
+      nazorati»                              (5 daq.), sample-requests:expire (soatlik), --remind (09:10).
   Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
   natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
 
@@ -163,7 +174,7 @@ TARTIB
 
      Skript qadamlari:
        1  kod to'liqligi: Paket 13–37 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
-          eng oxirgi versiyadami, public\build Paket 37 bilanmi). Farq bo'lsa so'raydi.
+          eng oxirgi versiyadami, public\build Paket 39 bilanmi). Farq bo'lsa so'raydi.
        2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
        3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
           (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)
@@ -194,22 +205,24 @@ TARTIB
 
   4-JADVAL. migrate:status da kutiladigan «Pending» — server holatiga qarab
      server oxirgi qaysi paketda      bajariladi
-     Paket 12 yoki undan oldin        hammasi, 20 ta
-     Paket 13                         2026_10_12_… dan boshlab 18 ta
-     Paket 14                         2026_10_13_… dan boshlab 16 ta
-     Paket 15                         2026_10_14_100000 dan boshlab 14 ta
-     Paket 16–18                      2026_10_14_120000 dan boshlab 13 ta
-     Paket 19–20                      12 ta
-     Paket 21–23                      10 ta (2026_10_20_100000 dan)
-     Paket 24–26                      9 ta (2026_10_22_100000 dan)
-     Paket 27                         8 ta
-     Paket 28                         7 ta
-     Paket 29                         6 ta
-     Paket 30                         5 ta (2026_11_02_100000 dan)
-     Paket 31–32                      4 ta (2026_11_11_100000 dan)
-     Paket 33                         3 ta (2026_11_12_100000 dan)
-     Paket 34–35                      2 ta (2026_11_18_100000 dan)
-     Paket 36                         1 ta (2026_11_18_110000)
+     Paket 12 yoki undan oldin        hammasi, 22 ta
+     Paket 13                         2026_10_12_… dan boshlab 20 ta
+     Paket 14                         2026_10_13_… dan boshlab 18 ta
+     Paket 15                         2026_10_14_100000 dan boshlab 16 ta
+     Paket 16–18                      2026_10_14_120000 dan boshlab 15 ta
+     Paket 19–20                      14 ta
+     Paket 21–23                      12 ta (2026_10_20_100000 dan)
+     Paket 24–26                      11 ta (2026_10_22_100000 dan)
+     Paket 27                         10 ta
+     Paket 28                         9 ta
+     Paket 29                         8 ta
+     Paket 30                         7 ta (2026_11_02_100000 dan)
+     Paket 31–32                      6 ta (2026_11_11_100000 dan)
+     Paket 33                         5 ta (2026_11_12_100000 dan)
+     Paket 34–35                      4 ta (2026_11_18_100000 dan)
+     Paket 36                         3 ta (2026_11_18_110000 dan)
+     Paket 37                         2 ta (2026_11_19_100000 dan)
+     Paket 38                         1 ta (2026_11_19_110000)
      Oraliq paketlar o'tkazib yuborilgan bo'lsa — ro'yxatdagi yo'qlari bajariladi, tartib muhim emas.
 
      2026_10_08_100000_create_worksheet_tables                 Paket 13
@@ -231,7 +244,9 @@ TARTIB
      2026_11_11_100000_portal_templates_and_receipt_fields     Paket 33
      2026_11_12_100000_create_customer_contacts_table          Paket 34
      2026_11_18_100000_create_request_schedules_tables         Paket 36
-     2026_11_18_110000_create_schedule_sheets_tables           Paket 37
+     2026_11_18_110000_create_schedule_sheets_tables           Paket 37 (P38 da bo'sh — hech narsa qilmaydi)
+     2026_11_19_100000_drop_schedule_sheets_tables             Paket 38
+     2026_11_19_110000_schedule_orders_and_closing             Paket 39
      Bu ro'yxatda yo'q nom «Pending» bo'lsa — o'zingiz yozgan migratsiya: ichini ko'ring.
 
   SEEDERLAR — qo'lda ishga tushirish SHART EMAS. lims:upgrade quyidagilarni xavfsiz chaqiradi
@@ -309,16 +324,21 @@ TARTIB
      Video qo'llanma (Paket 35): public\manuals\LIMS_video_uz.mp4 repoda bo'lmasa — har serverga qo'lda
      shu nomda ko'chiring (tarmoq papkasi orqali ham bo'ladi). Usiz sahifa videosiz ochiladi, xato bermaydi.
 
-  7a. Grafik bo'yicha namunalar (Paket 36) — IXTIYORIY, bo'linma so'raganda:
-     laboratoriya boshlig'i → «Grafik bo'yicha qabul» → «Sozlama» → bo'linmani yoqish, kechikish daqiqasi.
+  7a. Grafik bo'yicha namunalar (Paket 36/39) — IXTIYORIY, bo'linma so'raganda:
+     laboratoriya boshlig'i → Kataloglar → «Buyurtma sozlamalari» → «Bo'linmalar» → bo'linmani yoqish
+     (kechikish, buyurtma necha daqiqa oldin yaratiladi, «Muddati o'tdi» qachon — bo'sh qoldirilsa umumiy).
      Shundan keyin o'sha bo'linma buyurtmachisida «Grafigim» chiqadi (grafikni o'zi tuzadi).
-     Kechikish xabari uchun «LIMS Scheduler» (2-band) ishlab tursin.
+     Grafik buyurtmalari laboratoriyaning oddiy «Buyurtmalar» sahifasiga tushadi («Grafik 08:00» belgisi).
+     Avtomatik buyurtma, muddat va xabarlar uchun «LIMS Scheduler» (2-band) ishlab TURISHI SHART.
+     «Buyurtma sozlamalari» da umumiy qiymatlar: kechiktirib kiritish chegarasi (72 soat),
+     avtomatik yopish (7 kun) va yopish sabablari ro'yxati — zavodga moslang.
 
-  7b. Grafik jadvallari (Paket 37) — 7a dan keyin, kerak bo'lsa:
-     admin → Kataloglar → «Grafik jadvali konstruktori» → «Yangi jadval»: bo'linma, ustunlar
-     (Kiritiladi / Namuna natijasi / Formula / O'rtacha). Laboratoriya «Grafik jadvallari» da
-     kiritadi, rahbariyat (viewer) ko'radi, buyurtmachida «Grafik jadvali» menyusi o'zi chiqadi.
-     Konstruktorni boshqa rolga berish: «Rollar va ruxsatlar» → «Grafik jadvallari — Shablon va formulalar».
+  7b. P37 qo'yilgan serverda (Paket 38 dan keyin): menyuda «Grafik jadvallari» va «Grafik jadvali
+     konstruktori» QOLMAGANINI tekshiring. Zip bilan (git'siz) yangilangan serverda eski P37 fayllarini
+     qo'lda o'chiring: app\Services\Samples\ScheduleSheets.php, app\Models\ScheduleSheet*.php,
+     app\Http\Controllers\Api\Intake\*ScheduleSheetController.php, database\seeders\ScheduleSheetModuleSeeder.php,
+     resources\js\modules\intake\schedule\sheets\
+     (git reset --hard bilan yangilanganda o'zi o'chadi).
 
   8. Ixtiyoriy .env sozlamalari (o'zgartirgach: php artisan optimize:clear):
         HELP_ENABLED=false               yordamchini butun tizimda o'chirish
@@ -333,7 +353,8 @@ TARTIB
      [ ] Buyurtmalar: buyurtmachi «Yangi buyurtma» da guruh tanlaydi; guruh xodimi o'zinikini ko'radi
      [ ] Svodka: buyurtmachida kunlik svodka; «Svodkalar» da chiqarish; Excel yuklanadi
      [ ] Audit jurnali, Savatcha, Ish stoli, Smenalar ochiladi
-     [ ] «Grafik bo'yicha qabul», «Grafik jadvallari» ochiladi (admin: «Grafik jadvali konstruktori»)
+     [ ] «Buyurtma sozlamalari», «Buyurtmalar nazorati» ochiladi; «Grafik bo'yicha qabul» va
+         «Grafik jadvallari» menyulari YO'Q (P38/P39)
      [ ] storage\logs\laravel-*.log da yangi xato yo'q
 
 

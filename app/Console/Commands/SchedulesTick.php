@@ -14,12 +14,12 @@ class SchedulesTick extends Command
 {
     protected $signature = 'schedules:tick';
 
-    protected $description = "Grafik bo'yicha namunalar: partiyalar, kechikish xabari, kelmaganlar";
+    protected $description = "Grafik bo'yicha namunalar: partiyalar, avtomatik buyurtma, kechikish xabari, kelmaganlar";
 
     public function handle(RequestSchedules $schedules): int
     {
         $r = $schedules->tick();
-        $this->line("Yangi partiya: {$r['created']}, kechikish xabari: {$r['late']}, kelmadi: {$r['missed']}");
+        $this->line("Yangi partiya: {$r['created']}, avtomatik buyurtma: {$r['ordered']}, kechikish xabari: {$r['late']}, kelmadi: {$r['missed']}");
 
         return self::SUCCESS;
     }

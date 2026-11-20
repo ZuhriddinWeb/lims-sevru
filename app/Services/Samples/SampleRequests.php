@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
+use App\Models\CloseReason;
+use Carbon\Carbon;
 
 /**
  * Buyurtma so'rovlari (qoralama buyurtma) — barcha qoidalar shu yerda.
@@ -307,6 +309,9 @@ class SampleRequests
     public function withdraw(SampleRequest $request, User $user): SampleRequest
     {
         $this->assertStatus($request, ['submitted', 'expired'], "Faqat yuborilgan so'rovni qaytarib olish mumkin");
+        if ($request->origin === RequestSchedules::ORIGIN) { // [P39] grafik buyurtmasi — faqat sabab bilan yopiladi
+            throw ValidationException::withMessages(['status' => ["Grafik buyurtmasini qoralamaga qaytarib bo'lmaydi — kerak bo'lmasa sabab bilan yoping"]]);
+        }
         $this->assertNothingReceived($request);
         $request->forceFill([
             'status' => 'draft', 'origin' => 'portal', 'expires_at' => null, 'updated_by' => $user->id,
@@ -317,36 +322,107 @@ class SampleRequests
     }
 
     /** Buyurtmachi bekor qiladi — hech narsa qabul qilinmagan bo'lsa */
-    public function cancel(SampleRequest $request, User $user, ?string $reason = null): SampleRequest
+    /**
+     * Buyurtmachi bekor qiladi (yopadi) — hech narsa qabul qilinmagan bo'lsa.
+     * [P39] Muddati o'tgan yoki grafik buyurtmasi — ro'yxatdan sabab majburiy («Boshqa» — izoh bilan).
+     */
+    public function cancel(SampleRequest $request, User $user, ?string $reason = null, ?int $reasonId = null): SampleRequest
     {
         $this->assertStatus($request, ['draft', 'submitted', 'expired'], "Bu so'rovni bekor qilib bo'lmaydi");
         $this->assertNothingReceived($request);
-        DB::transaction(function () use ($request, $user, $reason) {
+        $mustGiveReason = $request->status === 'expired' || ($request->origin === RequestSchedules::ORIGIN && $request->status !== 'draft');
+        [$reasonId, $reasonText] = $this->resolveReason($reasonId, $reason, $mustGiveReason);
+        DB::transaction(function () use ($request, $user, $reasonText, $reasonId) {
             SampleRequestItem::where('sample_request_id', $request->id)->where('status', 'pending')->update(['status' => 'rejected']);
             $request->forceFill([
                 'status' => 'cancelled', 'closed_at' => now(), 'closed_by' => $user->id,
-                'close_reason' => $reason ?: null, 'updated_by' => $user->id,
-            ])->save();
-            $this->log('updated', $request, "Buyurtma bekor qilindi: " . ($request->number ?: "#{$request->id}"), $user);
+                'close_reason' => $reasonText, 'updated_by' => $user->id,
+            ] + ($this->hasP39Columns() ? ['close_reason_id' => $reasonId] : []))->save();
+            $this->log('updated', $request, "Buyurtma yopildi (bekor qilindi): " . ($request->number ?: "#{$request->id}") . ($reasonText ? " — {$reasonText}" : ''), $user);
         });
+        $this->syncSchedule($request);
 
         return $request->fresh('items');
     }
 
+    /* =============================================================== [P39] sabab, sozlama */
+
+    public function hasP39Columns(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasColumn('sample_requests', 'close_reason_id') && Schema::hasTable('close_reasons');
+    }
+
+    /** Faol sabablar (ro'yxat) */
+    public function reasons(): array
+    {
+        if (! $this->hasP39Columns()) {
+            return [];
+        }
+
+        return CloseReason::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()
+            ->map(fn ($r) => ['id' => (int) $r->id, 'name_uz' => $r->name_uz, 'name_ru' => $r->name_ru, 'name_en' => $r->name_en, 'needs_note' => (bool) $r->needs_note])
+            ->values()->all();
+    }
+
+    /**
+     * @return array{0: ?int, 1: ?string} sabab id va matni («Texnologik jarayon to'xtagan: 2-sex ta'mirda»)
+     */
+    public function resolveReason(?int $reasonId, ?string $note, bool $required): array
+    {
+        $note = trim((string) $note) ?: null;
+        $note = $note ? mb_substr($note, 0, 400) : null;
+        if (! $this->hasP39Columns()) {
+            return [null, $note];
+        }
+        $reason = $reasonId ? CloseReason::where('is_active', true)->find($reasonId) : null;
+        if ($reasonId && ! $reason) {
+            throw ValidationException::withMessages(['reason_id' => ['Sabab topilmadi']]);
+        }
+        if (! $reason && $required && CloseReason::where('is_active', true)->exists()) {
+            throw ValidationException::withMessages(['reason_id' => ["Sababni ro'yxatdan tanlang"]]);
+        }
+        if ($reason && $reason->needs_note && ! $note) {
+            throw ValidationException::withMessages(['reason' => ["Bu sabab uchun izoh yozing"]]);
+        }
+        if ($required && ! $reason && ! $note) {
+            throw ValidationException::withMessages(['reason' => ['Sababni yozing']]);
+        }
+        $text = $reason ? $reason->name_uz . ($note ? ": {$note}" : '') : $note;
+
+        return [$reason?->id, $text ? mb_substr($text, 0, 500) : null];
+    }
+
+    /** [P39] Grafik buyurtmasi o'zgarsa — grafik partiyasi holati ham */
+    private function syncSchedule(SampleRequest $request): void
+    {
+        if ($request->origin !== RequestSchedules::ORIGIN) {
+            return;
+        }
+        try {
+            app(RequestSchedules::class)->syncRun($request->fresh());
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
     /** Laboratoriya rad etadi: kutilayotgan namunalar rad etiladi (qabul qilinganlari saqlanadi) */
-    public function reject(SampleRequest $request, User $user, string $reason): SampleRequest
+    public function reject(SampleRequest $request, User $user, ?string $reason, ?int $reasonId = null): SampleRequest
     {
         $this->assertStatus($request, SampleRequest::WAITING, "Bu so'rovni rad etib bo'lmaydi");
-        DB::transaction(function () use ($request, $user, $reason) {
+        [$reasonId, $reason] = $this->resolveReason($reasonId, $reason, true); // [P39] ro'yxatdan sabab yoki matn
+        DB::transaction(function () use ($request, $user, $reason, $reasonId) {
             SampleRequestItem::where('sample_request_id', $request->id)->where('status', 'pending')->update(['status' => 'rejected']);
             $anyReceived = SampleRequestItem::where('sample_request_id', $request->id)->where('status', 'received')->exists();
             $request->forceFill([
                 'status' => $anyReceived ? 'received' : 'rejected',
                 'closed_at' => now(), 'closed_by' => $user->id, 'close_reason' => $reason, 'updated_by' => $user->id,
-            ])->save();
+            ] + ($this->hasP39Columns() ? ['close_reason_id' => $reasonId] : []))->save();
             $this->log('updated', $request, "Buyurtma rad etildi: {$request->number} — {$reason}", $user);
         });
         $this->notifyCustomer($request, 'rejected', $reason);
+        $this->syncSchedule($request);
 
         return $request->fresh('items');
     }
@@ -398,7 +474,8 @@ class SampleRequests
             // [P33] shifr takrorlanishi taqiqlanmaydi (na shu qabulda, na shu oyda) — interfeys faqat ogohlantiradi
             $number = trim((string) ($row['sample_number'] ?? ''));
             if ($number === '') {
-                $number = $code !== '' ? $code : "{$request->number}-{$item->position}";
+                // [P39] grafik: shifr har kuni takrorlanadi («Xvost-08:00») — proba raqami buyurtma raqamidan, yagona
+                $number = $code !== '' && $request->origin !== RequestSchedules::ORIGIN ? $code : "{$request->number}-{$item->position}";
             }
             $state = $row['state_of_matter'] ?? $item->state_of_matter;
             if (! in_array($state, self::STATES, true)) {
@@ -439,6 +516,10 @@ class SampleRequests
         // [P33] olib kelgan shaxs telefoni (buyurtmadagi telefon — taklif) va qabul qilib olgan xodim (ro'yxatdan)
         $handedPhone = CustomerContacts::phoneValue((string) ($data['handed_over_phone'] ?? '')) ?: ($request->contact_phone ?: null); // [P34]
         $handedPhone = $handedPhone ? mb_substr($handedPhone, 0, 64) : null;
+        // [P39] haqiqiy qabul vaqti (kechiktirib kiritish) — tekshiruv yozishdan oldin
+        $actual = $this->actualReceivedAt($request, $data['received_at'] ?? null, $user);
+        $lateEntry = $this->hasP39Columns() && ($request->status === 'expired' || $actual->lt(now()->subMinutes(60)));
+
         $receiverId = (int) ($data['received_by'] ?? 0) ?: (int) $user->id;
         if ($receiverId !== (int) $user->id && ! SampleIntake::isReceiver($receiverId, $user)) {
             throw ValidationException::withMessages(['received_by' => ["Qabul qilib olgan xodim ro'yxatda yo'q"]]);
@@ -446,8 +527,8 @@ class SampleRequests
         $hasPhone = \Illuminate\Support\Facades\Schema::hasColumn('sample_requests', 'handed_over_phone');
 
         // Bir vaqtda ikki laborant qabul qilsa — proba shifri to'qnashadi, qayta urinamiz
-        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver, $handedPhone, $receiverId, $hasPhone) {
-            $now = now();
+        $samples = $this->withNumberRetry(fn () => DB::transaction(function () use ($request, $plan, $user, $handedOver, $handedPhone, $receiverId, $hasPhone, $actual, $lateEntry) {
+            $now = $actual->copy(); // [P39] probalar haqiqiy qabul vaqti bilan (jamlanma hisobot davri shundan)
             $created = [];
             foreach ($plan as $p) {
                 $item = SampleRequestItem::whereKey($p['item']->id)->lockForUpdate()->first();
@@ -503,19 +584,25 @@ class SampleRequests
                 'received_at'    => $request->received_at ?: $now,
                 'received_by'    => $request->received_by ?: $receiverId, // [P33] tanlangan xodim
                 'handed_over_by' => $handedOver ?? $request->handed_over_by,
-                'closed_at'      => $left ? null : $now,
+                'closed_at'      => $left ? null : now(),
                 'closed_by'      => $left ? null : $user->id,
                 'updated_by'     => $user->id,
-            ] + ($hasPhone ? ['handed_over_phone' => $handedPhone ?? $request->handed_over_phone] : []))->save();
+            ] + ($hasPhone ? ['handed_over_phone' => $handedPhone ?? $request->handed_over_phone] : [])
+              + ($this->hasP39Columns() ? [
+                  'late_entry'          => $request->late_entry || $lateEntry,
+                  'received_entered_at' => $request->received_entered_at ?: now(),
+              ] : []))->save();
             $this->log('updated', $request, "Buyurtma bo'yicha namuna qabul qilindi: {$request->number} (" . count($created) . ' ta)'
                 . ($handedOver ? "; olib keldi: {$handedOver}" : '')
-                . '; qabul qilib oldi: ' . (\App\Models\User::find($receiverId)?->name ?? "#$receiverId"), $user);
+                . '; qabul qilib oldi: ' . (\App\Models\User::find($receiverId)?->name ?? "#$receiverId")
+                . ($lateEntry ? '; KECHIKTIRIB KIRITILDI, haqiqiy vaqt ' . $now->format('d.m.Y H:i') : ''), $user);
 
             return $created;
         }));
 
         $request->refresh();
         $this->notifyCustomer($request, 'received', null, count($samples));
+        $this->syncSchedule($request);
         // [P34] olib kelgan shaxs — bo'linma ma'lumotnomasiga (laboratoriya yozgan yangi ism ham qo'shiladi)
         if ($handedOver) {
             $this->contacts()->remember((int) $request->customer_department_id, $handedOver, $handedPhone, $user, 'qabul ' . $request->number);
@@ -533,10 +620,109 @@ class SampleRequests
                 $r->forceFill(['status' => 'expired'])->save();
                 $this->log('updated', $r, "Buyurtma muddati o'tdi: {$r->number}", null);
                 $this->notifyCustomer($r, 'expired');
+                $this->syncSchedule($r);
                 $n++;
             });
 
         return $n;
+    }
+
+    /** [P39] Haqiqiy qabul vaqti: bo'sh — hozir. Kelajak yoki buyurtmadan oldin — xato; eski — faqat ruxsati borga */
+    private function actualReceivedAt(SampleRequest $request, $value, User $user): Carbon
+    {
+        $now = now();
+        if ($value === null || trim((string) $value) === '' || ! $this->hasP39Columns()) {
+            return $now;
+        }
+        try {
+            $at = Carbon::parse((string) $value)->seconds(0);
+        } catch (Throwable $e) {
+            throw ValidationException::withMessages(['received_at' => ["Qabul vaqti noto'g'ri"]]);
+        }
+        if ($at->gt($now->copy()->addMinutes(5))) {
+            throw ValidationException::withMessages(['received_at' => ["Qabul vaqti kelajakda bo'lishi mumkin emas"]]);
+        }
+        $from = ($request->created_at ?? $now)->copy()->subMinutes(5);
+        if ($at->lt($from)) {
+            throw ValidationException::withMessages(['received_at' => ['Qabul vaqti buyurtma yaratilgan vaqtdan (' . $request->created_at?->format('d.m.Y H:i') . ') oldin bo\'lishi mumkin emas']]);
+        }
+        $limit = app(RequestSettings::class)->get()['late_entry_hours'];
+        if ($at->lt($now->copy()->subHours($limit)) && ! ($user->isAdmin() || $user->hasPermission('sample_requests.late_entry'))) {
+            throw ValidationException::withMessages(['received_at' => ["{$limit} soatdan eski qabulni faqat laboratoriya boshlig'i kiritadi"]]);
+        }
+
+        return $at;
+    }
+
+    /** [P39] Muddati o'tib, N kun ichida yopilmaganlar — avtomatik «Yopilmadi (avtomatik)» */
+    public function autoCloseExpired(): int
+    {
+        $days = app(RequestSettings::class)->get()['auto_close_days'];
+        if (! $days || ! $this->hasP39Columns()) {
+            return 0;
+        }
+        $n = 0;
+        SampleRequest::where('status', 'expired')->whereNotNull('expires_at')->where('expires_at', '<', now()->subDays($days))
+            ->orderBy('id')->each(function (SampleRequest $r) use (&$n, $days) {
+                DB::transaction(function () use ($r, $days) {
+                    SampleRequestItem::where('sample_request_id', $r->id)->where('status', 'pending')->update(['status' => 'rejected']);
+                    $any = SampleRequestItem::where('sample_request_id', $r->id)->where('status', 'received')->exists();
+                    $r->forceFill([
+                        'status' => $any ? 'received' : 'cancelled', 'closed_at' => now(), 'closed_by' => null, 'auto_closed' => true,
+                        'close_reason' => "Avtomatik yopildi: {$days} kun ichida sabab ko'rsatilmadi",
+                    ])->save();
+                    $this->log('updated', $r, "Buyurtma avtomatik yopildi (sababsiz): {$r->number}", null);
+                });
+                $this->syncSchedule($r);
+                $n++;
+            });
+
+        return $n;
+    }
+
+    /** [P39] Kunlik eslatma: muddati o'tib yopilmagan buyurtmalar — buyurtmachiga (bo'linmasi bo'yicha) va laboratoriyaga */
+    public function remindUnclosed(): int
+    {
+        $rows = SampleRequest::where('status', 'expired')->get(['id', 'customer_department_id', 'laboratory_group_id']);
+        if ($rows->isEmpty()) {
+            return 0;
+        }
+        $day = now()->format('Y-m-d');
+        $sent = 0;
+        try {
+            foreach ($rows->groupBy('customer_department_id') as $deptId => $list) {
+                $ids = Schema::hasTable('customer_department_user')
+                    ? DB::table('customer_department_user')->where('customer_department_id', $deptId)->pluck('user_id') : collect();
+                foreach (User::whereIn('id', $ids)->where('is_active', true)->get() as $u) {
+                    if (! $this->portal->isPortalUser($u)) {
+                        continue;
+                    }
+                    Notification::create([
+                        'user_id' => $u->id, 'type' => 'sample', 'level' => 'warning',
+                        'title' => 'Yopilmagan buyurtmalar: ' . $list->count() . ' ta',
+                        'body' => "Muddati o'tgan buyurtmalar bor. Namuna olib kelinmagan bo'lsa — sababini ko'rsatib yoping, olib kelingan bo'lsa — laboratoriyaga ayting.",
+                        'link_route' => 'portal-requests', 'link_id' => null, 'dedup_key' => "sreq-unclosed-{$day}-{$u->id}",
+                    ]);
+                    $sent++;
+                }
+            }
+            foreach (User::where('is_active', true)->get() as $u) {
+                if ($this->portal->isPortalUser($u) || ! ($u->isAdmin() || $u->hasPermission('sample_requests.late_entry'))) {
+                    continue; // laboratoriya boshlig'i (yopadi yoki kechiktirib kiritadi)
+                }
+                Notification::create([
+                    'user_id' => $u->id, 'type' => 'sample', 'level' => 'warning',
+                    'title' => 'Yopilmagan buyurtmalar: ' . $rows->count() . ' ta',
+                    'body' => "«Buyurtmalar» → «Muddati o'tgan». Namuna kelgan bo'lsa — haqiqiy vaqt bilan qabul qiling, kelmagan bo'lsa — sabab bilan yoping.",
+                    'link_route' => 'sample-requests', 'link_id' => null, 'dedup_key' => "sreq-unclosed-{$day}-{$u->id}",
+                ]);
+                $sent++;
+            }
+        } catch (Throwable $e) {
+            report($e);
+        }
+
+        return $sent;
     }
 
     /* =============================================================== yordamchilar */
@@ -705,7 +891,9 @@ class SampleRequests
                     ? "{$count} ta namuna qabul qilindi, qolganlari kutilmoqda."
                     : "{$count} ta namuna qabul qilindi. Holatini «Mening probalarim» da kuzating.",
                 'rejected' => 'Sabab: ' . ($reason ?? '—'),
-                'expired'  => "Namuna belgilangan muddatda olib kelinmadi. Qaytarib olib, qayta yuborishingiz mumkin.",
+                'expired'  => $request->origin === RequestSchedules::ORIGIN
+                    ? 'Grafik ' . ($request->scheduled_at?->format('d.m H:i') ?? '') . ": namuna kelmadi. Olib kelinmagan bo'lsa — «Buyurtmalarim» da sababini ko'rsatib yoping."
+                    : "Namuna belgilangan muddatda olib kelinmadi. Olib kelinmagan bo'lsa — sababini ko'rsatib yoping yoki qaytarib olib, qayta yuboring.",
             ];
             foreach (User::whereIn('id', $ids)->where('is_active', true)->get() as $u) {
                 if (! $this->portal->isPortalUser($u)) {
@@ -759,6 +947,16 @@ class SampleRequests
             'close_reason'   => $r->close_reason,
             'updated_at'     => $r->updated_at?->toDateTimeString(),
         ];
+        // [P39] grafik vaqti, kechiktirib kiritish, yopish sababi
+        if ($this->hasP39Columns()) {
+            $out += [
+                'scheduled_at'        => $r->scheduled_at?->format('Y-m-d H:i'),
+                'late_entry'          => (bool) $r->late_entry,
+                'received_entered_at' => $r->received_entered_at?->toDateTimeString(),
+                'close_reason_id'     => $r->close_reason_id ? (int) $r->close_reason_id : null,
+                'auto_closed'         => (bool) $r->auto_closed,
+            ];
+        }
         // [P30] laboratoriya guruhi
         if ($this->hasGroupColumns()) {
             $g = $r->laboratory_group_id ? $this->groupInfo((int) $r->laboratory_group_id) : null;
@@ -860,6 +1058,8 @@ class SampleRequests
                     ->values()
                 : [],
             'group_required'  => $this->groupsRequired(),
+            'reasons'         => $this->reasons(),                                       // [P39]
+            'late_entry_hours'=> app(RequestSettings::class)->get()['late_entry_hours'],  // [P39]
         ];
     }
 }

@@ -19,6 +19,7 @@ import ReasonDialog from '../components/ReasonDialog.vue'
 import TemplateBar from '../components/TemplateBar.vue' // [P33] shablon tugmalari
 import { apiErrorMessage, blankItem, printSlip, toForm, toPayload } from '../shared'
 import { contactNotice } from '../contacts' // [P34]
+import '../i18nP39' // [P39]
 import '../i18n'
 import '../i18nP34'
 
@@ -40,6 +41,8 @@ const loadError = ref('')
 const busy = ref(false)
 const saved = ref('')
 const dialog = ref('') // submit | withdraw | cancel | delete
+/* [P39] muddati o'tgan yoki grafik buyurtmasi — ro'yxatdan sabab bilan yopiladi */
+const closeWithReason = computed(() => !!request.value && (request.value.status === 'expired' || (request.value.origin === 'schedule' && request.value.status !== 'draft')))
 
 const id = computed(() => (route.params.id ? Number(route.params.id) : null))
 const editable = computed(() => !id.value || !!request.value?.can?.edit)
@@ -238,7 +241,7 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
             <Undo2 :size="16" /> {{ t('sreq.actions.withdraw') }}
           </button>
           <button v-if="request.can.cancel" class="btn-ghost text-crit" :disabled="busy" data-cancel @click="dialog = 'cancel'">
-            <XCircle :size="16" /> {{ t('sreq.actions.cancel') }}
+            <XCircle :size="16" /> {{ closeWithReason ? t('sreq.p39.close') : t('sreq.actions.cancel') }}
           </button>
         </div>
         <div class="panel overflow-hidden">
@@ -259,9 +262,11 @@ const sampleRoute = (s) => (mode.value === 'portal' ? { name: 'portal-sample', p
       @update:model-value="!$event && (dialog = '')" @confirm="act('withdraw')"
     />
     <ReasonDialog
-      :model-value="dialog === 'cancel'" :title="t('sreq.confirm.cancelTitle')" :body="t('sreq.confirm.cancelBody')"
-      :confirm-label="t('sreq.actions.cancel')" :loading="busy"
-      @update:model-value="!$event && (dialog = '')" @confirm="(reason) => act('cancel', { reason })"
+      :model-value="dialog === 'cancel'" :title="closeWithReason ? t('sreq.p39.closeTitle') : t('sreq.confirm.cancelTitle')"
+      :body="closeWithReason ? t('sreq.p39.closeBody') : t('sreq.confirm.cancelBody')"
+      :confirm-label="closeWithReason ? t('sreq.p39.close') : t('sreq.actions.cancel')" :loading="busy"
+      :reasons="request?.status === 'draft' ? [] : (options?.reasons ?? [])" :reason-required="closeWithReason"
+      @update:model-value="!$event && (dialog = '')" @confirm="(reason, reasonId) => act('cancel', { reason, reason_id: reasonId })"
     />
     <ReasonDialog
       :model-value="dialog === 'delete'" :title="t('sreq.confirm.deleteTitle')" :body="t('sreq.confirm.deleteBody')"

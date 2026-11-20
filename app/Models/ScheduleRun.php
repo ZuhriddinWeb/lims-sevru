@@ -12,7 +12,7 @@ class ScheduleRun extends Model
     protected $fillable = [
         'schedule_id', 'customer_department_id', 'run_date', 'planned_time', 'status', 'payload', 'customized',
         'sample_request_id', 'arrived_at', 'received_by', 'received_count', 'missing_count', 'note',
-        'late_notified_at', 'updated_by',
+        'late_notified_at', 'updated_by', 'reason_id', // [P39] «Bugun yo'q» sababi
     ];
 
     protected $casts = [
@@ -21,6 +21,7 @@ class ScheduleRun extends Model
         'run_date'         => 'date',
         'arrived_at'       => 'datetime',
         'late_notified_at' => 'datetime',
+        'reason_id'        => 'integer',
     ];
 
     public function schedule()
