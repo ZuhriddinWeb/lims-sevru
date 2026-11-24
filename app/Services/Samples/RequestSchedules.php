@@ -232,18 +232,25 @@ class RequestSchedules
     /**
      * Shifr: grafikdagi shifr — prefiks, unga «-» va grafik vaqti qo'shiladi («Xvost» → «Xvost-08:00»; bo'sh — «08:00»).
      * Bir qatorda bir xil prefiks takrorlansa — «Xvost-08:00/1», «Xvost-08:00/2».
+     * [P41] $withTime=false (sozlama «Shifrga soat qo'shilsin» o'chiq) — faqat prefiks («Xvost», «Xvost/1»);
+     * prefiks bo'sh bo'lsa — shifr bo'sh (proba raqami «B-2026-0188-1» ko'rinishida beriladi).
      *
      * @return string[] har namuna uchun (tartib bo'yicha)
      */
-    public static function codesFor(array $items, string $time): array
+    public static function codesFor(array $items, string $time, ?bool $withTime = null): array
     {
+        $withTime ??= (bool) app(RequestSettings::class)->get()['schedule_code_time'];
         $prefixes = array_map(fn ($it) => trim((string) ($it['customer_code'] ?? '')), array_values($items));
         $count = array_count_values($prefixes);
         $seen = [];
         $out = [];
         foreach ($prefixes as $p) {
-            $code = $p === '' ? $time : "{$p}-{$time}";
-            if (($count[$p] ?? 0) > 1) {
+            if (! $withTime) {
+                $code = $p;
+            } else {
+                $code = $p === '' ? $time : "{$p}-{$time}";
+            }
+            if ($code !== '' && ($count[$p] ?? 0) > 1) {
                 $seen[$p] = ($seen[$p] ?? 0) + 1;
                 $code .= '/' . $seen[$p];
             }
@@ -344,7 +351,7 @@ class RequestSchedules
 
         $codes = self::codesFor($items, $run->planned_time);
         foreach ($items as $i => $it) {
-            $items[$i]['customer_code'] = $codes[$i];
+            $items[$i]['customer_code'] = $codes[$i] !== '' ? $codes[$i] : null;
         }
         $header = $payload;
         unset($header['items']);

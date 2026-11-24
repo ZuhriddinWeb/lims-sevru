@@ -32,6 +32,7 @@ const id = computed(() => (route.params.id ? Number(route.params.id) : null))
 const options = ref(null)
 const templates = ref([])
 const enabled = ref([])
+const codeWithTime = ref(true) // [P41] sozlama: grafik shifriga soat qo'shiladimi
 const run = ref(null)
 const head = reactive({ name: '', time: '08:00', weekdays: [1, 2, 3, 4, 5, 6, 7], is_active: true })
 const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
@@ -58,6 +59,7 @@ async function load() {
     ])
     options.value = opt.data
     enabled.value = (list.data.enabled_departments ?? []).map((d) => Number(d.id))
+    codeWithTime.value = list.data.code_time !== false // [P41]
     templates.value = tpl.data.data ?? []
     if (!list.data.can_write) {
       loadError.value = t('sched.readOnly')
@@ -202,7 +204,7 @@ async function save() {
 
       <p v-if="fieldError(errors, 'department_id')" class="mb-3 text-[13px] text-crit">{{ fieldError(errors, 'department_id') }}</p>
       <RequestForm :form="form" :options="deptOptions" :errors="errors" :show-department="showDepartment" fresh template-mode
-                   :code-time="mode === 'day' ? (run?.time || '') : (head.time || '')" />
+                   :code-time="mode === 'day' ? (run?.time || '') : (head.time || '')" :code-with-time="codeWithTime" />
 
       <div class="sticky bottom-0 z-10 mt-4 pb-3">
         <div class="panel shadow-pop px-4 py-3 flex flex-wrap items-center gap-2">

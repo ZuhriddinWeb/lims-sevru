@@ -109,6 +109,7 @@ class PortalScheduleController extends Controller
                 ->map(fn ($d) => ['id' => (int) $d->id, 'name' => $d->name])->values(),
             'data'                => $list->map(fn ($s) => $this->schedules->presentSchedule($s))->values(),
             'reasons'             => app(\App\Services\Samples\SampleRequests::class)->reasons(), // [P39] «Bugun yo'q» sabablari
+            'code_time'           => (bool) app(\App\Services\Samples\RequestSettings::class)->get()['schedule_code_time'], // [P41]
         ]);
     }
 

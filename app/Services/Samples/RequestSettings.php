@@ -24,7 +24,11 @@ class RequestSettings
         'schedule_expire_hours' => 4,         // mode=hours bo'lsa — grafik vaqtidan necha soat keyin
         'late_entry_hours'      => 72,        // shundan eski qabulni faqat laboratoriya boshlig'i kiritadi
         'auto_close_days'       => 7,         // muddati o'tgan buyurtma N kundan keyin avtomatik yopiladi (0 — yo'q)
+        'schedule_code_time'    => true,      // [P41] grafik shifriga soat qo'shiladi («9999-17:00»); o'chiq — faqat prefiks («9999»)
     ];
+
+    /** [P41] ha/yo'q qiymatlar */
+    public const FLAGS = ['schedule_code_time'];
 
     /** [min, max] */
     public const LIMITS = [
@@ -64,6 +68,11 @@ class RequestSettings
         }
         if (in_array($v['schedule_expire_mode'] ?? null, self::EXPIRE_MODES, true)) {
             $out['schedule_expire_mode'] = $v['schedule_expire_mode'];
+        }
+        foreach (self::FLAGS as $k) {
+            if (array_key_exists($k, $v) && $v[$k] !== null) {
+                $out[$k] = filter_var($v[$k], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? self::DEFAULTS[$k];
+            }
         }
 
         return $out;

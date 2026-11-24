@@ -65,6 +65,9 @@ class RequestSettingsController extends Controller
         foreach (RequestSettings::LIMITS as $k => [$min, $max]) {
             $rules[$k] = ['sometimes', 'integer', "between:$min,$max"];
         }
+        foreach (RequestSettings::FLAGS as $k) {
+            $rules[$k] = ['sometimes', 'boolean']; // [P41]
+        }
         $data = $request->validate($rules);
         $before = $this->settings->get();
         $after = $this->settings->set($data, $request->user());

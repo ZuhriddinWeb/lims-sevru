@@ -19,3 +19,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+docs/.obsidian/
+storage/logs/*.log

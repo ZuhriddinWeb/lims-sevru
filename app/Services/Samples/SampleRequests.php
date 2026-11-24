@@ -474,8 +474,8 @@ class SampleRequests
             // [P33] shifr takrorlanishi taqiqlanmaydi (na shu qabulda, na shu oyda) — interfeys faqat ogohlantiradi
             $number = trim((string) ($row['sample_number'] ?? ''));
             if ($number === '') {
-                // [P39] grafik: shifr har kuni takrorlanadi («Xvost-08:00») — proba raqami buyurtma raqamidan, yagona
-                $number = $code !== '' && $request->origin !== RequestSchedules::ORIGIN ? $code : "{$request->number}-{$item->position}";
+                // [P40] grafik buyurtmasida ham: laboratoriya o'zgartirmasa — buyurtmachi shifri («123-09:00»)
+                $number = $code !== '' ? $code : "{$request->number}-{$item->position}";
             }
             $state = $row['state_of_matter'] ?? $item->state_of_matter;
             if (! in_array($state, self::STATES, true)) {

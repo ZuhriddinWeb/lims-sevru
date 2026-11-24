@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 39 holati, 2026-11-19)
+rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 41 holati, 2026-11-24)
 rem
 rem  Oldindan (SERVERGA_NOLDAN_ORNATISH.txt, 1-4 bo'limlar):
 rem    - PHP 8.2+, ODBC + pdo_sqlsrv, Composer, Git, IIS; SQL Server'da BO'SH baza va login

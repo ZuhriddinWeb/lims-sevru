@@ -12,6 +12,7 @@ import { useUiStore } from '@/stores/ui'
 import { apiErrorMessage, fieldError } from '../shared'
 import '../i18n'
 import '../i18nP39'
+import '../i18nP41'
 
 const { t } = useI18n()
 const ui = useUiStore()
@@ -165,6 +166,14 @@ async function removeReason(r) {
             <span class="mt-1 block text-[11.5px] text-ink-faint">{{ t('sreq.p39.set.autoCloseHint') }}</span>
           </label>
         </div>
+        <!-- [P41] grafik shifriga soat -->
+        <label class="mt-4 flex items-start gap-2.5 cursor-pointer" data-g="code-time">
+          <input v-model="g.schedule_code_time" type="checkbox" class="mt-0.5 rounded border-line text-assay-500 focus:ring-assay-500">
+          <span>
+            <span class="block text-[13.5px] font-medium text-ink">{{ t('sreq.p41.codeTime') }}</span>
+            <span class="block text-[11.5px] text-ink-faint">{{ g.schedule_code_time ? t('sreq.p41.codeTimeOn') : t('sreq.p41.codeTimeOff') }}</span>
+          </span>
+        </label>
         <div class="mt-3 flex justify-end">
           <button class="btn-primary" :disabled="busy" data-save-global @click="saveGlobal"><Save :size="16" /> {{ t('sreq.p39.set.save') }}</button>
         </div>

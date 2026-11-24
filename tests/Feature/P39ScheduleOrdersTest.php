@@ -176,7 +176,7 @@ class P39ScheduleOrdersTest extends TestCase
             'items' => [['id' => $items[0]->id], ['id' => $items[1]->id]],
         ])->assertOk();
         $s = Sample::orderBy('id')->get();
-        $this->assertSame(["{$req->number}-1", "{$req->number}-2"], $s->pluck('sample_number')->all()); // proba raqami — yagona
+        $this->assertSame(['Xvost-08:00', '147-08:00'], $s->pluck('sample_number')->all()); // [P40] proba raqami — shifr
         $this->assertSame(['Xvost-08:00', '147-08:00'], $s->pluck('customer_code')->all());
         $this->assertSame(['partial', 2], [$today()->status, (int) $today()->received_count]);
         $req->refresh();
@@ -187,6 +187,36 @@ class P39ScheduleOrdersTest extends TestCase
         $this->actingAs($this->operator)->postJson("/api/sample-requests/{$req->id}/reject", ['reason_id' => $this->reason("to'xtagan")])->assertOk();
         $this->assertSame(['partial', 1], [$today()->status, (int) $today()->missing_count]);
         $this->assertStringContainsString("to'xtagan", SampleRequest::sole()->close_reason);
+    }
+
+    /** [P41] sozlama «Grafik shifriga soat qo'shilsin» o'chiq — bazaga faqat prefiks yoziladi */
+    public function test_code_time_setting_off(): void
+    {
+        $this->actingAs($this->operator)->putJson('/api/request-settings', ['schedule_code_time' => false])->assertForbidden();
+        $this->actingAs($this->head)->putJson('/api/request-settings', ['schedule_code_time' => 'abc'])->assertStatus(422);
+        $this->actingAs($this->head)->putJson('/api/request-settings', ['schedule_code_time' => false])->assertOk()
+            ->assertJsonPath('settings.schedule_code_time', false)->assertJsonPath('settings.late_entry_hours', 72);
+
+        $this->enable($this->dept);
+        $this->assertFalse($this->actingAs($this->customer)->getJson('/api/portal/schedules')->json('code_time'));
+        $this->makeSchedule('08:00');
+        $this->at('2026-11-18 07:00');
+        $this->tick();
+        $req = SampleRequest::sole();
+        $this->assertSame(['Xvost', '147', null], $req->items->sortBy('position')->pluck('customer_code')->values()->all());
+
+        $this->at('2026-11-18 08:05');
+        $this->actingAs($this->operator)->postJson("/api/sample-requests/{$req->id}/receive", [
+            'handed_over_by' => 'Rahimov Akmal', 'received_by' => $this->head->id,
+            'items' => $req->items->sortBy('position')->values()->map(fn ($i) => ['id' => $i->id])->all(),
+        ])->assertOk();
+        $s = Sample::orderBy('id')->get();
+        $this->assertSame(['Xvost', '147', "{$req->number}-3"], $s->pluck('sample_number')->all());
+        $this->assertSame(0, Sample::where('sample_number', 'like', '%08:00%')->count());
+
+        // qayta yoqilsa — avvalgidek
+        $this->assertSame(['Xvost-08:00', '147-08:00', '08:00'], \App\Services\Samples\RequestSchedules::codesFor([['customer_code' => 'Xvost'], ['customer_code' => '147'], []], '08:00', true));
+        $this->assertSame(['A/1', 'A/2', ''], \App\Services\Samples\RequestSchedules::codesFor([['customer_code' => 'A'], ['customer_code' => 'A'], []], '08:00', false));
     }
 
     public function test_expire_modes(): void

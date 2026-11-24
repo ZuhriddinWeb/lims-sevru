@@ -70,7 +70,9 @@ function buildRows(r) {
     id: i.id,
     position: i.position,
     take: true,
-    sample_number: '',
+    // [P40] proba raqami — buyurtmachi shifri bilan oldindan to'ldiriladi; laboratoriya o'zgartira oladi
+    sample_number: i.customer_code ?? '',
+    numTouched: false,
     customer_code: i.customer_code ?? '',
     state_of_matter: i.state_of_matter || 'solid',
     test_profile_id: i.test_profile_id ?? null,
@@ -188,8 +190,8 @@ async function reject(reason, reasonId) {
 }
 
 const sampleRoute = (s) => ({ name: 'sample-detail', params: { id: s.id } })
-/* [P39] grafik buyurtmasida proba raqami shifrdan emas — buyurtma raqamidan (har kuni takrorlanmasin) */
-const numberHint = (row) => (request.value?.origin === 'schedule' ? `${request.value.number}-${row.position}` : (row.customer_code || '—'))
+/* [P40] proba raqami bo'sh qolsa — buyurtmachi shifri (grafik buyurtmasida ham); shifr bo'lmasa — buyurtma raqami-tartib */
+const numberHint = (row) => row.customer_code || (request.value?.number ? `${request.value.number}-${row.position}` : '—')
 const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16) }
 </script>
 
@@ -284,7 +286,8 @@ const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.g
 
             <div class="min-w-0">
               <label class="field-label">{{ t('sreq.form.code') }}</label>
-              <input v-model="row.customer_code" class="field-input h-[34px] font-mono" :class="rowErr(row, 'customer_code') && 'field-input-error'" :disabled="!row.take">
+              <input v-model="row.customer_code" class="field-input h-[34px] font-mono" :class="rowErr(row, 'customer_code') && 'field-input-error'" :disabled="!row.take"
+                     @input="!row.numTouched && (row.sample_number = row.customer_code)">
               <p v-if="rowErr(row, 'customer_code')" class="mt-1 text-[12px] text-crit">{{ rowErr(row, 'customer_code') }}</p>
               <p v-else-if="isDup(row)" class="mt-1 text-[12px] text-warn-dark dark:text-warn-light" data-dup-warn>{{ t('sreq.form.dupCodeWarn') }}</p>
               <p v-if="row.group_code" class="mt-1 flex items-center gap-1 font-mono text-[12px] text-assay-700 dark:text-assay-200" :title="t('sreq.group.codeHint')" data-row-gcode>
@@ -293,7 +296,8 @@ const nowLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.g
             </div>
             <div class="col-start-2 xl:col-start-auto min-w-0">
               <label class="field-label">{{ t('sreq.receive.sampleNumber') }}</label>
-              <input v-model="row.sample_number" class="field-input h-[34px]" :placeholder="numberHint(row)" :disabled="!row.take">
+              <input v-model="row.sample_number" class="field-input h-[34px]" :placeholder="numberHint(row)" :disabled="!row.take" data-sample-number
+                     @input="row.numTouched = true">
             </div>
             <div class="col-start-2 xl:col-start-auto">
               <label class="field-label">{{ t('sreq.form.state') }}</label>

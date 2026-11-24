@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 39), 2026-11-19
+rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 41), 2026-11-24
 rem  Server qaysi holatda bo'lishidan qat'i nazar: faqat yetishmaganini qo'shadi.
 rem  Oraliq paketlar o'tkazib yuborilgan server ham shu bitta skript bilan to'liq bo'ladi.
 rem
@@ -231,13 +231,8 @@ for %%R in (help/status sample-requests portal/requests portal/svodka portal/req
 echo.
 echo   Rejalashtirgich - 3 ta vazifa bo'lishi kerak:
 php artisan schedule:list
-schtasks /Query /TN "LIMS Scheduler" >nul 2>nul
-if errorlevel 1 (
-  echo   [!] Windows Task Scheduler da "LIMS Scheduler" yo'q - laboratoriyalararo sinxronlash,
-  echo       buyurtma muddati va eslatmalar ishlamaydi. SERVERGA_YANGILASH.txt, C-bo'lim.
-) else (
-  echo   [ok] Task Scheduler: LIMS Scheduler
-)
+rem [P39] "LIMS Scheduler" yo'q bo'lsa - o'zi yaratadi (faqat serverning o'zida, Administrator cmd da)
+call :scheduler
 echo.
 
 echo === 12/12  Oxirgi qadam - qo'lda ===
@@ -247,6 +242,48 @@ echo   Brauzerda Ctrl+F5.
 echo.
 echo TAYYOR. Keyingi bir martalik sozlashlar - SERVERGA_YANGILASH.txt, C-bo'lim.
 endlocal
+exit /b 0
+
+:scheduler
+schtasks /Query /TN "LIMS Scheduler" >nul 2>nul
+if not errorlevel 1 (
+  echo   [ok] Task Scheduler: LIMS Scheduler
+  exit /b 0
+)
+echo   [!] Windows Task Scheduler da "LIMS Scheduler" yo'q - grafik buyurtmalari, muddat va eslatmalar ishlamaydi.
+rem Tarmoq papkasidan (\\server\... yoki ulangan disk) ishga tushirilgan bo'lsa - vazifa SIZNING kompyuteringizda
+rem yaratilib qoladi. Shuning uchun faqat lokal diskda yaratamiz.
+if "%CD:~0,2%"=="\\" goto :sched_remote
+set "DTYPE="
+for /f "delims=" %%T in ('powershell -NoProfile -Command "(New-Object IO.DriveInfo('%CD:~0,2%')).DriveType" 2^>nul') do set "DTYPE=%%T"
+if /i "%DTYPE%"=="Network" goto :sched_remote
+net session >nul 2>nul
+if errorlevel 1 (
+  echo       Yaratish uchun skriptni Administrator cmd da qayta ishga tushiring, yoki qo'lda -
+  echo       SERVERGA_YANGILASH.txt, C-bo'lim, 2-band.
+  exit /b 0
+)
+set "PHPEXE="
+for /f "delims=" %%P in ('where php 2^>nul') do if not defined PHPEXE set "PHPEXE=%%P"
+if not defined PHPEXE if exist C:\xampp\php\php.exe set "PHPEXE=C:\xampp\php\php.exe"
+if not defined PHPEXE (
+  echo       php.exe topilmadi - qo'lda yarating: SERVERGA_YANGILASH.txt, C-bo'lim, 2-band.
+  exit /b 0
+)
+echo       Yaratilmoqda: har daqiqada "%PHPEXE%" "%CD%\artisan" schedule:run
+schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"%PHPEXE%\" \"%CD%\artisan\" schedule:run"
+if errorlevel 1 (
+  echo   [X] Vazifa yaratilmadi - SERVERGA_YANGILASH.txt, C-bo'lim, 2-band.
+) else (
+  schtasks /Run /TN "LIMS Scheduler" >nul 2>nul
+  echo   [ok] LIMS Scheduler yaratildi va ishga tushirildi
+)
+exit /b 0
+
+:sched_remote
+echo       Skript tarmoq papkasidan ishlayapti - vazifa bu yerdan yaratilmaydi (u sizning kompyuteringizda
+echo       yaratilib qolardi). Serverning o'zida (RDP) Administrator cmd da shu skriptni ishga tushiring
+echo       yoki qo'lda: SERVERGA_YANGILASH.txt, C-bo'lim, 2-band.
 exit /b 0
 
 :need

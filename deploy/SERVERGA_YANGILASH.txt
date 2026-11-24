@@ -1,5 +1,5 @@
 ===========================================================================
- ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 39)
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 41)
  Holat: 2026-11-19
 ===========================================================================
 
@@ -68,6 +68,13 @@ TARTIB
       sabab bilan yopish; avtomatik yopish;   menyular «Buyurtma sozlamalari», «Buyurtmalar nazorati»;
       «Buyurtma sozlamalari», «Buyurtmalar    boshlang'ich yopish sabablari. Rejalashtirgich: schedules:tick
       nazorati»                              (5 daq.), sample-requests:expire (soatlik), --remind (09:10).
+  40  Qabulda proba raqami — buyurtmachi     — (bazaga hech narsa). server_yangilash.bat — «LIMS Scheduler»
+      shifri bilan oldindan to'ldiriladi     yo'q bo'lsa o'zi yaratadi (serverning o'zida, Administrator cmd).
+      (grafik buyurtmasida ham; o'zgartirish
+      mumkin)
+  41  Buyurtma sozlamalari: «Grafik shifriga  — (bazaga hech narsa; sukut — yoqilgan, avvalgidek).
+      soat qo'shilsin» (o'chirilsa — faqat
+      prefiks, masalan «9999»)
   Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
   natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
 
@@ -174,7 +181,7 @@ TARTIB
 
      Skript qadamlari:
        1  kod to'liqligi: Paket 13–37 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
-          eng oxirgi versiyadami, public\build Paket 39 bilanmi). Farq bo'lsa so'raydi.
+          eng oxirgi versiyadami, public\build Paket 41 bilanmi). Farq bo'lsa so'raydi.
        2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
        3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
           (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)
@@ -293,9 +300,13 @@ TARTIB
         C:\xampp\php\php.ini  →  ;extension=zip  →  extension=zip  →  saqlang → Apache Stop/Start
         tekshirish:  php -m | findstr /i zip
 
-  2. Rejalashtirgich (skript 11-qadamda «[!] LIMS Scheduler yo'q» desa):
+  2. Rejalashtirgich «LIMS Scheduler». [P39] server_yangilash.bat uni o'zi yaratadi — agar skript serverning
+     O'ZIDA (RDP), Administrator cmd da, lokal diskdagi papkadan ishga tushirilsa. Tarmoq papkasidan
+     (\\192.168.26.8\... yoki ulangan disk) ishga tushirilsa — yaratmaydi (vazifa sizning kompyuteringizda
+     yaratilib qolardi), faqat ogohlantiradi. Unda serverda Administrator cmd da qo'lda:
         schtasks /Create /TN "LIMS Scheduler" /SC MINUTE /MO 1 /RU SYSTEM /RL HIGHEST /F /TR "\"C:\xampp\php\php.exe\" \"C:\xampp\htdocs\LIMS\artisan\" schedule:run"
      Tekshirish:  php artisan schedule:list  → interlab:sync, sample-requests:expire, schedules:tick
+                  schtasks /Query /TN "LIMS Scheduler" /V /FO LIST   → «Последний результат: 0»
 
   3. Rollar va ruxsatlar (admin) — yangi ruxsatlar faqat yangi yaratilganda rollarga beriladi.
      Sizdagi rollar boshqacha bo'lsa — «Rollar va ruxsatlar» sahifasida moslang.

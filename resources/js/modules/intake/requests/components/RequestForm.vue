@@ -21,6 +21,7 @@ const props = defineProps({
   fresh: { type: Boolean, default: false },     // [P29] yangi buyurtma (tahrirlash uchun yuklash emas)
   templateMode: { type: Boolean, default: false }, // [P33] shablon tahriri: sanalar (olib kelish, svodka) yo'q
   codeTime: { type: String, default: '' },         // [P39] grafik: shifr — prefiks, buyurtmada «prefiks-08:00»
+  codeWithTime: { type: Boolean, default: true },  // [P41] sozlama: shifrga soat qo'shilmasa — buyurtmada faqat prefiks
 })
 const emit = defineEmits(['contact-pending']) // [P34] «bu … emasmi?» savoliga javob berilmagan
 const { t, locale } = useI18n()
@@ -41,7 +42,8 @@ const isDup = (item) => (dupCodes.value[(item.customer_code || '').trim()] || 0)
 function previewCode(i) {
   const list = props.form.items.map((x) => (x.customer_code || '').trim())
   const p = list[i]
-  let code = p ? `${p}-${props.codeTime}` : props.codeTime
+  let code = !props.codeWithTime ? p : (p ? `${p}-${props.codeTime}` : props.codeTime)
+  if (!code) return '—'
   if (list.filter((x) => x === p).length > 1) code += `/${list.slice(0, i + 1).filter((x) => x === p).length}`
   return code
 }
