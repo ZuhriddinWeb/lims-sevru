@@ -23,6 +23,7 @@ export function templateFromForm(form) {
       notes: i.notes,
       svodka_point_id: i.svodka_point_id,
       group_code: i.group_code,
+      laboratory_group_id: i.laboratory_group_id, // [P42]
     })),
   }
 }
@@ -48,6 +49,7 @@ export function formFromTemplate(tpl) {
       notes: i.notes ?? '',
       svodka_point_id: i.svodka_point_id ?? '',
       group_code: i.group_code ?? '',
+      laboratory_group_id: i.laboratory_group_id ?? '', // [P42]
     })),
   }
 }

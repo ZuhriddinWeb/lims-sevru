@@ -1,47 +1,16 @@
-PAKET 41 — «Grafik shifriga soat qo'shilsin» sozlamasi        (2026-11-24)
-=====================================================================
+PAKET 42b — tuzatish (2026-11-25)
+=================================
+Xato: buyurtmani yuborishda (masalan shablon asosida) SQL Server:
+  «A column has been specified more than once in the order by list»
+Sabab: Paket 42 da namunalar so'rovida «position» bo'yicha tartib ikki marta yozilgan.
+Tuzatildi: app\Services\Samples\SampleRequests.php (bitta qator).
+Testga SQL Server uchun shunday takrorni ushlaydigan tekshiruv qo'shildi.
 
-NIMA O'ZGARDI
--------------
-Buyurtma sozlamalari → «Umumiy qiymatlar» bo'limida yangi belgi:
-  [x] Grafik shifriga soat qo'shilsin
+Bazaga hech narsa yo'q. Build kerak emas (faqat PHP fayl).
 
-  Yoqilgan (sukut, avvalgidek):  grafik buyurtmasida shifr «9999-17:00».
-  O'chirilgan:                   bazaga faqat grafikdagi shifr yoziladi — «9999».
-                                 Proba raqami ham «9999» bo'ladi (laboratoriya o'zgartira oladi).
-                                 Grafikda shifr bo'sh bo'lsa — shifr bo'sh qoladi,
-                                 proba raqami buyurtma raqamidan: «B-2026-0188-1».
-  Bir qatorda bir xil shifr takrorlansa — «9999/1», «9999/2» (avvalgidek).
-
-  Buyurtmachi grafik tahririda «Buyurtmada: …» ko'rinishi ham sozlamaga mos.
-  Sozlamani faqat «Buyurtma sozlamalari» ruxsati borlar o'zgartiradi
-  (laboratoriya boshlig'i, admin).
-
-  Muhim: sozlama faqat KEYIN yaratiladigan grafik buyurtmalariga ta'sir qiladi.
-  Allaqachon yaratilgan buyurtma/probalardagi «-17:00» o'zgarmaydi.
-
-Bazaga migratsiya yo'q. Paket 40 fayllari ham shu zip ichida (yig'ma).
-
-A. LOKALDA (E:\ai projects\lims-sevru)
---------------------------------------
-1. Zipni loyiha papkasiga yoying (fayllar ustiga yozilsin).
-2. npm run build
-3. powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
-     → «public\build: Paket 41 bilan yig'ilgan» chiqishi kerak.
-4. git add -A
-   git restore --staged storage/logs/laravel.log
-   git commit -m "Paket 41: grafik shifriga soat — sozlama"
-   git push
-
-B. SERVERDA (masalan GMZ-3)
----------------------------
-   git fetch origin
-   git reset --hard origin/main
-   "D:\php files\php.exe" artisan optimize:clear
-   iisreset
-
-C. TEKSHIRISH
--------------
-1. Buyurtma sozlamalari → belgini o'chiring → Saqlash.
-2. Yangi grafik vaqti uchun buyurtma yaratilishini kuting (yoki ertangi).
-3. Buyurtmalar → grafik buyurtmasini oching: Shifr «9999», Proba raqami «9999».
+LOKALDA:  zipni loyiha papkasiga yoying (ustiga yozilsin), OQISH.txt ni o'chiring,
+          php artisan optimize:clear  → buyurtmani qayta yuborib ko'ring.
+          git add -A ; git restore --staged storage/logs/laravel.log
+          git commit -m "Paket 42b: ORDER BY tuzatish" ; git push
+SERVERDA: git fetch origin ; git reset --hard origin/main
+          "D:\php files\php.exe" artisan optimize:clear ; iisreset

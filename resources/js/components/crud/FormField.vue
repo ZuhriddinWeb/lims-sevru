@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Check, ChevronDown, X } from 'lucide-vue-next'
+import { ArrowDown, ArrowUp, Check, ChevronDown, X } from 'lucide-vue-next'
 import { useCatalogStore } from '@/stores/catalogs'
 import { localized } from '@/i18n'
 import FormulaInput from './FormulaInput.vue' // [P25] kimyoviy belgi / o'lchov birligi konstruktori
@@ -73,6 +73,32 @@ function toggleMulti(val) {
 const selectedLabels = computed(() =>
   options.value.filter((o) => selected.value.includes(o.value))
 )
+
+/* ---------- [P42] Tartibli ko'p tanlov (masalan: profilning mas'ul guruhlari, 1-si — sukut bo'yicha) ---------- */
+const ordered = computed(() => selected.value
+  .map((v) => options.value.find((o) => o.value === v) ?? remoteOptions.value.map((o) => ({ value: o.id, label: localized(o, 'name') || o.code })).find((o) => o.value === v))
+  .filter(Boolean))
+const addable = computed(() => options.value.filter((o) => !selected.value.includes(o.value)))
+const orderedPick = ref('')
+function orderedAdd() {
+  const v = Number(orderedPick.value)
+  if (v && !selected.value.includes(v)) value.value = [...selected.value, v]
+  orderedPick.value = ''
+}
+function orderedMove(i, d) {
+  const next = [...selected.value]
+  const j = i + d
+  if (j < 0 || j >= next.length) return
+  ;[next[i], next[j]] = [next[j], next[i]]
+  value.value = next
+}
+// bog'liq maydon (masalan, laboratoriya) o'zgarsa — endi mos kelmaydigan tanlovlar olib tashlanadi
+watch(() => (props.field.dependsOn ? props.form?.[props.field.dependsOn] : null), (v, old) => {
+  if (props.field.type !== 'ordered-multi' || !props.field.dependsOn || v === old || old === undefined || !remoteOptions.value.length) return
+  const allowed = new Set(options.value.map((o) => o.value))
+  const kept = selected.value.filter((x) => allowed.has(x))
+  if (kept.length !== selected.value.length) value.value = kept
+})
 </script>
 
 <template>
@@ -185,6 +211,29 @@ const selectedLabels = computed(() =>
       </Transition>
 
       <div v-if="multiOpen" class="fixed inset-0 z-10" @click="multiOpen = false" />
+    </div>
+
+    <!-- [P42] Tartibli ko'p tanlov: 1, 2, 3 … ↑/↓ bilan tartib -->
+    <div v-else-if="field.type === 'ordered-multi'" class="space-y-1.5" :data-ordered="field.key">
+      <p v-if="field.dependsOn && !form[field.dependsOn] && field.requireDependsOn" class="text-[13px] text-ink-faint">{{ t(field.dependsOnKey) }}</p>
+      <template v-else>
+        <ol v-if="ordered.length" class="rounded-md border border-line divide-y divide-line" :class="{ 'border-crit': errorText }">
+          <li v-for="(o, i) in ordered" :key="o.value" class="flex items-center gap-2 px-3 py-1.5 text-[13.5px]">
+            <span class="w-6 tnum font-semibold" :class="i === 0 ? 'text-assay-600 dark:text-assay-300' : 'text-ink-faint'">{{ i + 1 }}.</span>
+            <span class="flex-1 min-w-0 truncate text-ink">{{ o.label }}</span>
+            <button type="button" class="btn-ghost btn-icon h-7 w-7" :disabled="i === 0" :title="t('profile.up')" :aria-label="t('profile.up')" @click="orderedMove(i, -1)"><ArrowUp :size="14" /></button>
+            <button type="button" class="btn-ghost btn-icon h-7 w-7" :disabled="i === ordered.length - 1" :title="t('profile.down')" :aria-label="t('profile.down')" @click="orderedMove(i, 1)"><ArrowDown :size="14" /></button>
+            <button type="button" class="btn-ghost btn-icon h-7 w-7 hover:text-crit" :title="t('profile.remove')" :aria-label="t('profile.remove')" @click="toggleMulti(o.value)"><X :size="14" /></button>
+          </li>
+        </ol>
+        <p v-else class="text-[13px] text-ink-faint">{{ t(field.emptyKey || 'common.selectPlaceholder') }}</p>
+        <div v-if="addable.length" class="relative">
+          <select v-model="orderedPick" class="field-input" :class="{ 'field-input-error': errorText }" @change="orderedAdd">
+            <option value="">+ {{ field.addKey ? t(field.addKey) : t('common.selectPlaceholder') }}</option>
+            <option v-for="o in addable" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </select>
+        </div>
+      </template>
     </div>
 
     <!-- Kalit (switch) -->

@@ -179,6 +179,7 @@ class PortalTemplateController extends Controller
             'payload.items.*.notes'           => ['nullable', 'string', 'max:500'],
             'payload.items.*.svodka_point_id' => ['nullable', 'integer'],
             'payload.items.*.group_code'      => ['nullable', 'string', 'max:64'],
+            'payload.items.*.laboratory_group_id' => ['nullable', 'integer'], // [P42]
         ]);
 
         $deptId = (int) ($data['department_id'] ?? 0) ?: (int) ($tpl?->customer_department_id ?? 0);
@@ -221,6 +222,7 @@ class PortalTemplateController extends Controller
                 'notes'           => $str($it['notes'] ?? null, 500),
                 'svodka_point_id' => $point && $pointIds->has($point) ? $point : null,
                 'group_code'      => $str($it['group_code'] ?? null, 64),
+                'laboratory_group_id' => $int($it['laboratory_group_id'] ?? null), // [P42] bo'sh — profilning 1-mas'ul guruhi
             ];
         }
         if (! $items) {

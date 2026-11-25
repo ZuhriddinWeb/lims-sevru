@@ -2,13 +2,14 @@
 /** Buyurtma sarlavhasi: holat, bo'lim, sanalar, kim olib keladi / topshirdi, yopilish sababi */
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { AlertTriangle, Info } from 'lucide-vue-next'
+import { AlertTriangle, Info, Link2 } from 'lucide-vue-next'
 import { formatDate, formatDateTime } from '@/lib/format'
 import StatusPill from './StatusPill.vue'
 import { deliveryText, nameOf } from '../shared'
 import '../i18n'
 import '../../svodka/i18n' // [P29]
 import '../i18nP39' // [P39]
+import '../i18nP42' // [P42]
 
 const props = defineProps({
   request: { type: Object, required: true },
@@ -64,6 +65,16 @@ const note = computed(() => {
         <dd class="text-ink min-w-0 break-words">{{ v }}</dd>
       </template>
     </dl>
+
+    <!-- [P42] bir formadan guruhlar bo'yicha bo'lingan boshqa buyurtmalar -->
+    <div v-if="r.split?.length" class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-line px-3 py-2 text-[13px]" data-split>
+      <Link2 :size="15" class="shrink-0 text-ink-faint" />
+      <span class="text-ink-muted" :title="t('sreq.p42.splitHint')">{{ t('sreq.p42.split') }}:</span>
+      <router-link
+        v-for="x in r.split" :key="x.id" :to="{ name: audience === 'lab' ? 'sample-request' : 'portal-request', params: { id: x.id } }"
+        class="font-mono font-semibold text-ink hover:underline"
+      >{{ x.number || '#' + x.id }}<span v-if="x.group" class="ml-1 font-sans font-normal text-ink-faint">({{ nameOf(x.group, locale) }})</span></router-link>
+    </div>
 
     <p v-if="r.close_reason" class="mt-3 flex items-start gap-2 rounded-md bg-crit-light/60 dark:bg-crit-dark/20 px-3 py-2 text-[13px] text-crit-dark dark:text-crit-light" data-reason>
       <AlertTriangle :size="15" class="mt-0.5 shrink-0" /> <span><b>{{ t('sreq.info.reason') }}:</b> {{ r.close_reason }}</span>

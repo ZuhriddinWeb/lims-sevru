@@ -13,6 +13,7 @@ import { apiErrorMessage, fieldError } from '../shared'
 import '../i18n'
 import '../i18nP39'
 import '../i18nP41'
+import '../i18nP42' // [P42]
 
 const { t } = useI18n()
 const ui = useUiStore()
@@ -73,6 +74,7 @@ async function saveDept(d) {
       lead_minutes: d.lead_minutes === '' ? null : Number(d.lead_minutes),
       expire_mode: d.expire_mode || null,
       expire_hours: d.expire_mode === 'hours' && d.expire_hours !== '' ? Number(d.expire_hours) : null,
+      svodka_manual: !!d.svodka_manual, // [P42]
     })
     fill(r)
     ui.success(t('sreq.p39.set.saved'))
@@ -194,6 +196,7 @@ async function removeReason(r) {
                 <th class="px-3 py-2 font-medium">{{ t('sreq.p39.set.lateMin') }}</th>
                 <th class="px-3 py-2 font-medium">{{ t('sreq.p39.set.lead') }}</th>
                 <th class="px-3 py-2 font-medium">{{ t('sreq.p39.set.expire') }}</th>
+                <th class="px-3 py-2 font-medium" :title="t('sreq.p42.set.svodkaManualHint')">{{ t('sreq.p42.set.svodkaManual') }}</th>
                 <th class="px-3 py-2 font-medium text-right">{{ t('sreq.p39.set.rows') }}</th>
                 <th class="px-3 py-2" />
               </tr>
@@ -213,6 +216,8 @@ async function removeReason(r) {
                     <input v-if="d.expire_mode === 'hours'" v-model="d.expire_hours" type="number" min="1" max="72" class="field-input h-8 w-16" :placeholder="String(data.settings.schedule_expire_hours)" :aria-label="t('sreq.p39.set.hours')">
                   </div>
                 </td>
+                <!-- [P42] grafikda hisobot kuni/navbatchiligini buyurtmachi belgilaydi -->
+                <td class="px-3 py-2"><input v-model="d.svodka_manual" type="checkbox" class="rounded border-line text-assay-500 focus:ring-assay-500" :disabled="!d.enabled" :title="t('sreq.p42.set.svodkaManualHint')" data-d="svodka-manual"></td>
                 <td class="px-3 py-2 text-right tnum text-ink-muted">{{ d.schedules }}</td>
                 <td class="px-3 py-2 text-right">
                   <button class="btn-outline btn-sm" :disabled="busy || !d.dirty" :data-save-dept="d.id" @click="saveDept(d)"><Check :size="14" /> {{ t('sreq.p39.set.save') }}</button>

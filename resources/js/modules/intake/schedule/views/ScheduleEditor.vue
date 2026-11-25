@@ -19,6 +19,7 @@ import { formFromTemplate, templateFromForm } from '../../requests/templates'
 import { niceDate } from '../shared'
 import '../../requests/i18n'
 import '../../requests/i18nP33'
+import '../../requests/i18nP42' // [P42]
 import '../i18n'
 
 const route = useRoute()
@@ -33,6 +34,16 @@ const options = ref(null)
 const templates = ref([])
 const enabled = ref([])
 const codeWithTime = ref(true) // [P41] sozlama: grafik shifriga soat qo'shiladimi
+const deptInfo = ref([])         // [P42] grafik yoqilgan bo'linmalar (svodka_manual bilan)
+/* [P42] jamlanma hisobot kuni (-1/0/1, '' — avtomatik) va navbatchilik (1/2, '' — avtomatik) — admin yoqqan bo'lsa */
+const sv = reactive({ day: '', shift: '' })
+const svManual = computed(() => !!deptInfo.value.find((d) => Number(d.id) === Number(form.department_id))?.svodka_manual)
+const svInfo = computed(() => options.value?.svodka?.[form.department_id] ?? null)
+const svFrom = (p) => Object.assign(sv, {
+  day: p?.sv_day === null || p?.sv_day === undefined ? '' : String(p.sv_day),
+  shift: p?.sv_shift ? String(p.sv_shift) : '',
+})
+const svPayload = () => ({ sv_day: sv.day === '' ? null : Number(sv.day), sv_shift: sv.shift ? Number(sv.shift) : null })
 const run = ref(null)
 const head = reactive({ name: '', time: '08:00', weekdays: [1, 2, 3, 4, 5, 6, 7], is_active: true })
 const form = reactive({ department_id: '', delivery_date: '', delivery_shift_id: '', svodka_date: '', svodka_shift: '', laboratory_group_id: '', contact_name: '', contact_phone: '', notes: '', items: [] })
@@ -41,7 +52,7 @@ const loading = ref(true)
 const loadError = ref('')
 const busy = ref(false)
 const saved = ref('')
-const snapshot = () => JSON.stringify([head, form.department_id, templateFromForm(form)])
+const snapshot = () => JSON.stringify([head, form.department_id, templateFromForm(form), sv])
 const dirty = computed(() => !loading.value && !loadError.value && snapshot() !== saved.value)
 const deptOptions = computed(() => ({ ...(options.value ?? {}), departments: (options.value?.departments ?? []).filter((d) => enabled.value.includes(Number(d.id))) }))
 const showDepartment = computed(() => mode.value === 'new' && enabled.value.length > 1)
@@ -59,6 +70,7 @@ async function load() {
     ])
     options.value = opt.data
     enabled.value = (list.data.enabled_departments ?? []).map((d) => Number(d.id))
+    deptInfo.value = list.data.enabled_departments ?? []
     codeWithTime.value = list.data.code_time !== false // [P41]
     templates.value = tpl.data.data ?? []
     if (!list.data.can_write) {
@@ -69,6 +81,7 @@ async function load() {
       const { data } = await api.get(`/portal/schedule-runs/${id.value}`)
       run.value = data
       Object.assign(form, formFromTemplate({ department_id: data.department?.id, payload: data.payload }))
+      svFrom(data.payload)
     } else if (mode.value === 'edit') {
       const s = (list.data.data ?? []).find((x) => x.id === id.value)
       if (!s) {
@@ -77,6 +90,7 @@ async function load() {
       }
       Object.assign(head, { name: s.name, time: s.time, weekdays: [...s.weekdays], is_active: s.is_active })
       Object.assign(form, formFromTemplate(s))
+      svFrom(s.payload)
     } else {
       Object.assign(form, formFromTemplate(null), { items: [blankItem()] })
       const want = Number(route.query.department_id) || (enabled.value.length === 1 ? enabled.value[0] : '')
@@ -121,7 +135,7 @@ async function save() {
   busy.value = true
   errors.value = {}
   try {
-    const payload = templateFromForm(form)
+    const payload = { ...templateFromForm(form), ...svPayload() }
     if (mode.value === 'day') {
       await api.put(`/portal/schedule-runs/${id.value}`, { payload })
     } else {
@@ -199,6 +213,29 @@ async function save() {
               <option v-for="x in deptTemplates" :key="x.id" :value="x.id">{{ x.name }} ({{ x.items_count }})</option>
             </select>
           </template>
+        </div>
+      </div>
+
+      <!-- [P42] jamlanma hisobot kuni va navbatchiligi (bo'linmada admin yoqqan bo'lsa) -->
+      <div v-if="svManual && svInfo" class="panel mb-4 flex flex-wrap items-end gap-x-4 gap-y-3 border-aqua-300/70 bg-aqua-50/50 dark:bg-aqua-800/15 px-4 py-3" data-sv-manual>
+        <div class="min-w-[220px] flex-1">
+          <p class="text-[13px] font-semibold text-ink">{{ t('sreq.p42.sv.title') }}</p>
+          <p class="text-[12px] text-ink-muted">{{ t('sreq.p42.sv.hint') }}</p>
+        </div>
+        <div class="w-[180px]">
+          <label class="field-label">{{ t('sreq.p42.sv.day') }}</label>
+          <select v-model="sv.day" class="field-input h-9" data-sv-day>
+            <option value="">{{ t('sreq.p42.sv.auto') }}</option>
+            <option v-for="[d, k] in [['-1', 'prev'], ['0', 'same'], ['1', 'next']]" :key="d" :value="d">{{ t(`sreq.p42.sv.days.${k}`) }}</option>
+          </select>
+        </div>
+        <div class="w-[240px]">
+          <label class="field-label">{{ t('sreq.p42.sv.shift') }}</label>
+          <select v-model="sv.shift" class="field-input h-9" data-sv-shift>
+            <option value="">{{ t('sreq.p42.sv.auto') }}</option>
+            <option value="1">{{ svInfo.shift1_label }} · {{ svInfo.shift1_hours }}</option>
+            <option value="2">{{ svInfo.shift2_label }} · {{ svInfo.shift2_hours }}</option>
+          </select>
         </div>
       </div>
 

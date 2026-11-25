@@ -42,6 +42,9 @@ class SampleRequests
     /** [P36] grafik bo'yicha qabul: oddiy «yangi buyurtma» / «qabul qilindi» xabarlari yuborilmaydi (o'zinikini yuboradi) */
     public bool $quiet = false;
 
+    /** [P42] oxirgi submit() natijasi: guruhlar bo'yicha bo'lingan bo'lsa — hammasi (birinchisi — asosiy) */
+    public array $lastSubmitted = [];
+
     public function __construct(private CustomerPortal $portal)
     {
     }
@@ -86,6 +89,8 @@ class SampleRequests
                 ? ['nullable', 'integer', Rule::exists('laboratory_groups', 'id')->where('is_active', true)]
                 : ['nullable', 'integer'],
             'items.*.group_code'     => ['nullable', 'string', 'max:64'],
+            // [P42] namuna qaysi guruhga (bo'sh — profilning 1-mas'ul guruhi)
+            'items.*.laboratory_group_id' => ['nullable', 'integer'],
         ];
     }
 
@@ -195,6 +200,46 @@ class SampleRequests
             && DB::table('laboratory_groups')->where('is_active', true)->exists();
     }
 
+    /** [P42] profil guruhlari va namuna guruhi ustunlari (migratsiya bajarilganmi) */
+    public function hasItemGroups(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasColumn('sample_request_items', 'laboratory_group_id') && Schema::hasTable('test_profile_groups');
+    }
+
+    /** @var array<int, int[]> */
+    private array $profileGroupCache = [];
+
+    /** [P42] Profilning faol mas'ul guruhlari — tartib bo'yicha (nofaoli o'tkazib yuboriladi) */
+    public function profileGroupIds(?int $profileId): array
+    {
+        if (! $profileId || ! $this->hasItemGroups()) {
+            return [];
+        }
+        if (! array_key_exists($profileId, $this->profileGroupCache)) {
+            $this->profileGroupCache[$profileId] = DB::table('test_profile_groups')
+                ->join('laboratory_groups', 'laboratory_groups.id', '=', 'test_profile_groups.laboratory_group_id')
+                ->where('test_profile_groups.test_profile_id', $profileId)->where('laboratory_groups.is_active', true)
+                ->orderBy('test_profile_groups.sort_order')->orderBy('test_profile_groups.id')
+                ->pluck('laboratory_groups.id')->map(fn ($v) => (int) $v)->all();
+        }
+
+        return $this->profileGroupCache[$profileId];
+    }
+
+    /**
+     * [P42] Namuna qaysi guruhga: qo'lda tanlangani → profilning 1-faol mas'ul guruhi → buyurtma guruhi (eski buyurtmalar).
+     */
+    public function effectiveGroupId(?int $itemGroup, ?int $profileId, ?int $requestGroup): ?int
+    {
+        if ($itemGroup) {
+            return $itemGroup;
+        }
+
+        return $this->profileGroupIds($profileId)[0] ?? ($requestGroup ?: null);
+    }
+
     private function hasSvodkaColumns(): bool
     {
         static $has = null;
@@ -265,6 +310,8 @@ class SampleRequests
                 'svodka_point_id'   => array_key_exists('svodka_point_id', $it)
                     ? ((int) $it['svodka_point_id'] ?: null)
                     : (isset($oldPoints[$i + 1]) ? (int) $oldPoints[$i + 1] : null),
+            ] : []) + ($this->hasItemGroups() ? [
+                'laboratory_group_id' => ((int) ($it['laboratory_group_id'] ?? 0)) ?: null,
             ] : []) + ($this->hasGroupColumns() ? [
                 'group_code'        => array_key_exists('group_code', $it)
                     ? (($g = trim((string) $it['group_code'])) === '' ? null : mb_substr($g, 0, 64))
@@ -281,28 +328,84 @@ class SampleRequests
         $request->load('items');
         $this->assertComplete($request);
 
-        $request = $this->withNumberRetry(function () use ($request, $user) {
-            return DB::transaction(function () use ($request, $user) {
+        $origNumber = $request->number;
+        $all = $this->withNumberRetry(function () use ($request, $user, $origNumber) {
+            return DB::transaction(function () use ($request, $user, $origNumber) {
+                $request->number = $origNumber; // takroriy urinishda — raqam qaytadan olinadi
                 $now = now();
-                $request->forceFill([
-                    'number'       => $request->number ?: $this->nextNumber((int) $now->year),
-                    'status'       => 'submitted',
-                    'submitted_at' => $now,
-                    'submitted_by' => $user->id,
-                    'expires_at'   => $now->copy()->addDays(max(1, (int) config('sample_requests.expire_days', 14))),
-                    'updated_by'   => $user->id,
-                ])->save();
-                $this->log('updated', $request, "Buyurtma yuborildi: {$request->number}", $user);
+                $all = $this->splitByGroup($request, $user); // [P42] har xil guruhli namunalar — alohida buyurtmalar
+                foreach ($all as $r) {
+                    $r->forceFill([
+                        'number'       => $r->number ?: $this->nextNumber((int) $now->year),
+                        'status'       => 'submitted',
+                        'submitted_at' => $now,
+                        'submitted_by' => $user->id,
+                        'expires_at'   => $now->copy()->addDays(max(1, (int) config('sample_requests.expire_days', 14))),
+                        'updated_by'   => $user->id,
+                    ])->save();
+                    $this->log('updated', $r, "Buyurtma yuborildi: {$r->number}" . (count($all) > 1 ? ' (guruhlar bo\'yicha bo\'lingan: ' . count($all) . ' ta)' : ''), $user);
+                }
 
-                return $request;
+                return $all;
             });
         });
+        $this->lastSubmitted = $all;
+        $request = $all[0];
 
-        $this->notifyLab($request);
+        foreach ($all as $r) {
+            $this->notifyLab($r);
+        }
         // [P34] kim olib keladi — bo'linma xodimlari ma'lumotnomasiga (yangi bo'lsa qo'shiladi, telefon yangilanadi)
         $this->contacts()->remember((int) $request->customer_department_id, $request->contact_name, $request->contact_phone, $user, 'buyurtma ' . $request->number);
 
         return $request->fresh('items');
+    }
+
+    /**
+     * [P42] Namunalar guruhi aniqlanadi va namunaga yoziladi. Guruhlar bir nechta bo'lsa — birinchi guruh shu
+     * buyurtmada qoladi, qolganlari uchun sarlavhasi bir xil yangi buyurtmalar yaratiladi (split_key bilan bog'lanadi).
+     *
+     * @return SampleRequest[] birinchisi — asosiy (shu buyurtma)
+     */
+    private function splitByGroup(SampleRequest $request, User $user): array
+    {
+        if (! $this->hasItemGroups()) {
+            return [$request];
+        }
+        $reqGroup = $request->laboratory_group_id ? (int) $request->laboratory_group_id : null;
+        $byGroup = [];
+        foreach ($request->items()->get() as $item) { // items() o'zi position, id bo'yicha tartiblaydi (SQL Server takrorni qabul qilmaydi)
+            $gid = $this->effectiveGroupId($item->laboratory_group_id ? (int) $item->laboratory_group_id : null,
+                $item->test_profile_id ? (int) $item->test_profile_id : null, $reqGroup);
+            if ($gid && (int) $item->laboratory_group_id !== $gid) {
+                $item->forceFill(['laboratory_group_id' => $gid])->save();
+            }
+            $byGroup[$gid ?? 0][] = $item;
+        }
+        $groups = array_keys($byGroup);
+        $request->forceFill(['laboratory_group_id' => $groups[0] ?: $reqGroup])->save();
+        if (count($groups) < 2) {
+            return [$request->fresh('items')];
+        }
+
+        $key = $request->getAttribute('split_key') ?: (string) \Illuminate\Support\Str::uuid();
+        $request->forceFill(['split_key' => $key])->save();
+        $out = [$request];
+        foreach (array_slice($groups, 1) as $gid) {
+            $copy = $request->replicate(['number', 'submitted_at', 'submitted_by', 'expires_at']);
+            $copy->forceFill(['laboratory_group_id' => $gid ?: null, 'status' => 'draft', 'split_key' => $key,
+                'created_by' => $request->created_by, 'updated_by' => $user->id])->save();
+            foreach (array_values($byGroup[$gid]) as $n => $item) {
+                $item->forceFill(['sample_request_id' => $copy->id, 'position' => $n + 1])->save();
+            }
+            $this->log('created', $copy, "Buyurtma guruhlar bo'yicha bo'lindi (asosiy: #{$request->id})", $user);
+            $out[] = $copy;
+        }
+        foreach (array_values($byGroup[$groups[0]]) as $n => $item) {
+            $item->forceFill(['position' => $n + 1])->save();
+        }
+
+        return array_map(fn ($r) => $r->fresh('items'), $out);
     }
 
     /** Yuborilgan (yoki muddati o'tgan) so'rovni qoralamaga qaytarish — hech narsa qabul qilinmagan bo'lsa */
@@ -469,7 +572,7 @@ class SampleRequests
             }
 
             // [P30] guruh: qabulda tanlanmasa — buyurtmachi tanlagan guruh
-            $group = ($row['assigned_group_id'] ?? null) ?: ($request->laboratory_group_id ?: null);
+            $group = ($row['assigned_group_id'] ?? null) ?: ($item->getAttribute('laboratory_group_id') ?: ($request->laboratory_group_id ?: null)); // [P42]
             $code = trim((string) ($row['customer_code'] ?? $item->customer_code ?? ''));
             // [P33] shifr takrorlanishi taqiqlanmaydi (na shu qabulda, na shu oyda) — interfeys faqat ogohlantiradi
             $number = trim((string) ($row['sample_number'] ?? ''));
@@ -752,13 +855,27 @@ class SampleRequests
         if (! $dept || ! $dept->is_active) {
             $errors['department_id'][] = "Bo'lim faol emas";
         }
-        // [P30] faol guruhlar bo'lsa — buyurtma qaysi guruhga ekanini tanlash majburiy
+        // [P30] faol guruhlar bo'lsa — har namuna qaysi guruhga ekani aniq bo'lishi kerak
+        // [P42] guruh — namunada (qo'lda yoki profilning mas'ul guruhi); eski buyurtmada — buyurtma guruhi
         if ($this->groupsRequired()) {
-            $gid = (int) $request->laboratory_group_id;
-            if (! $gid) {
-                $errors['laboratory_group_id'][] = 'Laboratoriya guruhini tanlang';
-            } elseif (! DB::table('laboratory_groups')->where('id', $gid)->where('is_active', true)->exists()) {
-                $errors['laboratory_group_id'][] = 'Tanlangan guruh faol emas — boshqasini tanlang';
+            $active = DB::table('laboratory_groups')->where('is_active', true)->pluck('id')->map(fn ($v) => (int) $v)->flip();
+            if ($this->hasItemGroups()) {
+                foreach ($request->items as $i => $item) {
+                    $gid = $this->effectiveGroupId($item->laboratory_group_id ? (int) $item->laboratory_group_id : null,
+                        $item->test_profile_id ? (int) $item->test_profile_id : null, $request->laboratory_group_id ? (int) $request->laboratory_group_id : null);
+                    if (! $gid) {
+                        $errors["items.$i.laboratory_group_id"][] = "{$item->position}-namuna: laboratoriya guruhini tanlang";
+                    } elseif (! $active->has($gid)) {
+                        $errors["items.$i.laboratory_group_id"][] = "{$item->position}-namuna: tanlangan guruh faol emas — boshqasini tanlang";
+                    }
+                }
+            } else {
+                $gid = (int) $request->laboratory_group_id;
+                if (! $gid) {
+                    $errors['laboratory_group_id'][] = 'Laboratoriya guruhini tanlang';
+                } elseif (! $active->has($gid)) {
+                    $errors['laboratory_group_id'][] = 'Tanlangan guruh faol emas — boshqasini tanlang';
+                }
             }
         }
         foreach ($request->items as $i => $item) {
@@ -963,6 +1080,13 @@ class SampleRequests
             $out['laboratory_group_id'] = $r->laboratory_group_id ? (int) $r->laboratory_group_id : null;
             $out['laboratory_group'] = $g;
         }
+        // [P42] bir formadan guruhlar bo'yicha bo'lingan boshqa buyurtmalar
+        if ($withItems && $this->hasItemGroups() && $r->getAttribute('split_key')) {
+            $out['split'] = SampleRequest::where('split_key', $r->split_key)->where('id', '!=', $r->id)->orderBy('id')
+                ->get(['id', 'number', 'status', 'laboratory_group_id'])
+                ->map(fn ($x) => ['id' => (int) $x->id, 'number' => $x->number, 'status' => $x->status,
+                    'group' => $x->laboratory_group_id ? $this->groupInfo((int) $x->laboratory_group_id) : null])->values();
+        }
 
         $items = $r->relationLoaded('items') ? $r->items : $r->items()->get();
         $out['counts'] = [
@@ -985,7 +1109,11 @@ class SampleRequests
         $out['items'] = $items->map(function (SampleRequestItem $i) use ($elements, $showGroupCode) {
             $ids = array_map('intval', (array) ($i->element_ids ?? []));
 
+            $gid = $i->getAttribute('laboratory_group_id') ? (int) $i->getAttribute('laboratory_group_id') : null; // [P42]
+
             return ($showGroupCode ? ['group_code' => $i->group_code] : []) + [
+                'laboratory_group_id' => $gid,
+                'group'           => $gid ? $this->groupInfo($gid) : null,
                 'id'              => (int) $i->id,
                 'position'        => (int) $i->position,
                 'customer_code'   => $i->customer_code,
@@ -1040,7 +1168,9 @@ class SampleRequests
                 ->map(fn ($p) => [
                     'id' => (int) $p->id, 'code' => $p->code, 'name_uz' => $p->name_uz, 'name_ru' => $p->name_ru,
                     'name_en' => $p->name_en, 'element_ids' => $p->elements->pluck('id')->map(fn ($v) => (int) $v)->values(),
+                    'group_ids' => $this->profileGroupIds((int) $p->id), // [P42] mas'ul guruhlar (faol, tartib bo'yicha)
                 ])->values(),
+            'item_groups' => $this->hasItemGroups(), // [P42] guruh — har namunada
             'units'       => QuantityUnit::UNITS,
             'expire_days' => (int) config('sample_requests.expire_days', 14),
             // [P28] namuna qaysi smenada olib kelinadi

@@ -113,6 +113,8 @@ function apply(tpl, how) {
     notes: i.notes ?? '',
     svodka_point_id: i.svodka_point_id && points.has(Number(i.svodka_point_id)) ? i.svodka_point_id : '',
     group_code: i.group_code ?? '',
+    // [P42] namuna guruhi (faol bo'lsa)
+    laboratory_group_id: i.laboratory_group_id && groups.has(Number(i.laboratory_group_id)) ? i.laboratory_group_id : '',
   }))
   if (how === 'replace') f.items.splice(0, f.items.length, ...items)
   else {

@@ -1,5 +1,5 @@
 ===========================================================================
- ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 41)
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 42)
  Holat: 2026-11-19
 ===========================================================================
 
@@ -75,6 +75,13 @@ TARTIB
   41  Buyurtma sozlamalari: «Grafik shifriga  — (bazaga hech narsa; sukut — yoqilgan, avvalgidek).
       soat qo'shilsin» (o'chirilsa — faqat
       prefiks, masalan «9999»)
+  42  Sinov profiliga mas'ul guruhlar        1 migratsiya (2026_11_25_100000): test_profile_groups (yangi),
+      (tartib bilan, 1-si sukut); buyurtmada  sample_request_items.laboratory_group_id, sample_requests ga
+      har namunaga guruh — har xil guruhli    split_key va schedule_run_id, customer_departments ga
+      namunalar yuborilganda alohida          schedule_svodka_manual. Mavjud ma'lumot o'zgarmaydi.
+      buyurtmalarga bo'linadi (shifr bir xil); O'rnatgach: Sinov profillari → har profilga laboratoriya va
+      grafikda hisobot kuni/navbatchiligi     mas'ul guruh(lar). Guruhi yo'q profil tanlansa — namuna
+      (bo'linma sozlamasida yoqiladi)         qatorida guruhni qo'lda tanlash kerak bo'ladi.
   Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
   natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
 
@@ -181,7 +188,7 @@ TARTIB
 
      Skript qadamlari:
        1  kod to'liqligi: Paket 13–37 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
-          eng oxirgi versiyadami, public\build Paket 41 bilanmi). Farq bo'lsa so'raydi.
+          eng oxirgi versiyadami, public\build Paket 42 bilanmi). Farq bo'lsa so'raydi.
        2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
        3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
           (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)
@@ -212,24 +219,25 @@ TARTIB
 
   4-JADVAL. migrate:status da kutiladigan «Pending» — server holatiga qarab
      server oxirgi qaysi paketda      bajariladi
-     Paket 12 yoki undan oldin        hammasi, 22 ta
-     Paket 13                         2026_10_12_… dan boshlab 20 ta
-     Paket 14                         2026_10_13_… dan boshlab 18 ta
-     Paket 15                         2026_10_14_100000 dan boshlab 16 ta
-     Paket 16–18                      2026_10_14_120000 dan boshlab 15 ta
-     Paket 19–20                      14 ta
-     Paket 21–23                      12 ta (2026_10_20_100000 dan)
-     Paket 24–26                      11 ta (2026_10_22_100000 dan)
-     Paket 27                         10 ta
-     Paket 28                         9 ta
-     Paket 29                         8 ta
-     Paket 30                         7 ta (2026_11_02_100000 dan)
-     Paket 31–32                      6 ta (2026_11_11_100000 dan)
-     Paket 33                         5 ta (2026_11_12_100000 dan)
-     Paket 34–35                      4 ta (2026_11_18_100000 dan)
-     Paket 36                         3 ta (2026_11_18_110000 dan)
-     Paket 37                         2 ta (2026_11_19_100000 dan)
-     Paket 38                         1 ta (2026_11_19_110000)
+     Paket 12 yoki undan oldin        hammasi, 23 ta
+     Paket 13                         2026_10_12_… dan boshlab 21 ta
+     Paket 14                         2026_10_13_… dan boshlab 19 ta
+     Paket 15                         2026_10_14_100000 dan boshlab 17 ta
+     Paket 16–18                      2026_10_14_120000 dan boshlab 16 ta
+     Paket 19–20                      15 ta
+     Paket 21–23                      13 ta (2026_10_20_100000 dan)
+     Paket 24–26                      12 ta (2026_10_22_100000 dan)
+     Paket 27                         11 ta
+     Paket 28                         10 ta
+     Paket 29                         9 ta
+     Paket 30                         8 ta (2026_11_02_100000 dan)
+     Paket 31–32                      7 ta (2026_11_11_100000 dan)
+     Paket 33                         6 ta (2026_11_12_100000 dan)
+     Paket 34–35                      5 ta (2026_11_18_100000 dan)
+     Paket 36                         4 ta (2026_11_18_110000 dan)
+     Paket 37                         3 ta (2026_11_19_100000 dan)
+     Paket 38                         2 ta (2026_11_19_110000 dan)
+     Paket 39–41                      1 ta (2026_11_25_100000)
      Oraliq paketlar o'tkazib yuborilgan bo'lsa — ro'yxatdagi yo'qlari bajariladi, tartib muhim emas.
 
      2026_10_08_100000_create_worksheet_tables                 Paket 13
@@ -254,6 +262,7 @@ TARTIB
      2026_11_18_110000_create_schedule_sheets_tables           Paket 37 (P38 da bo'sh — hech narsa qilmaydi)
      2026_11_19_100000_drop_schedule_sheets_tables             Paket 38
      2026_11_19_110000_schedule_orders_and_closing             Paket 39
+     2026_11_25_100000_profile_groups_and_item_group           Paket 42
      Bu ro'yxatda yo'q nom «Pending» bo'lsa — o'zingiz yozgan migratsiya: ichini ko'ring.
 
   SEEDERLAR — qo'lda ishga tushirish SHART EMAS. lims:upgrade quyidagilarni xavfsiz chaqiradi

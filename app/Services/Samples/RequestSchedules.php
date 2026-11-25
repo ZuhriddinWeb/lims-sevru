@@ -122,6 +122,7 @@ class RequestSchedules
                 'notes'           => $str($it['notes'] ?? null, 500),
                 'svodka_point_id' => $point && $pointIds->has($point) ? $point : null,
                 'group_code'      => $str($it['group_code'] ?? null, 64),
+                'laboratory_group_id' => $int($it['laboratory_group_id'] ?? null), // [P42] bo'sh — profilning 1-mas'ul guruhi
             ];
         }
         if (! $items) {
@@ -132,10 +133,26 @@ class RequestSchedules
         }
         $group = $int($p['laboratory_group_id'] ?? null);
         if ($this->requests->hasGroupColumns() && DB::table('laboratory_groups')->where('is_active', true)->exists()) {
-            if (! $group || ! DB::table('laboratory_groups')->where('id', $group)->where('is_active', true)->exists()) {
+            $active = DB::table('laboratory_groups')->where('is_active', true)->pluck('id')->map(fn ($v) => (int) $v)->flip();
+            if ($this->requests->hasItemGroups()) {
+                // [P42] guruh — har namunada (qo'lda yoki profilning mas'ul guruhi); eski grafikda — umumiy guruh
+                if ($group && ! $active->has($group)) {
+                    $group = null;
+                }
+                foreach ($items as $i => $it) {
+                    $gid = $this->requests->effectiveGroupId($it['laboratory_group_id'], $it['test_profile_id'], $group);
+                    if (! $gid || ! $active->has($gid)) {
+                        $errors["payload.items.$i.laboratory_group_id"][] = ($i + 1) . '-namuna: laboratoriya guruhini tanlang';
+                    }
+                }
+            } elseif (! $group || ! $active->has($group)) {
                 $errors['payload.laboratory_group_id'][] = 'Laboratoriya guruhini tanlang';
             }
         }
+        // [P42] jamlanma hisobot: qaysi kun (-1 oldingi, 0 shu, 1 keyingi; bo'sh — avtomatik) va navbatchilik (bo'sh — avtomatik)
+        $svDay = $p['sv_day'] ?? null;
+        $svDay = $svDay === null || $svDay === '' || ! in_array((int) $svDay, [-1, 0, 1], true) ? null : (int) $svDay;
+        $svShift = in_array((int) ($p['sv_shift'] ?? 0), [1, 2], true) ? (int) $p['sv_shift'] : null;
         if ($errors) {
             throw ValidationException::withMessages($errors);
         }
@@ -145,8 +162,46 @@ class RequestSchedules
             'contact_name'        => $str($p['contact_name'] ?? null, 191),
             'contact_phone'       => $str($p['contact_phone'] ?? null, 64),
             'notes'               => $str($p['notes'] ?? null, 2000),
+            'sv_day'              => $svDay,
+            'sv_shift'            => $svShift,
             'items'               => $items,
         ];
+    }
+
+    /** [P42] Har namunaning amaldagi guruhi (qo'lda → profilning 1-guruhi → umumiy guruh) */
+    public function itemGroups(array $items, array $payload): array
+    {
+        $head = (int) ($payload['laboratory_group_id'] ?? 0) ?: null;
+
+        return array_map(fn ($it) => $this->requests->effectiveGroupId(
+            (int) ($it['laboratory_group_id'] ?? 0) ?: null, (int) ($it['test_profile_id'] ?? 0) ?: null, $head), array_values($items));
+    }
+
+    /** [P42] Bo'linmada grafikning hisobot kuni/navbatchiligini buyurtmachi belgilaydimi (admin yoqadi) */
+    public static function svodkaManual(?CustomerDepartment $d): bool
+    {
+        return $d && Schema::hasColumn('customer_departments', 'schedule_svodka_manual') && (bool) $d->getAttribute('schedule_svodka_manual');
+    }
+
+    /**
+     * [P42] Grafik buyurtmasining jamlanma hisobot davri: avtomatik (grafik vaqtidan); bo'linmada «qo'lda» yoqilgan bo'lsa —
+     * grafikda belgilangan kun (shu/oldingi/keyingi) va navbatchilik; belgilanmagan qismi — avtomatik.
+     *
+     * @return array{0: string, 1: int}
+     */
+    public function svodkaPeriod(ScheduleRun $run, CustomerDepartment $dept, array $payload): array
+    {
+        [$sd, $ss] = SvodkaService::periodOf(self::plannedAt($run), app(SvodkaService::class)->settings((int) $dept->id));
+        if (self::svodkaManual($dept)) {
+            if (isset($payload['sv_day']) && $payload['sv_day'] !== null && $payload['sv_day'] !== '') {
+                $sd = $run->run_date->copy()->addDays((int) $payload['sv_day'])->toDateString();
+            }
+            if (in_array((int) ($payload['sv_shift'] ?? 0), [1, 2], true)) {
+                $ss = (int) $payload['sv_shift'];
+            }
+        }
+
+        return [$sd, $ss];
     }
 
     /* =============================================================== partiyalar */
@@ -235,24 +290,32 @@ class RequestSchedules
      * [P41] $withTime=false (sozlama «Shifrga soat qo'shilsin» o'chiq) — faqat prefiks («Xvost», «Xvost/1»);
      * prefiks bo'sh bo'lsa — shifr bo'sh (proba raqami «B-2026-0188-1» ko'rinishida beriladi).
      *
+     * [P42] Takror faqat bir guruh ichida sanaladi: bir xil shifr turli guruhlarga — bir xil («400-08:00» ikkalasida ham).
+     *
+     * @param  array|null  $groups  har namuna guruhi (tartib bo'yicha); null — hammasi bir guruh
      * @return string[] har namuna uchun (tartib bo'yicha)
      */
-    public static function codesFor(array $items, string $time, ?bool $withTime = null): array
+    public static function codesFor(array $items, string $time, ?bool $withTime = null, ?array $groups = null): array
     {
         $withTime ??= (bool) app(RequestSettings::class)->get()['schedule_code_time'];
         $prefixes = array_map(fn ($it) => trim((string) ($it['customer_code'] ?? '')), array_values($items));
-        $count = array_count_values($prefixes);
+        $keys = [];
+        foreach ($prefixes as $i => $p) {
+            $keys[$i] = $p . "\x1F" . ($groups[$i] ?? '');
+        }
+        $count = array_count_values($keys);
         $seen = [];
         $out = [];
-        foreach ($prefixes as $p) {
+        foreach ($prefixes as $i => $p) {
+            $k = $keys[$i];
             if (! $withTime) {
                 $code = $p;
             } else {
                 $code = $p === '' ? $time : "{$p}-{$time}";
             }
-            if ($code !== '' && ($count[$p] ?? 0) > 1) {
-                $seen[$p] = ($seen[$p] ?? 0) + 1;
-                $code .= '/' . $seen[$p];
+            if ($code !== '' && ($count[$k] ?? 0) > 1) {
+                $seen[$k] = ($seen[$k] ?? 0) + 1;
+                $code .= '/' . $seen[$k];
             }
             $out[] = mb_substr($code, 0, 64);
         }
@@ -349,16 +412,16 @@ class RequestSchedules
         $dept = CustomerDepartment::findOrFail($run->customer_department_id);
         $at = self::plannedAt($run);
 
-        $codes = self::codesFor($items, $run->planned_time);
+        $codes = self::codesFor($items, $run->planned_time, null, $this->itemGroups($items, $payload));
         foreach ($items as $i => $it) {
             $items[$i]['customer_code'] = $codes[$i] !== '' ? $codes[$i] : null;
         }
         $header = $payload;
-        unset($header['items']);
-        // jamlanma hisobot davri — grafik vaqti bo'yicha (08:00 → shu kun II-navbatchilik va h.k.)
+        unset($header['items'], $header['sv_day'], $header['sv_shift'], $header['svodka_date'], $header['svodka_shift']);
+        // jamlanma hisobot davri — grafik vaqti bo'yicha (08:00 → shu kun II-navbatchilik va h.k.);
+        // [P42] bo'linmada yoqilgan bo'lsa — grafikda belgilangan kun/navbatchilik
         if (collect($items)->contains(fn ($i) => ! empty($i['svodka_point_id']))) {
-            $svodka = app(SvodkaService::class);
-            [$sd, $ss] = SvodkaService::periodOf($at, $svodka->settings((int) $dept->id));
+            [$sd, $ss] = $this->svodkaPeriod($run, $dept, $payload);
             $header += ['svodka_date' => $sd, 'svodka_shift' => $ss];
         }
         $header['delivery_date'] = $run->run_date->toDateString();
@@ -374,7 +437,11 @@ class RequestSchedules
                 }
                 $req = $this->requests->create($dept, $header + ['items' => $items], $user, self::ORIGIN);
                 $req = $this->requests->submit($req, $user);
-                $req->forceFill(['scheduled_at' => $at, 'expires_at' => $this->expiresAt($run)])->save();
+                $exp = $this->expiresAt($run);
+                $link = Schema::hasColumn('sample_requests', 'schedule_run_id') ? ['schedule_run_id' => $run->id] : [];
+                foreach ($this->requests->lastSubmitted ?: [$req] as $r) { // [P42] guruhlar bo'yicha bo'linganlari ham
+                    $r->forceFill(['scheduled_at' => $at, 'expires_at' => $exp] + $link)->save();
+                }
                 $fresh->forceFill(['sample_request_id' => $req->id, 'status' => 'ordered'])->save();
 
                 return $req;
@@ -389,7 +456,8 @@ class RequestSchedules
             $this->requests->quiet = false;
         }
         if ($req) {
-            $this->log(null, $run, "Grafik buyurtmasi yaratildi: {$dept->name}, {$run->run_date->format('d.m.Y')} {$run->planned_time} — {$req->number}");
+            $numbers = implode(', ', array_map(fn ($r) => $r->number, $this->runRequests($run->fresh())->all()));
+            $this->log(null, $run, "Grafik buyurtmasi yaratildi: {$dept->name}, {$run->run_date->format('d.m.Y')} {$run->planned_time} — " . ($numbers ?: $req->number));
         }
 
         return $req;
@@ -401,29 +469,52 @@ class RequestSchedules
      */
     public function syncRun(SampleRequest $req): void
     {
-        $run = ScheduleRun::where('sample_request_id', $req->id)->first();
+        $runId = Schema::hasColumn('sample_requests', 'schedule_run_id') ? $req->getAttribute('schedule_run_id') : null;
+        $run = $runId ? ScheduleRun::find($runId) : ScheduleRun::where('sample_request_id', $req->id)->first();
         if (! $run) {
             return;
         }
-        $counts = DB::table('sample_request_items')->where('sample_request_id', $req->id)
+        // [P42] partiyaning barcha buyurtmalari (guruhlar bo'yicha bo'lingan bo'lsa — bir nechta)
+        $reqs = $this->runRequests($run);
+        $ids = $reqs->pluck('id')->all();
+        $counts = DB::table('sample_request_items')->whereIn('sample_request_id', $ids ?: [0])
             ->select('status', DB::raw('count(*) as n'))->groupBy('status')->pluck('n', 'status');
         $recv = (int) ($counts['received'] ?? 0);
         $all = (int) $counts->sum();
-        $status = match ($req->status) {
-            'submitted'           => 'ordered',
-            'partial', 'received' => $recv && $recv < $all ? 'partial' : ($recv ? 'received' : 'missed'),
-            'cancelled'           => $req->auto_closed ? 'missed' : 'skipped',
-            default               => 'missed', // expired, rejected
-        };
+        $st = $reqs->pluck('status')->unique();
+        $waiting = $st->intersect(['submitted', 'partial'])->isNotEmpty();
+        if ($st->every(fn ($v) => $v === 'cancelled')) {
+            $status = $reqs->every(fn ($r) => (bool) $r->auto_closed) ? 'missed' : 'skipped';
+        } elseif ($recv) {
+            $status = $recv < $all ? 'partial' : 'received';
+        } else {
+            $status = $waiting ? 'ordered' : 'missed'; // expired, rejected
+        }
+        $closed = $reqs->first(fn ($r) => $r->close_reason_id || $r->close_reason);
+        $arrived = $reqs->filter(fn ($r) => $r->received_at)->sortBy('received_at')->first();
         $run->forceFill([
             'status'         => $status,
-            'arrived_at'     => $req->received_at,
-            'received_by'    => $req->received_by,
+            'arrived_at'     => $arrived?->received_at,
+            'received_by'    => $arrived?->received_by,
             'received_count' => $recv,
-            'missing_count'  => in_array($req->status, ['partial', 'submitted'], true) ? 0 : max(0, $all - $recv),
-            'reason_id'      => $req->close_reason_id ?: $run->reason_id,
-            'note'           => $status === 'skipped' ? mb_substr((string) $req->close_reason, 0, 500) : $run->note,
+            'missing_count'  => $waiting ? 0 : max(0, $all - $recv),
+            'reason_id'      => $closed?->close_reason_id ?: $run->reason_id,
+            'note'           => $status === 'skipped' ? mb_substr((string) $closed?->close_reason, 0, 500) : $run->note,
         ])->save();
+    }
+
+    /** [P42] Partiyaning buyurtmalari: asosiysi + guruhlar bo'yicha bo'linganlari */
+    public function runRequests(ScheduleRun $run): \Illuminate\Support\Collection
+    {
+        if (! $run->sample_request_id) {
+            return collect();
+        }
+        $q = SampleRequest::query()->where('id', $run->sample_request_id);
+        if (Schema::hasColumn('sample_requests', 'schedule_run_id')) {
+            $q->orWhere('schedule_run_id', $run->id);
+        }
+
+        return $q->orderBy('id')->get();
     }
 
     /* =============================================================== buyurtmachi: shu kun */
@@ -434,8 +525,13 @@ class RequestSchedules
     public function skip(ScheduleRun $run, User $user, ?string $note, ?int $reasonId = null): ScheduleRun
     {
         if ($run->sample_request_id) {
-            $req = SampleRequest::findOrFail($run->sample_request_id);
-            $this->requests->cancel($req, $user, $note, $reasonId); // syncRun o'zi chaqiriladi
+            $open = $this->runRequests($run)->filter(fn ($r) => in_array($r->status, ['submitted', 'expired', 'draft'], true));
+            if ($open->isEmpty()) {
+                $this->requests->cancel(SampleRequest::findOrFail($run->sample_request_id), $user, $note, $reasonId); // odatdagi xato matni
+            }
+            foreach ($open as $req) {
+                $this->requests->cancel($req, $user, $note, $reasonId); // syncRun o'zi chaqiriladi
+            }
             $run->refresh();
             $this->notifyLab($run, 'skipped');
 
@@ -589,8 +685,13 @@ class RequestSchedules
             'contact_phone'  => $p['contact_phone'] ?? null,
             'group_id'       => $p['laboratory_group_id'] ?? null,
             'request_id'     => $run->sample_request_id ? (int) $run->sample_request_id : null,
-            'request_number' => $run->sample_request_id ? SampleRequest::whereKey($run->sample_request_id)->value('number') : null,
-            'codes'          => self::codesFor($p['items'] ?? [], $run->planned_time), // [P39] buyurtmadagi shifrlar
+            'request_number' => $run->sample_request_id ? ($reqs = $this->runRequests($run))->pluck('number')->filter()->implode(', ') : null,
+            // [P39] buyurtmadagi shifrlar; [P42] buyurtma yaratilgan bo'lsa — buyurtmaning o'zidan
+            'codes'          => $run->sample_request_id
+                ? DB::table('sample_request_items')->whereIn('sample_request_id', $reqs->pluck('id')->all() ?: [0])
+                    ->orderBy('sample_request_id')->orderBy('position')->pluck('customer_code')->map(fn ($c) => (string) $c)->all()
+                : self::codesFor($p['items'] ?? [], $run->planned_time, null, $this->itemGroups(array_values($p['items'] ?? []), $p)),
+            'requests'       => $run->sample_request_id ? $reqs->map(fn ($r) => ['id' => (int) $r->id, 'number' => $r->number, 'status' => $r->status])->values() : [],
             'arrived_at'     => $run->arrived_at?->toDateTimeString(),
             'received_by'    => $run->received_by ? User::withTrashed()->find($run->received_by)?->name : null,
             'received_count' => (int) $run->received_count,

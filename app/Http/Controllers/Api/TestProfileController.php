@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\LogsActivity;
 use App\Http\Controllers\Controller;
+use App\Models\LaboratoryGroup;
 use App\Models\TestProfile;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Sinov profillari — TZ 2.10: obyekt kategoriyasiga qarab
@@ -17,7 +20,7 @@ class TestProfileController extends Controller
 
     public function index(Request $request)
     {
-        $query = TestProfile::query()->with(['elements', 'laboratory']);
+        $query = TestProfile::query()->with(array_merge(['elements', 'laboratory'], $this->hasGroups() ? ['groups'] : []));
 
         if ($request->filled('object_type')) {
             $query->where(function ($q) use ($request) {
@@ -44,11 +47,12 @@ class TestProfileController extends Controller
         $data = $this->validateData($request);
         $profile = TestProfile::create($data);
         $profile->elements()->sync($data['element_ids'] ?? []);
+        $this->syncGroups($profile, $data);
         $this->ensureSingleDefault($profile);
 
         $this->logActivity('created', $profile, null, "Sinov profili qo'shildi: {$profile->code}");
 
-        return response()->json($profile->load('elements'), 201);
+        return response()->json($profile->load($this->relations()), 201);
     }
 
     public function update(Request $request, TestProfile $testProfile)
@@ -58,20 +62,56 @@ class TestProfileController extends Controller
         if (array_key_exists('element_ids', $data)) {
             $testProfile->elements()->sync($data['element_ids'] ?? []);
         }
+        $this->syncGroups($testProfile, $data);
         $this->ensureSingleDefault($testProfile);
 
         $this->logActivity('updated', $testProfile, null, "Sinov profili yangilandi: {$testProfile->code}");
 
-        return response()->json($testProfile->load('elements'));
+        return response()->json($testProfile->load($this->relations()));
     }
 
     public function destroy(TestProfile $testProfile)
     {
         $code = $testProfile->code;
+        if ($this->hasGroups()) {
+            $testProfile->groups()->detach();
+        }
         $testProfile->delete();
         $this->logActivity('deleted', $testProfile, null, "Sinov profili o'chirildi: {$code}");
 
         return response()->json(['message' => 'O\'chirildi']);
+    }
+
+    private function hasGroups(): bool
+    {
+        return Schema::hasTable('test_profile_groups');
+    }
+
+    private function relations(): array
+    {
+        return $this->hasGroups() ? ['elements', 'groups'] : ['elements'];
+    }
+
+    /**
+     * [P42] Mas'ul guruhlar — kelgan tartibda (1, 2, …). Laboratoriya tanlangan bo'lsa — faqat o'sha laboratoriya guruhlari.
+     */
+    private function syncGroups(TestProfile $profile, array $data): void
+    {
+        if (! $this->hasGroups() || ! array_key_exists('group_ids', $data)) {
+            return;
+        }
+        $ids = array_values(array_unique(array_map('intval', (array) ($data['group_ids'] ?? []))));
+        if ($ids && $profile->laboratory_id) {
+            $foreign = LaboratoryGroup::whereIn('id', $ids)->where('laboratory_id', '!=', $profile->laboratory_id)->pluck('id')->all();
+            if ($foreign) {
+                throw ValidationException::withMessages(['group_ids' => ["Mas'ul guruh profil laboratoriyasiga tegishli bo'lishi kerak"]]);
+            }
+        }
+        $sync = [];
+        foreach ($ids as $i => $id) {
+            $sync[$id] = ['sort_order' => $i + 1];
+        }
+        $profile->groups()->sync($sync);
     }
 
     // Bir obyekt turiga faqat bitta standart profil bo'lishi mumkin
@@ -98,6 +138,8 @@ class TestProfileController extends Controller
             'sort_order'    => ['nullable', 'integer'],
             'element_ids'   => ['nullable', 'array'],
             'element_ids.*' => ['exists:elements,id'],
+            'group_ids'     => ['nullable', 'array', 'max:20'],          // [P42] mas'ul guruhlar (tartib bilan)
+            'group_ids.*'   => ['integer', 'exists:laboratory_groups,id'],
         ]);
     }
 }

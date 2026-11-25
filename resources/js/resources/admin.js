@@ -239,6 +239,9 @@ export const testProfileResource = {
       format: (r, { t }) => (r.object_type ? t(`objectType.${r.object_type}`) : t('common.all')) },
     { key: 'elements', labelKey: 'profile.elements', nowrap: false,
       format: (r) => (r.elements ?? []).map((e) => e.symbol).join(', ') || '—' },
+    // [P42] mas'ul guruhlar — tartib bo'yicha (1-si sukut bo'yicha)
+    { key: 'groups', labelKey: 'profile.groups', nowrap: false,
+      format: (r) => (r.groups ?? []).map((g, i) => `${i + 1}. ${localized(g, 'name') || g.code}`).join(', ') || '—' },
     { key: 'is_default', labelKey: 'profile.isDefault', type: 'bool' },
     { key: 'is_active', labelKey: 'catalog.isActive', type: 'bool' },
   ],
@@ -278,6 +281,11 @@ export const testProfileResource = {
             source: 'elements', fromRelation: 'elements', col: 2 },
           { key: 'laboratory_id', type: 'relation', labelKey: 'profile.laboratory', source: 'laboratories' },
           { key: 'sort_order', type: 'number', labelKey: 'catalog.sortOrder', default: 0 },
+          // [P42] mas'ul guruhlar: laboratoriya guruhlari, tartib bilan; 1-si buyurtmada avtomatik tanlanadi
+          { key: 'group_ids', type: 'ordered-multi', labelKey: 'profile.groups', hintKey: 'profile.groupsHint',
+            source: 'executorGroups', fromRelation: 'groups', dependsOn: 'laboratory_id', requireDependsOn: true,
+            dependsOnKey: 'profile.groupsChooseLab', emptyKey: 'profile.groupsNone', addKey: 'profile.groupsAdd', col: 2,
+            filterOptions: (o, form) => !!form.laboratory_id && Number(o.laboratory_id) === Number(form.laboratory_id) },
           { key: 'is_default', type: 'switch', labelKey: 'profile.isDefault', hintKey: 'profile.isDefaultHint' },
           { key: 'is_active', type: 'switch', labelKey: 'catalog.isActive', default: true },
         ],

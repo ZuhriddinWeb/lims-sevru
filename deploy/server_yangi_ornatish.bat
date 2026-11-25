@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 41 holati, 2026-11-24)
+rem  LIMS - YANGI SERVERGA NOLDAN O'RNATISH (Paket 42 holati, 2026-11-25)
 rem
 rem  Oldindan (SERVERGA_NOLDAN_ORNATISH.txt, 1-4 bo'limlar):
 rem    - PHP 8.2+, ODBC + pdo_sqlsrv, Composer, Git, IIS; SQL Server'da BO'SH baza va login
@@ -91,6 +91,7 @@ call :need app\Services\Samples\RequestSchedules.php "Paket 36: grafik bo'yicha 
 call :need database\migrations\2026_11_19_100000_drop_schedule_sheets_tables.php "Paket 38: P37 tozalash"
 call :need database\migrations\2026_11_19_110000_schedule_orders_and_closing.php "Paket 39: grafik - oddiy buyurtma"
 call :need app\Services\Samples\RequestSettings.php "Paket 39: buyurtma sozlamalari"
+call :need database\migrations\2026_11_25_100000_profile_groups_and_item_group.php "Paket 42: profil guruhlari"
 call :need database\seeders\SvodkaModuleSeeder.php "seeder: SvodkaModuleSeeder"
 call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
 call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"

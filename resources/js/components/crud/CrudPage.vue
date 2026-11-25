@@ -44,7 +44,7 @@ function resetForm(row = null) {
   Object.keys(form).forEach((k) => delete form[k])
   allFields.value.forEach((f) => {
     let v = row ? row[f.key] : (f.default ?? null)
-    if (f.type === 'multiselect') {
+    if (f.type === 'multiselect' || f.type === 'ordered-multi') { // [P42] tartibli ham
       v = row && f.fromRelation
         ? (row[f.fromRelation] ?? []).map((x) => f.relationKey ? Number(x[f.relationKey]) : x.id)
         : (Array.isArray(v) ? v : [])

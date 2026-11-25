@@ -105,8 +105,9 @@ class PortalScheduleController extends Controller
 
         return response()->json([
             'can_write'           => $ctx['write'],
-            'enabled_departments' => CustomerDepartment::whereIn('id', $ctx['enabled'] ?: [0])->orderBy('name')->get(['id', 'name'])
-                ->map(fn ($d) => ['id' => (int) $d->id, 'name' => $d->name])->values(),
+            'enabled_departments' => CustomerDepartment::whereIn('id', $ctx['enabled'] ?: [0])->orderBy('name')->get()
+                ->map(fn ($d) => ['id' => (int) $d->id, 'name' => $d->name,
+                    'svodka_manual' => \App\Services\Samples\RequestSchedules::svodkaManual($d)])->values(), // [P42]
             'data'                => $list->map(fn ($s) => $this->schedules->presentSchedule($s))->values(),
             'reasons'             => app(\App\Services\Samples\SampleRequests::class)->reasons(), // [P39] «Bugun yo'q» sabablari
             'code_time'           => (bool) app(\App\Services\Samples\RequestSettings::class)->get()['schedule_code_time'], // [P41]

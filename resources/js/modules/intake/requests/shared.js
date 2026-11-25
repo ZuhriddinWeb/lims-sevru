@@ -29,7 +29,7 @@ export function nameOf(item, locale) {
 export function blankItem(o = {}) {
   return {
     customer_code: '', state_of_matter: 'solid', test_profile_id: null, element_ids: [],
-    quantity: '', quantity_unit: 'g', notes: '', svodka_point_id: '', group_code: '', ...o,
+    quantity: '', quantity_unit: 'g', notes: '', svodka_point_id: '', group_code: '', laboratory_group_id: '', ...o, // [P42] guruh
   }
 }
 
@@ -55,6 +55,7 @@ export function toForm(r) {
       notes: i.notes ?? '',
       svodka_point_id: i.svodka_point_id ?? '', // [P29]
       group_code: i.group_code ?? '', // [P30]
+      laboratory_group_id: i.laboratory_group_id ?? '', // [P42]
     })),
   }
 }
@@ -81,6 +82,7 @@ export function toPayload(form) {
       notes: (i.notes || '').trim() || null,
       svodka_point_id: i.svodka_point_id ? Number(i.svodka_point_id) : null, // [P29]
       group_code: (i.group_code || '').trim() || null, // [P30]
+      laboratory_group_id: i.laboratory_group_id ? Number(i.laboratory_group_id) : null, // [P42] bo'sh — profilning 1-guruhi
     })),
   }
 }

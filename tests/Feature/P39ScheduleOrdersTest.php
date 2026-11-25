@@ -384,7 +384,7 @@ class P39ScheduleOrdersTest extends TestCase
         $this->enable($this->dept);
         $this->actingAs($this->customer)->postJson('/api/portal/schedules', ['name' => 'A', 'time' => '08:00', 'weekdays' => [3], 'payload' => $this->payload() + ['laboratory_group_id' => $groups[0]]])->assertCreated();
         $this->actingAs($this->customer)->postJson('/api/portal/schedules', ['name' => 'B', 'time' => '09:00', 'weekdays' => [3], 'payload' => $this->payload()])
-            ->assertStatus(422)->assertJsonValidationErrors('payload.laboratory_group_id');
+            ->assertStatus(422)->assertJsonValidationErrors('payload.items.0.laboratory_group_id'); // [P42] guruh — namunada
         $this->at('2026-11-18 07:00');
         $this->tick();
         $this->operator->update(['laboratory_group_id' => $groups[1]]);

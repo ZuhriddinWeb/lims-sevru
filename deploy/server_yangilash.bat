@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 41), 2026-11-24
+rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 42), 2026-11-25
 rem  Server qaysi holatda bo'lishidan qat'i nazar: faqat yetishmaganini qo'shadi.
 rem  Oraliq paketlar o'tkazib yuborilgan server ham shu bitta skript bilan to'liq bo'ladi.
 rem
@@ -71,6 +71,7 @@ call :need app\Services\Samples\RequestSchedules.php "Paket 36: grafik bo'yicha 
 call :need database\migrations\2026_11_19_100000_drop_schedule_sheets_tables.php "Paket 38: P37 tozalash"
 call :need database\migrations\2026_11_19_110000_schedule_orders_and_closing.php "Paket 39: grafik - oddiy buyurtma"
 call :need app\Services\Samples\RequestSettings.php "Paket 39: buyurtma sozlamalari"
+call :need database\migrations\2026_11_25_100000_profile_groups_and_item_group.php "Paket 42: profil guruhlari"
 call :need app\Console\Commands\WorksheetPushResults.php "Paket 31: worksheets:natija-otkaz"
 call :need database\seeders\WorksheetModuleSeeder.php "seeder: WorksheetModuleSeeder"
 call :need database\seeders\InterlabModuleSeeder.php "seeder: InterlabModuleSeeder"
@@ -184,7 +185,7 @@ if errorlevel 1 (
   goto :after_migrate
 )
 echo.
-echo   Server holatiga qarab 1 tadan 22 tagacha bo'lishi mumkin - ro'yxat SERVERGA_YANGILASH.txt, 4-jadvalda.
+echo   Server holatiga qarab 1 tadan 23 tagacha bo'lishi mumkin - ro'yxat SERVERGA_YANGILASH.txt, 4-jadvalda.
 echo   Nomi 2026_10_ yoki 2026_11_ bilan boshlanmagan migratsiya bo'lsa - to'xtating va ichini ko'ring.
 set /p GO=Shu migratsiyalar bajarilsinmi? [ha/yoq]:
 if /i not "%GO%"=="ha" (

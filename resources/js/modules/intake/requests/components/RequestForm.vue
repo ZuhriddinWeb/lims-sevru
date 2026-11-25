@@ -12,6 +12,7 @@ import { blankItem, fieldError, nameOf } from '../shared'
 import '../i18n'
 import '../../svodka/i18n' // [P29]
 import '../i18nP39' // [P39]
+import '../i18nP42' // [P42]
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -28,26 +29,48 @@ const { t, locale } = useI18n()
 
 const err = (k) => fieldError(props.errors, k)
 
-/* [P33] Bir buyurtmada takrorlangan shifr — xato emas, faqat ogohlantirish (bir xil shifr turli guruh/nuqtaga) */
+const groups = computed(() => props.options.groups ?? []) // [P30]
+
+/* [P42] Guruh — har namunada: qo'lda tanlangani → profilning 1-mas'ul guruhi → buyurtma guruhi (eski) */
+const itemGroups = computed(() => !!props.options.item_groups && groups.value.length > 0)
+const groupById = computed(() => Object.fromEntries(groups.value.map((g) => [Number(g.id), g])))
+const profileGroupIds = (item) => (props.options.profiles ?? []).find((p) => Number(p.id) === Number(item.test_profile_id))?.group_ids ?? []
+const defaultGroup = (item) => profileGroupIds(item).map(Number).find((id) => groupById.value[id]) || Number(props.form.laboratory_group_id) || null
+const effGroup = (item) => (itemGroups.value ? Number(item.laboratory_group_id) || defaultGroup(item) || 0 : 0)
+const autoLabel = (item) => {
+  const p = profileGroupIds(item).map(Number).find((id) => groupById.value[id])
+  if (p) return t('sreq.p42.auto', { name: nameOf(groupById.value[p], locale.value) })
+  const r = Number(props.form.laboratory_group_id)
+  if (r && groupById.value[r]) return t('sreq.p42.byRequest', { name: nameOf(groupById.value[r], locale.value) })
+  return t('sreq.p42.choose')
+}
+const ownGroups = (item) => profileGroupIds(item).map(Number).filter((id) => groupById.value[id]).map((id) => groupById.value[id])
+const otherGroups = (item) => { const own = new Set(profileGroupIds(item).map(Number)); return groups.value.filter((g) => !own.has(Number(g.id))) }
+/* yuborilganda nechta buyurtma bo'ladi (har guruhga alohida) */
+const splitCount = computed(() => (itemGroups.value ? new Set(props.form.items.map((i) => effGroup(i)).filter(Boolean)).size : 0))
+
+/* [P33] Bir buyurtmada takrorlangan shifr — xato emas, faqat ogohlantirish (bir xil shifr turli guruh/nuqtaga)
+   [P42] turli guruhlarga bir xil shifr — odatiy (bitta namuna, ikki guruh tahlili), ogohlantirilmaydi */
+const codeKey = (item) => `${(item.customer_code || '').trim()}\u001f${effGroup(item)}`
 const dupCodes = computed(() => {
   const seen = {}
   props.form.items.forEach((i) => {
-    const c = (i.customer_code || '').trim()
-    if (c) seen[c] = (seen[c] || 0) + 1
+    if ((i.customer_code || '').trim()) seen[codeKey(i)] = (seen[codeKey(i)] || 0) + 1
   })
   return seen
 })
-const isDup = (item) => (dupCodes.value[(item.customer_code || '').trim()] || 0) > 1
-/* [P39] grafik buyurtmasidagi shifr (server RequestSchedules::codesFor bilan bir xil) */
+const isDup = (item) => (dupCodes.value[codeKey(item)] || 0) > 1
+/* [P39] grafik buyurtmasidagi shifr (server RequestSchedules::codesFor bilan bir xil; [P42] takror — guruh ichida) */
 function previewCode(i) {
-  const list = props.form.items.map((x) => (x.customer_code || '').trim())
-  const p = list[i]
+  const items = props.form.items
+  const p = (items[i].customer_code || '').trim()
   let code = !props.codeWithTime ? p : (p ? `${p}-${props.codeTime}` : props.codeTime)
   if (!code) return '—'
-  if (list.filter((x) => x === p).length > 1) code += `/${list.slice(0, i + 1).filter((x) => x === p).length}`
+  const k = (x) => `${(x.customer_code || '').trim()}\u001f${effGroup(x)}`
+  const same = items.filter((x) => k(x) === k(items[i]))
+  if (same.length > 1) code += `/${items.slice(0, i + 1).filter((x) => k(x) === k(items[i])).length}`
   return code
 }
-const groups = computed(() => props.options.groups ?? []) // [P30]
 
 /* [P29] Svodka: bo'lim svodka rejimida bo'lsa — sana/navbatchilik va har namunaga nuqta (faqat buyurtmachiga keladi) */
 const sv = computed(() => props.options.svodka?.[props.form.department_id] ?? null)
@@ -76,7 +99,7 @@ function addItem() {
   // yangi qator oldingisining «nima aniqlanadi» qismini oladi — odatda bir xil namunalar ketma-ket
   props.form.items.push(blankItem(last ? {
     state_of_matter: last.state_of_matter, test_profile_id: last.test_profile_id,
-    element_ids: [...last.element_ids], quantity_unit: last.quantity_unit,
+    element_ids: [...last.element_ids], quantity_unit: last.quantity_unit, laboratory_group_id: last.laboratory_group_id ?? '',
   } : {}))
 }
 
@@ -103,7 +126,7 @@ function remove(i) {
         <p v-if="err('department_id')" class="mt-1.5 text-[12.5px] text-crit">{{ err('department_id') }}</p>
       </div>
       <!-- [P30] qaysi laboratoriya guruhiga -->
-      <div v-if="groups.length" class="sm:col-span-2 lg:col-span-2">
+      <div v-if="groups.length && !itemGroups" class="sm:col-span-2 lg:col-span-2">
         <label class="field-label">{{ t('sreq.group.label') }}<template v-if="options.group_required"> *</template></label>
         <select
           v-model="form.laboratory_group_id" class="field-input"
@@ -176,6 +199,7 @@ function remove(i) {
         </button>
       </div>
       <p v-if="err('items')" class="px-4 pt-3 text-[12.5px] text-crit">{{ err('items') }}</p>
+      <p v-if="splitCount > 1 && !templateMode" class="mx-4 mt-3 rounded-md bg-aqua-50 px-3 py-2 text-[12.5px] text-aqua-700 dark:bg-aqua-800/25 dark:text-aqua-200" data-split-warn>{{ t('sreq.p42.splitWarn', { n: splitCount }) }}</p>
 
       <p v-if="!form.items.length" class="px-4 py-8 text-center text-[13.5px] text-ink-muted" data-no-items>{{ t('sreq.form.noItems') }}</p>
 
@@ -238,6 +262,24 @@ function remove(i) {
               v-model:profile-id="item.test_profile_id" v-model:element-ids="item.element_ids"
               :elements="options.elements" :profiles="options.profiles" :error="err(`items.${i}.element_ids`)"
             />
+            <!-- [P42] namuna qaysi guruhga: sukut — profilning 1-mas'ul guruhi; o'zgartirish mumkin -->
+            <div v-if="itemGroups" class="mt-1.5">
+              <label class="field-label lg:sr-only">{{ t('sreq.p42.group') }}</label>
+              <select
+                v-model="item.laboratory_group_id" class="field-input h-[34px] text-[13px]"
+                :class="[err(`items.${i}.laboratory_group_id`) && 'field-input-error', !item.laboratory_group_id && 'text-ink-muted']"
+                :title="t('sreq.p42.groupHint')" data-f="item-group"
+              >
+                <option value="">{{ autoLabel(item) }}</option>
+                <optgroup v-if="ownGroups(item).length" :label="t('sreq.p42.profileGroups')">
+                  <option v-for="(g, n) in ownGroups(item)" :key="g.id" :value="g.id" class="text-ink">{{ n + 1 }}. {{ nameOf(g, locale) }}</option>
+                </optgroup>
+                <optgroup :label="ownGroups(item).length ? t('sreq.p42.otherGroups') : t('sreq.p42.group')">
+                  <option v-for="g in otherGroups(item)" :key="g.id" :value="g.id" class="text-ink">{{ nameOf(g, locale) }}</option>
+                </optgroup>
+              </select>
+              <p v-if="err(`items.${i}.laboratory_group_id`)" class="mt-1 text-[12px] text-crit" data-item-group-error>{{ err(`items.${i}.laboratory_group_id`) }}</p>
+            </div>
           </div>
 
           <div class="col-start-2 lg:col-start-auto flex gap-1.5">

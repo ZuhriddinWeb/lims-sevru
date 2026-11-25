@@ -52,6 +52,7 @@ class RequestSettingsController extends Controller
                 'lead_minutes'  => $d->schedule_lead_minutes !== null ? (int) $d->schedule_lead_minutes : null,
                 'expire_mode'   => $d->schedule_expire_mode ?: null,
                 'expire_hours'  => $d->schedule_expire_hours ? (int) $d->schedule_expire_hours : null,
+                'svodka_manual' => RequestSchedules::svodkaManual($d), // [P42]
                 'schedules'     => $sched ? RequestSchedule::where('customer_department_id', $d->id)->where('is_active', true)->count() : 0,
             ])->values(),
             'reasons'      => CloseReason::orderBy('sort_order')->orderBy('id')->get()->map(fn ($r) => $this->reason($r))->values(),
@@ -85,6 +86,7 @@ class RequestSettingsController extends Controller
             'lead_minutes' => ['nullable', 'integer', 'between:0,720'],
             'expire_mode'  => ['nullable', Rule::in(RequestSettings::EXPIRE_MODES)],
             'expire_hours' => ['nullable', 'integer', 'between:1,72'],
+            'svodka_manual'=> ['nullable', 'boolean'], // [P42] grafikda hisobot kuni/navbatchiligini buyurtmachi belgilaydi
         ]);
         abort_unless(RequestSchedules::available(), 503, "Grafik moduli o'rnatilmagan");
         $d = CustomerDepartment::findOrFail($id);
@@ -94,7 +96,8 @@ class RequestSettingsController extends Controller
             'schedule_lead_minutes' => $data['lead_minutes'] ?? null,
             'schedule_expire_mode'  => $data['expire_mode'] ?? null,
             'schedule_expire_hours' => $data['expire_hours'] ?? null,
-        ])->save();
+        ] + (Schema::hasColumn('customer_departments', 'schedule_svodka_manual') && array_key_exists('svodka_manual', $data)
+            ? ['schedule_svodka_manual' => (bool) $data['svodka_manual']] : []))->save();
         $this->log($request, 'CustomerDepartment', $d->id, "Grafik sozlamasi: {$d->name} — " . ($data['enabled'] ? 'yoqilgan' : "o'chirilgan")
             . ", kechikish {$d->schedule_late_minutes} daq., oldin " . ($d->schedule_lead_minutes ?? 'umumiy') . ', muddat ' . ($d->schedule_expire_mode ?? 'umumiy'));
 

@@ -453,6 +453,12 @@ export default {
   },
 
   profile: {
+    groups: 'Mas‘ul guruhlar',
+    groupsHint: 'Tartib bo‘yicha: 1-guruh buyurtmada avtomatik tanlanadi (nofaol bo‘lsa — keyingisi)',
+    groupsAdd: 'Guruh qo‘shish',
+    groupsNone: 'Guruh tanlanmagan',
+    groupsChooseLab: 'Avval laboratoriyani tanlang',
+    up: 'Yuqoriga', down: 'Pastga', remove: 'Olib tashlash',
     title: 'Sinov profillari',
     subtitle: 'Obyekt kategoriyasi bo‘yicha elementlar to‘plami',
     one: 'Sinov profili',

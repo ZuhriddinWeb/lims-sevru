@@ -80,7 +80,7 @@ function buildRows(r) {
     received_quantity: '',
     quantity_unit: i.quantity_unit || 'g',
     planned: i.quantity !== null && i.quantity !== undefined ? `${i.quantity} ${i.quantity_unit || ''}` : '',
-    assigned_group_id: r.laboratory_group_id ?? '', // [P30] buyurtmachi tanlagan guruh
+    assigned_group_id: i.laboratory_group_id ?? r.laboratory_group_id ?? '', // [P30] buyurtmachi tanlagan guruh; [P42] namunaniki
     group_code: i.group_code ?? '', // [P30] faqat o'sha guruh xodimiga keladi
     notes: i.notes ?? '',
   }))

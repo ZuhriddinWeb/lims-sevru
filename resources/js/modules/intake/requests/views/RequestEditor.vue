@@ -20,6 +20,7 @@ import TemplateBar from '../components/TemplateBar.vue' // [P33] shablon tugmala
 import { apiErrorMessage, blankItem, printSlip, toForm, toPayload } from '../shared'
 import { contactNotice } from '../contacts' // [P34]
 import '../i18nP39' // [P39]
+import '../i18nP42' // [P42]
 import '../i18n'
 import '../i18nP34'
 
@@ -125,7 +126,9 @@ async function save(submit = false) {
       ? await api.put(`${base.value}/${id.value}`, body)
       : await api.post(base.value, body)
     fill(data)
-    if (submit) ui.success(t('sreq.msg.submitted', { n: data.number }))
+    // [P42] guruhlar bo'yicha bo'lingan bo'lsa — hamma raqamlar
+    if (submit && data.split?.length) ui.success(t('sreq.p42.submittedSplit', { list: [data.number, ...data.split.map((x) => x.number)].join(', ') }))
+    else if (submit) ui.success(t('sreq.msg.submitted', { n: data.number }))
     else ui.success(t('sreq.msg.saved'))
     if (submit) {
       // [P34] bo'linma xodimlari ro'yxati: yangi xodim / yangi telefon

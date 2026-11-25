@@ -24,6 +24,7 @@ class SampleRequest extends Model
         'laboratory_group_id',                  // [P30] buyurtmachi tanlagan laboratoriya guruhi
         'handed_over_phone',                    // [P33] olib kelgan shaxs telefoni (qabulda)
         'scheduled_at', 'late_entry', 'received_entered_at', 'close_reason_id', 'auto_closed', // [P39]
+        'split_key', 'schedule_run_id',         // [P42] guruhlar bo'yicha bo'lingan; grafik partiyasi
     ];
 
     // SQL Server butun sonlarni satr qilib qaytaradi — JSON'da doim son bo'lsin

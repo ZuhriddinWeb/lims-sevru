@@ -453,6 +453,12 @@ export default {
   },
 
   profile: {
+    groups: 'Groups in charge',
+    groupsHint: 'In order: the 1st group is picked in requests automatically (if inactive — the next)',
+    groupsAdd: 'Add group',
+    groupsNone: 'No groups',
+    groupsChooseLab: 'Choose the laboratory first',
+    up: 'Up', down: 'Down', remove: 'Remove',
     title: 'Test profiles',
     subtitle: 'Element sets by object category',
     one: 'Test profile',

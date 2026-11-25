@@ -12,6 +12,7 @@ class SampleRequestItem extends Model
         'quantity', 'quantity_unit', 'notes', 'status', 'sample_id',
         'svodka_point_id', // [P29] buyurtmachi svodkasidagi nuqta — laboratoriyaga ko'rsatilmaydi
         'group_code',      // [P30] guruh shifri — faqat buyurtmachi va tanlangan guruhga
+        'laboratory_group_id', // [P42] namuna qaysi guruhga (bo'sh — profilning 1-mas'ul guruhi)
     ];
 
     protected $casts = [
@@ -21,6 +22,7 @@ class SampleRequestItem extends Model
         'test_profile_id'   => 'integer',
         'sample_id'         => 'integer',
         'svodka_point_id'   => 'integer',
+        'laboratory_group_id' => 'integer',
         'element_ids'       => 'array',
         'quantity'          => 'float',
     ];
