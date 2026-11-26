@@ -51,6 +51,10 @@ class SampleIntakeServiceProvider extends ServiceProvider
         if (class_exists(\App\Providers\SvodkaServiceProvider::class)) {
             $this->app->register(\App\Providers\SvodkaServiceProvider::class);
         }
+        // [P44] Markaziy portalga uzatish
+        if (class_exists(\App\Providers\CentralLinkServiceProvider::class)) {
+            $this->app->register(\App\Providers\CentralLinkServiceProvider::class);
+        }
 
         $this->app->scoped(CustomerPortal::class);
         $this->app->scoped(SampleLedger::class);

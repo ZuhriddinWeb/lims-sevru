@@ -5,6 +5,7 @@ import worksheetRoutes from '@/modules/worksheets/routes' // Ishchi varaqlar (si
 import interlabRoutes from '@/modules/interlab/routes'
 import intakeRoutes, { installPortalGuard } from '@/modules/intake/routes' // [P15]
 import insightsRoutes from '@/modules/insights/routes' // [P16] Rahbariyat paneli 2.0, smenalar
+import centralRoutes from '@/modules/central/routes' // [P44] Markaziy portalga uzatish
 
 const routes = [
   {
@@ -198,6 +199,7 @@ const routes = [
 
       /* ---- [P16] Rahbariyat paneli 2.0 (eski panel: /executive/classic) va smenalar ---- */
       ...insightsRoutes,
+      ...centralRoutes,
       {
         path: ":pathMatch(.*)*",
         name: "not-found",

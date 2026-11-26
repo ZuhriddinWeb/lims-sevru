@@ -1,6 +1,6 @@
 ===========================================================================
  LIMS — YANGI SERVERGA NOLDAN O'RNATISH (BOSHQA ZAVOD / LABORATORIYA UCHUN)
- Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 43, 2026-11-26
+ Windows + XAMPP (Apache) yoki IIS + SQL Server.   Holat: Paket 44, 2026-11-26
 ===========================================================================
 
 Bu yo'riqnoma dastur BIRINCHI MARTA qo'yiladigan server uchun (bo'sh baza).
@@ -31,7 +31,7 @@ TARTIB
 ---------------------------------------------------------------------------
  [ ] Repoda eng oxirgi versiya bo'lsin. Lokal kompyuterda (E:\ai projects\lims-sevru):
          git status --short          → bo'sh
-         git log -1 --oneline        → oxirgi paket (hozir: Paket 43)
+         git log -1 --oneline        → oxirgi paket (hozir: Paket 44)
      Yoyilmagan paket bo'lsa — avval yoying, npm run build, git add -f public/build, commit, push.
  [ ] Server: Windows Server 2019/2022 (yoki Windows 10/11), 4+ GB RAM, 20+ GB bo'sh disk.
  [ ] Server IP manzili va port (masalan 192.168.X.Y : 3010).

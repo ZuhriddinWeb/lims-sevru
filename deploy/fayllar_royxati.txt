@@ -2,7 +2,7 @@ app\Console\Commands\HelpAsk.php | paket21_yordamchi
 app\Console\Commands\HelpImport.php | yordamchi_tuzatish_2
 app\Console\Commands\InstallState.php | ornatish_va_yangilash
 app\Console\Commands\InterlabSync.php | paket14_laboratoriyalararo_v2
-app\Console\Commands\LimsUpgrade.php | paket38_tozalash
+app\Console\Commands\LimsUpgrade.php | paket44_markaziy_portal
 app\Console\Commands\SampleRequestsExpire.php | paket39_grafik_buyurtma
 app\Console\Commands\SetPassword.php | ornatish_va_yangilash
 app\Console\Commands\WorksheetAddTotals.php | paket23_varaq_jami
@@ -51,7 +51,7 @@ app\Models\WorksheetTemplateColumn.php | paket15_buyurtmachi_miqdor
 app\Providers\DatabaseTypesServiceProvider.php | tuzatish_natija_kiritish
 app\Providers\InterlabServiceProvider.php | paket14_laboratoriyalararo_v2
 app\Providers\LabInsightsServiceProvider.php | paket16_17_tuzatish_1
-app\Providers\SampleIntakeServiceProvider.php | paket30_guruh
+app\Providers\SampleIntakeServiceProvider.php | paket44_markaziy_portal
 app\Providers\SampleRequestServiceProvider.php | paket39_grafik_buyurtma
 app\Services\Help\HelpAssistant.php | paket21_yordamchi
 app\Services\Help\HelpMatcher.php | paket21_yordamchi
@@ -119,8 +119,8 @@ database\seeders\WorksheetModuleRemoveSeeder.php | yetishmagan_fayllar
 database\seeders\WorksheetModuleSeeder.php | yetishmagan_fayllar
 deploy\baza_yaratish.sql | ornatish_va_yangilash
 deploy\env.production.example | ornatish_va_yangilash
-deploy\server_yangi_ornatish.bat | paket43_filtr_saqlash
-deploy\server_yangilash.bat | paket43_filtr_saqlash
+deploy\server_yangi_ornatish.bat | paket44_markaziy_portal
+deploy\server_yangilash.bat | paket44_markaziy_portal
 deploy\web.config.example | paket35_video
 resources\js\components\crud\FormField.vue | paket42_profil_guruhlari
 resources\js\components\crud\FormulaInput.vue | tuzatish_switch
@@ -204,7 +204,7 @@ resources\js\modules\worksheets\views\WorksheetEntry.vue | paket16_rahbariyat_sm
 resources\js\modules\worksheets\views\WorksheetList.vue | paket15_buyurtmachi_miqdor
 resources\js\modules\worksheets\views\WorksheetPrint.vue | paket13_partiya_varaqlar
 resources\js\resources\admin.js | paket42_profil_guruhlari
-resources\js\router\index.js | paket15_33_marshrutlar
+resources\js\router\index.js | paket44_markaziy_portal
 resources\js\views\admin\RoleList.vue | tuzatish_rollar_ruxsatlar
 resources\js\views\samples\SampleList.vue | paket13_partiya_varaqlar
 routes\insights.php | paket21_yordamchi
@@ -253,7 +253,7 @@ app\Console\Commands\SvodkaTekshir.php | paket31_svodka_korish
 app\Console\Commands\WorksheetPushResults.php | paket31_svodka_korish
 database\migrations\2026_11_02_100000_create_svodka_viewers_table.php | paket31_svodka_korish
 resources\js\modules\intake\svodka\components\ViewersDialog.vue | paket31_svodka_korish
-deploy\tekshir_versiyalar.ps1 | paket43_filtr_saqlash
+deploy\tekshir_versiyalar.ps1 | paket44_markaziy_portal
 app\Http\Controllers\Api\Svodka\ResultAnalysisController.php | paket33_tuzatish_1
 app\Services\Svodka\ResultAnalysis.php | paket32_natija_tahlili
 resources\js\modules\intake\svodka\views\ResultAnalysis.vue | paket32_natija_tahlili
@@ -312,3 +312,12 @@ resources\js\i18n\locales\uz.js | paket42_profil_guruhlari
 database\migrations\2026_11_25_100000_profile_groups_and_item_group.php | paket42_profil_guruhlari
 resources\js\modules\intake\requests\i18nP42.js | paket42_profil_guruhlari
 resources\js\composables\useCrud.js | paket43_filtr_saqlash
+app\Services\Central\CentralLink.php | paket44_markaziy_portal
+app\Console\Commands\CentralPush.php | paket44_markaziy_portal
+app\Http\Controllers\Api\Central\CentralLinkController.php | paket44_markaziy_portal
+app\Providers\CentralLinkServiceProvider.php | paket44_markaziy_portal
+database\seeders\CentralLinkSeeder.php | paket44_markaziy_portal
+routes\central.php | paket44_markaziy_portal
+resources\js\modules\central\routes.js | paket44_markaziy_portal
+resources\js\modules\central\i18n.js | paket44_markaziy_portal
+resources\js\modules\central\views\CentralLink.vue | paket44_markaziy_portal

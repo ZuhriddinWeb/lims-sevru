@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 43), 2026-11-26
+rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 44), 2026-11-26
 rem  Server qaysi holatda bo'lishidan qat'i nazar: faqat yetishmaganini qo'shadi.
 rem  Oraliq paketlar o'tkazib yuborilgan server ham shu bitta skript bilan to'liq bo'ladi.
 rem
@@ -79,6 +79,8 @@ call :need database\seeders\SampleIntakeModuleSeeder.php "seeder: SampleIntakeMo
 call :need database\seeders\InsightsModuleSeeder.php "seeder: InsightsModuleSeeder"
 call :need database\seeders\SampleRequestModuleSeeder.php "seeder: SampleRequestModuleSeeder"
 call :need database\seeders\SvodkaModuleSeeder.php "seeder: SvodkaModuleSeeder"
+call :need app\Services\Central\CentralLink.php "Paket 44: markaziy portalga uzatish"
+call :need database\seeders\CentralLinkSeeder.php "seeder: CentralLinkSeeder"
 call :need app\Console\Commands\LimsUpgrade.php "lims:upgrade"
 call :need app\Console\Commands\InstallState.php "lims:install-state"
 if "%PRE%"=="1" (
