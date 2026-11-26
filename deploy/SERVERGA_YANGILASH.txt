@@ -1,5 +1,5 @@
 ===========================================================================
- ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 42)
+ ISHLAB TURGAN SERVERLARNI YANGILASH — barcha o'zgarishlar (Paket 13 … Paket 43)
  Holat: 2026-11-19
 ===========================================================================
 
@@ -82,6 +82,11 @@ TARTIB
       buyurtmalarga bo'linadi (shifr bir xil); O'rnatgach: Sinov profillari → har profilga laboratoriya va
       grafikda hisobot kuni/navbatchiligi     mas'ul guruh(lar). Guruhi yo'q profil tanlansa — namuna
       (bo'linma sozlamasida yoqiladi)         qatorida guruhni qo'lda tanlash kerak bo'ladi.
+  42b SQL Server: buyurtmani yuborishda      — (bazaga hech narsa).
+      «ORDER BY takror» xatosi tuzatildi
+  43  Ro'yxat sahifalarida (Namunalar va       — (bazaga hech narsa; brauzerda saqlanadi, foydalanuvchi
+      boshqalar) filtr/qidiruv/tartib          bo'yicha). Saqlangan filtr bo'lsa — filtr paneli ochiq turadi.
+      «Tozalash» bosilmaguncha saqlanadi
   Tuzatishlar: «Eritdi» + «Qaynatib eritdi» bosqichlari — shablonlarga BIR MARTALIK (lims:upgrade);
   natija kiritish (SQL Server), rollar, jami, eski fayllar va boshqalar — bazaga hech narsa.
 
@@ -188,7 +193,7 @@ TARTIB
 
      Skript qadamlari:
        1  kod to'liqligi: Paket 13–37 fayllari + deploy\tekshir_versiyalar.ps1 (har bir fayl
-          eng oxirgi versiyadami, public\build Paket 42 bilanmi). Farq bo'lsa so'raydi.
+          eng oxirgi versiyadami, public\build Paket 43 bilanmi). Farq bo'lsa so'raydi.
        2  PHP va kengaytmalar (pdo_sqlsrv, zip, …)
        3  .env (APP_KEY bor, DB_INTEGER_IDS=false emas) + baza holati
           (bo'sh/begona baza bo'lsa to'xtaydi — yangi server uchun server_yangi_ornatish.bat)

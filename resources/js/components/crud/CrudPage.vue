@@ -121,7 +121,7 @@ function exportFile() {
 }
 
 /* ---------- Filtrlar ---------- */
-const filtersOpen = ref(false)
+const filtersOpen = ref(crud.activeFilterCount.value > 0) // [P43] saqlangan filtr bo'lsa — panel ochiq
 const hasFilters = computed(() => (props.resource.filters ?? []).length > 0)
 
 watch(() => props.resource.filters?.map((f) => params[f.key]), () => {

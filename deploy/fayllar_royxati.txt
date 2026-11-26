@@ -119,8 +119,8 @@ database\seeders\WorksheetModuleRemoveSeeder.php | yetishmagan_fayllar
 database\seeders\WorksheetModuleSeeder.php | yetishmagan_fayllar
 deploy\baza_yaratish.sql | ornatish_va_yangilash
 deploy\env.production.example | ornatish_va_yangilash
-deploy\server_yangi_ornatish.bat | paket42_profil_guruhlari
-deploy\server_yangilash.bat | paket42_profil_guruhlari
+deploy\server_yangi_ornatish.bat | paket43_filtr_saqlash
+deploy\server_yangilash.bat | paket43_filtr_saqlash
 deploy\web.config.example | paket35_video
 resources\js\components\crud\FormField.vue | paket42_profil_guruhlari
 resources\js\components\crud\FormulaInput.vue | tuzatish_switch
@@ -253,7 +253,7 @@ app\Console\Commands\SvodkaTekshir.php | paket31_svodka_korish
 app\Console\Commands\WorksheetPushResults.php | paket31_svodka_korish
 database\migrations\2026_11_02_100000_create_svodka_viewers_table.php | paket31_svodka_korish
 resources\js\modules\intake\svodka\components\ViewersDialog.vue | paket31_svodka_korish
-deploy\tekshir_versiyalar.ps1 | paket42_profil_guruhlari
+deploy\tekshir_versiyalar.ps1 | paket43_filtr_saqlash
 app\Http\Controllers\Api\Svodka\ResultAnalysisController.php | paket33_tuzatish_1
 app\Services\Svodka\ResultAnalysis.php | paket32_natija_tahlili
 resources\js\modules\intake\svodka\views\ResultAnalysis.vue | paket32_natija_tahlili
@@ -305,9 +305,10 @@ resources\js\modules\intake\schedule\i18nP39.js | paket39_grafik_buyurtma
 resources\js\modules\intake\requests\i18nP41.js | paket41_shifr_soati
 app\Http\Controllers\Api\TestProfileController.php | paket42_profil_guruhlari
 app\Models\TestProfile.php | paket42_profil_guruhlari
-resources\js\components\crud\CrudPage.vue | paket42_profil_guruhlari
+resources\js\components\crud\CrudPage.vue | paket43_filtr_saqlash
 resources\js\i18n\locales\en.js | paket42_profil_guruhlari
 resources\js\i18n\locales\ru.js | paket42_profil_guruhlari
 resources\js\i18n\locales\uz.js | paket42_profil_guruhlari
 database\migrations\2026_11_25_100000_profile_groups_and_item_group.php | paket42_profil_guruhlari
 resources\js\modules\intake\requests\i18nP42.js | paket42_profil_guruhlari
+resources\js\composables\useCrud.js | paket43_filtr_saqlash

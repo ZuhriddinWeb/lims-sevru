@@ -1,6 +1,6 @@
 @echo off
 rem ======================================================================
-rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 42), 2026-11-25
+rem  LIMS - ISHLAB TURGAN SERVERNI YANGILASH (Paket 13 ... Paket 43), 2026-11-26
 rem  Server qaysi holatda bo'lishidan qat'i nazar: faqat yetishmaganini qo'shadi.
 rem  Oraliq paketlar o'tkazib yuborilgan server ham shu bitta skript bilan to'liq bo'ladi.
 rem

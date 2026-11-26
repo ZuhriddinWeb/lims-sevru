@@ -9,7 +9,7 @@
 #   YO'Q       - fayl umuman yo'q
 #   MAHALLIY   - siz lokalda o'zgartirgan fayl (belgi "mahalliy"): farq qilishi kutilgan, xato emas
 #   belgi "ixtiyoriy" - fayl bo'lmasa ham xato emas
-# Qo'shimcha: public\build (interfeys) Paket 42 bilan yig'ilganmi (P37 build bo'lsa - eski).
+# Qo'shimcha: public\build (interfeys) Paket 43 bilan yig'ilganmi (P37 build bo'lsa - eski).
 # Chiqish kodi: 0 - hammasi joyida; 1 - farq yoki yo'q fayl bor.
 
 $ErrorActionPreference = 'Stop'
@@ -54,17 +54,17 @@ foreach ($line in [System.IO.File]::ReadAllLines($list, $utf8)) {
     }
 }
 
-# Interfeys (public\build) - Paket 42 belgisi bo'lishi, P37 «Grafik jadvallari» bo'lmasligi kerak
+# Interfeys (public\build) - Paket 43 belgisi bo'lishi, P37 «Grafik jadvallari» bo'lmasligi kerak
 $build = 'yo''q'
 $assets = Join-Path $root 'public\build\assets'
 if (Test-Path -LiteralPath $assets) {
-    $hit = Get-ChildItem -LiteralPath $assets -Filter *.js | Select-String -SimpleMatch -Pattern 'data-sv-manual' -List | Select-Object -First 1
+    $hit = Get-ChildItem -LiteralPath $assets -Filter *.js | Select-String -SimpleMatch -Pattern 'lims:list:' -List | Select-Object -First 1
     $p37 = Get-ChildItem -LiteralPath $assets -Filter *.js | Select-String -SimpleMatch -Pattern 'schedule-sheet-templates' -List | Select-Object -First 1
     if ($hit -and -not $p37) { $build = 'ok' } elseif ($p37) { $build = 'eski (Paket 37)' } else { $build = 'eski' }
 }
 Write-Host ""
 if ($build -eq 'ok') {
-    Write-Host "public\build: Paket 42 bilan yig'ilgan" -ForegroundColor Green
+    Write-Host "public\build: Paket 43 bilan yig'ilgan" -ForegroundColor Green
 } else {
     Write-Host ("public\build: {0} - lokalda npm run build, git add -f public/build, commit, push" -f $build) -ForegroundColor Red
     $bad++

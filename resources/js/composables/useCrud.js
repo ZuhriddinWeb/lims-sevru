@@ -2,6 +2,22 @@ import { reactive, ref, computed, watch } from 'vue'
 import api from '@/lib/api'
 import { useUiStore } from '@/stores/ui'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
+
+/*
+ * [P43] Filtr, qidiruv va tartib saqlanadi — foydalanuvchi «Tozalash» ni bosmaguncha
+ * (namuna ichiga kirib qaytganda, boshqa menyuga o'tib qaytganda, sahifa yangilanganda ham).
+ * Filtrlar — localStorage (foydalanuvchi + resurs bo'yicha), sahifa raqami — sessionStorage (shu oyna).
+ * Brauzer saqlashga ruxsat bermasa — hech narsa buzilmaydi, oddiygidek ishlaydi.
+ */
+const store = {
+  get(kind, key) {
+    try { return JSON.parse((kind === 'session' ? sessionStorage : localStorage).getItem(key) || 'null') } catch { return null }
+  },
+  set(kind, key, val) {
+    try { (kind === 'session' ? sessionStorage : localStorage).setItem(key, JSON.stringify(val)) } catch { /* ruxsat yo'q */ }
+  },
+}
 
 /**
  * Har qanday resurs uchun ro'yxat + CRUD holatini boshqaradi.
@@ -26,6 +42,31 @@ export function useCrud(resource) {
     ...(resource.defaultFilters ?? {}),
   })
 
+  // [P43] saqlangan filtrlarni tiklash (faqat ma'lum kalitlar)
+  const persist = resource.persistFilters !== false && !!resource.endpoint
+  let userId = ''
+  try { userId = useAuthStore().user?.id ?? '' } catch { /* store yo'q */ }
+  const keyBase = `lims:list:${userId}:${resource.endpoint}`
+  const allowed = new Set([
+    'search', 'sort_by', 'sort_dir', 'per_page',
+    ...(resource.filters ?? []).map((f) => f.key),
+    ...Object.keys(resource.defaultFilters ?? {}),
+  ])
+  if (persist) {
+    const saved = store.get('local', keyBase)
+    if (saved && typeof saved === 'object') {
+      Object.entries(saved).forEach(([k, v]) => { if (allowed.has(k)) params[k] = v })
+    }
+    const page = Number(store.get('session', `${keyBase}:page`))
+    if (page > 1) params.page = page
+  }
+  const saveState = () => {
+    if (!persist) return
+    store.set('local', keyBase, Object.fromEntries(Object.entries(params).filter(([k]) => allowed.has(k))))
+    store.set('session', `${keyBase}:page`, params.page)
+  }
+  watch(params, saveState, { deep: true })
+
   const activeFilterCount = computed(() => {
     const ignore = ['page', 'per_page', 'search', 'sort_by', 'sort_dir']
     return Object.entries(params).filter(([k, v]) =>
@@ -49,6 +90,10 @@ export function useCrud(resource) {
           current_page: data.current_page, last_page: data.last_page,
           from: data.from, to: data.to, total: data.total,
         }
+      }
+      // [P43] saqlangan sahifa raqami endi yo'q bo'lsa (yozuvlar kamaygan) — oxirgi sahifaga
+      if (!rows.value.length && params.page > 1 && meta.value.last_page && params.page > meta.value.last_page) {
+        params.page = meta.value.last_page
       }
     } catch (e) {
       if (e.response?.status !== 403) ui.error(t('toast.error'))
