@@ -12,8 +12,15 @@
 */
 
 use App\Http\Controllers\Api\WorksheetController;
+use App\Http\Controllers\Api\WorksheetPrintSettingsController;
 use App\Http\Controllers\Api\WorksheetTemplateController;
 use Illuminate\Support\Facades\Route;
+
+/* ---------- [P45] Chop etish sozlamalari: QR va «Yaratdi / Tasdiqladi» bloki ---------- */
+Route::get('/worksheet-print-settings', [WorksheetPrintSettingsController::class, 'show'])
+    ->middleware('permission:worksheets.view|worksheet_templates.manage');
+Route::put('/worksheet-print-settings', [WorksheetPrintSettingsController::class, 'update'])
+    ->middleware('permission:worksheet_templates.manage');
 
 /* ---------- Shablonlar (konstruktor) ---------- */
 Route::get('/worksheet-templates', [WorksheetTemplateController::class, 'index'])

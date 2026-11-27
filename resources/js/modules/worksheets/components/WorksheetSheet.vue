@@ -5,6 +5,7 @@
  */
 import { computed } from 'vue'
 import { calculate } from '../engine'
+import { qrEncode, qrSvgPath } from '@/lib/qr'
 import { displayInput, fmt, printLabel, printName, sortedMembers } from '../helpers'
 
 const props = defineProps({
@@ -16,9 +17,9 @@ const props = defineProps({
 
 // Qog'oz forma matnlari — chop etish tilida (interfeys tilidan mustaqil)
 const PT = {
-  uz: { sheet: 'Ishchi varaq', rowNo: '№ t/r', sampleNo: 'Namuna №', sample: 'Namuna', samples: 'Namunalar', count: 'ta', retest: 'takroriy', year: 'y.', footer: 'LIMS', ditto: '-//-', control: 'Nazorat uchun' },
-  uz_cyrl: { sheet: 'Ишчи варақ', rowNo: '№ т/р', sampleNo: 'Намуна №', sample: 'Намуна', samples: 'Намуналар', count: 'та', retest: 'такрорий', year: 'й.', footer: 'LIMS', ditto: '-//-', control: 'Назорат учун' },
-  ru: { sheet: 'Рабочий лист', rowNo: '№ п/п', sampleNo: 'Проба №', sample: 'Проба', samples: 'Пробы', count: 'шт.', retest: 'повтор', year: 'г.', footer: 'LIMS', ditto: '-//-', control: 'Контрольный' },
+  uz: { sheet: 'Ishchi varaq', rowNo: '№ t/r', sampleNo: 'Namuna №', sample: 'Namuna', samples: 'Namunalar', count: 'ta', retest: 'takroriy', year: 'y.', footer: 'LIMS', ditto: '-//-', control: 'Nazorat uchun', created: 'Yaratdi', approved: 'Tasdiqladi', notApproved: 'Hali tasdiqlanmagan', code: 'Kod', date: 'Sana', scan: 'Skanerlang — varaq ma\'lumoti' },
+  uz_cyrl: { sheet: 'Ишчи варақ', rowNo: '№ т/р', sampleNo: 'Намуна №', sample: 'Намуна', samples: 'Намуналар', count: 'та', retest: 'такрорий', year: 'й.', footer: 'LIMS', ditto: '-//-', control: 'Назорат учун', created: 'Яратди', approved: 'Тасдиқлади', notApproved: 'Ҳали тасдиқланмаган', code: 'Код', date: 'Сана', scan: 'Сканерланг — варақ маълумоти' },
+  ru: { sheet: 'Рабочий лист', rowNo: '№ п/п', sampleNo: 'Проба №', sample: 'Проба', samples: 'Пробы', count: 'шт.', retest: 'повтор', year: 'г.', footer: 'LIMS', ditto: '-//-', control: 'Контрольный', created: 'Создал', approved: 'Утвердил', notApproved: 'Ещё не утверждён', code: 'Код', date: 'Дата', scan: 'Сканируйте — данные листа' },
 }
 
 const ws = computed(() => props.ws)
@@ -106,6 +107,52 @@ function signerName(stage, slot) {
   const s = (ws.value?.signoffs ?? []).find((x) => x.stage === stage && x.slot === slot)
   return s ? (s.performer?.name || s.performer_name || '') : ''
 }
+
+// [P45] «Yaratdi / Tasdiqladi» bloki va QR (sozlama — admin, app_settings worksheets.print)
+const stamps = computed(() => ws.value?.print_stamps ?? null)
+const stampCfg = computed(() => stamps.value?.settings ?? { sign_block: false })
+const fmtAt = (at) => {
+  if (!at) return ''
+  const [d, tm] = String(at).split(' ')
+  const [y, m, dd] = d.split('-')
+  return `${dd}.${m}.${y} ${tm ?? ''}`.trim()
+}
+function qrText(role, st) {
+  if (stampCfg.value.qr_mode === 'link') {
+    return `${window.location.origin}/worksheets/${ws.value.id}?v=${st.code}`
+  }
+  const sampleLine = multi.value
+    ? `${pt.value.samples}: ${members.value.map((m) => m.sample?.sample_number).join(', ')}`
+    : `${pt.value.sample}: ${members.value[0]?.sample?.sample_number ?? ''} (${members.value[0]?.sample?.code ?? ''})`
+  return [
+    `LIMS · ${pt.value.sheet} № ${ws.value.number}`,
+    `${printName(def.value, lang.value)} · ${def.value.code ?? ''}`,
+    sampleLine,
+    `${role === 'created' ? pt.value.created : pt.value.approved}: ${st.name}`,
+    fmtAt(st.at),
+    `${pt.value.code}: ${st.code}`,
+  ].join('\n')
+}
+function qrPath(role, st) {
+  try {
+    const q = qrEncode(qrText(role, st), 'M')
+    return { d: qrSvgPath(q, 0), n: q.size }
+  } catch {
+    return null
+  }
+}
+const stampCards = computed(() => {
+  if (!stampCfg.value.sign_block || !stamps.value) return []
+  return ['created', 'approved'].map((role) => {
+    const st = stamps.value[role]
+    return {
+      role,
+      label: role === 'created' ? pt.value.created : pt.value.approved,
+      st,
+      qr: st && stampCfg.value.qr ? qrPath(role, st) : null,
+    }
+  })
+})
 
 const signLines = computed(() => {
   const out = []
@@ -211,6 +258,29 @@ const signLines = computed(() => {
       </p>
     </div>
 
+    <!-- [P45] Yaratdi / Tasdiqladi — ism, vaqt, tekshiruv kodi va QR -->
+    <section v-if="stampCards.length" class="ws-stamps mt-5">
+      <div v-for="c in stampCards" :key="c.role" class="ws-stamp" :class="{ 'ws-stamp-empty': !c.st }">
+        <svg v-if="c.qr" class="ws-qr" :viewBox="`-1 -1 ${c.qr.n + 2} ${c.qr.n + 2}`" shape-rendering="crispEdges" role="img" :aria-label="`QR: ${c.label}`">
+          <rect x="-1" y="-1" :width="c.qr.n + 2" :height="c.qr.n + 2" fill="#fff" />
+          <path :d="c.qr.d" fill="#000" />
+        </svg>
+        <div class="ws-stamp-body">
+          <p class="ws-stamp-label">{{ c.label }}</p>
+          <template v-if="c.st">
+            <p class="ws-stamp-name">{{ c.st.name }}</p>
+            <p class="ws-stamp-meta">{{ fmtAt(c.st.at) }}</p>
+            <p class="ws-stamp-code">{{ pt.code }}: {{ c.st.code }}</p>
+          </template>
+          <template v-else>
+            <p class="ws-stamp-line">&nbsp;</p>
+            <p class="ws-stamp-meta">{{ pt.date }}: <span class="ws-fill ws-fill-lg">&nbsp;</span></p>
+            <p class="ws-stamp-note">{{ pt.notApproved }}</p>
+          </template>
+        </div>
+      </div>
+    </section>
+
     <footer class="mt-5 flex items-end justify-between text-[8pt]">
       <span>{{ pt.footer }} · № {{ ws.number }} · {{ multi ? `${members.length} ${pt.count}` : members[0]?.sample?.code }}</span>
       <span class="font-semibold text-[9pt]">{{ def.code }}</span>
@@ -251,6 +321,19 @@ const signLines = computed(() => {
 .ws-fill-md { min-width: 14mm; }
 .ws-fill-lg { min-width: 30mm; }
 .ws-sign { border-bottom: 0.6pt solid #000; min-height: 5mm; padding-left: 2mm; font-style: italic; }
+
+/* [P45] imzo kartalari */
+.ws-stamps { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; break-inside: avoid; page-break-inside: avoid; }
+.ws-stamp { display: flex; align-items: center; gap: 4mm; padding: 2.5mm 3.5mm; border: 0.6pt solid #000; border-radius: 2mm; min-height: 29mm; }
+.ws-stamp-empty { border-style: dashed; }
+.ws-qr { width: 25mm; height: 25mm; flex-shrink: 0; }
+.ws-stamp-body { min-width: 0; flex: 1; line-height: 1.25; }
+.ws-stamp-label { font-size: 8pt; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #333; padding-bottom: 1mm; margin-bottom: 1.2mm; border-bottom: 0.4pt solid #999; }
+.ws-stamp-name { font-size: 11pt; font-weight: 700; }
+.ws-stamp-meta { font-size: 9.5pt; margin-top: 0.6mm; }
+.ws-stamp-code { margin-top: 1.2mm; font-family: 'Consolas', 'DejaVu Sans Mono', monospace; font-size: 8.5pt; letter-spacing: 0.05em; }
+.ws-stamp-line { border-bottom: 0.6pt solid #000; min-height: 6mm; }
+.ws-stamp-note { margin-top: 1mm; font-size: 8pt; font-style: italic; color: #555; }
 
 @media print {
   .ws-sheet { width: auto; min-height: 0; padding: 0; }

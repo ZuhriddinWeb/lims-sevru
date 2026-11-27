@@ -564,6 +564,8 @@ class WorksheetController extends Controller
         // ko'rinsin — faqat javobdagi nusxaga (bazadagi nusxa va natijalar o'zgarmaydi).
         // Qaysi jami — shablonda admin hozir belgilagani (olib tashlagan bo'lsa — ko'rsatilmaydi).
         $out['template_snapshot'] = DisplayTotals::forWorksheet($worksheet, (array) ($out['template_snapshot'] ?? []));
+        // [P45] chop etishdagi «Yaratdi / Tasdiqladi» bloki va QR (sozlama + kod)
+        $out['print_stamps'] = app(\App\Services\Worksheets\PrintStamps::class)->forWorksheet($worksheet);
 
         return $out;
     }

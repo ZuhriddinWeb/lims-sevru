@@ -2,12 +2,14 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Copy, LayoutTemplate, Pencil, Plus, Search, Trash2 } from 'lucide-vue-next'
+import { Copy, LayoutTemplate, Pencil, Plus, QrCode, Search, Trash2 } from 'lucide-vue-next'
 import api from '@/lib/api'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useUiStore } from '@/stores/ui'
+import { useAuthStore } from '@/stores/auth'
+import PrintSettingsModal from '../components/PrintSettingsModal.vue'
 import { apiErrorMessage, templateName } from '../helpers'
 import '../i18n'
 
@@ -21,6 +23,8 @@ const loading = ref(true)
 const search = ref('')
 const showInactive = ref(true)
 const toDelete = ref(null)
+const auth = useAuthStore()
+const printSettingsOpen = ref(false) // [P45]
 
 async function load() {
   loading.value = true
@@ -78,11 +82,15 @@ async function remove() {
   <div>
     <PageHeader :title="t('ws.tplTitle')" :subtitle="t('ws.tplSubtitle')">
       <template #actions>
+        <button v-if="auth.can('worksheet_templates.manage')" class="btn-outline" @click="printSettingsOpen = true">
+          <QrCode :size="17" /> {{ t('ws.psButton') }}
+        </button>
         <button class="btn-primary" @click="router.push({ name: 'worksheet-template-edit', params: { id: 'new' } })">
           <Plus :size="17" /> {{ t('ws.tplCreate') }}
         </button>
       </template>
     </PageHeader>
+    <PrintSettingsModal v-model="printSettingsOpen" />
 
     <div class="panel p-3 mb-4 flex flex-wrap items-center gap-3">
       <div class="relative flex-1 min-w-[220px]">
