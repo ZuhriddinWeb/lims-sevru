@@ -120,7 +120,7 @@ database\seeders\WorksheetModuleSeeder.php | yetishmagan_fayllar
 deploy\baza_yaratish.sql | ornatish_va_yangilash
 deploy\env.production.example | ornatish_va_yangilash
 deploy\server_yangi_ornatish.bat | paket45_varaq_qr
-deploy\server_yangilash.bat | paket45_varaq_qr
+deploy\server_yangilash.bat | paket46_profil_elementlar
 deploy\web.config.example | paket35_video
 resources\js\components\crud\FormField.vue | paket42_profil_guruhlari
 resources\js\components\crud\FormulaInput.vue | tuzatish_switch
@@ -305,7 +305,7 @@ resources\js\modules\intake\schedule\i18nP39.js | paket39_grafik_buyurtma
 resources\js\modules\intake\requests\i18nP41.js | paket41_shifr_soati
 app\Http\Controllers\Api\TestProfileController.php | paket42_profil_guruhlari
 app\Models\TestProfile.php | paket42_profil_guruhlari
-resources\js\components\crud\CrudPage.vue | paket43_filtr_saqlash
+resources\js\components\crud\CrudPage.vue | paket46_profil_elementlar
 resources\js\i18n\locales\en.js | paket42_profil_guruhlari
 resources\js\i18n\locales\ru.js | paket42_profil_guruhlari
 resources\js\i18n\locales\uz.js | paket42_profil_guruhlari
@@ -325,3 +325,4 @@ app\Services\Worksheets\PrintStamps.php | paket45_varaq_qr
 app\Http\Controllers\Api\WorksheetPrintSettingsController.php | paket45_varaq_qr
 resources\js\lib\qr.js | paket45_varaq_qr
 resources\js\modules\worksheets\components\PrintSettingsModal.vue | paket45_varaq_qr
+resources\js\resources\lab.js | paket46_profil_elementlar

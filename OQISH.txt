@@ -1,56 +1,35 @@
 ===========================================================================
- PAKET 45 — ISHCHI VARAQDA «YARATDI / TASDIQLADI» BLOKI VA QR KOD
- 2026-11-26   (Paket 44 dan keyin yoyiladi)
+ PAKET 46 — SINOV PROFILI TANLANGANDA ELEMENTLAR DARHOL BELGILANADI
+ 2026-11-27   (Paket 45 dan keyin yoyiladi)
 ===========================================================================
 
-NIMA QO'SHILDI
+NIMA TUZATILDI
 ---------------------------------------------------------------------------
- • Ishchi varaqni chop etishda pastda ikki karta:
-     YARATDI     — kim yaratgan, sana-vaqt, tekshiruv kodi va QR
-     TASDIQLADI  — kim tasdiqlagan, sana-vaqt, tekshiruv kodi va QR
-   Varaq hali tasdiqlanmagan bo'lsa — ikkinchi karta bo'sh (punktir), qo'lda
-   yozish uchun chiziq va «Hali tasdiqlanmagan».
-   Imzo qatorlari (Shixtovka qildi, Eritdi ...) avvalgidek qoladi.
- • QR ichida (admin tanlaydi):
-     «Varaq ma'lumoti» (sukut) — varaq №, shablon, proba, kim, qachon, kod.
-         Istalgan telefon kamerasi INTERNETSIZ o'qiydi.
-     «LIMS havolasi» — skanerlansa LIMS'da shu varaq ochiladi (telefon zavod
-         tarmog'ida bo'lishi va tizimga kirish kerak).
- • Tekshiruv kodi (masalan 7F3A-91C2) — server kaliti bilan hisoblanadi: bir varaq
-   va bir xodim uchun doim bir xil, qo'lda o'ylab topib bo'lmaydi.
- • SOZLAMA: Ishchi varaq shablonlari → «Chop etish sozlamalari» (QR belgili tugma).
-     - «Yaratdi / Tasdiqladi» blokini chiqarish  (o'chirsa — varaq avvalgidek)
-     - QR kod                                     (laboratoriyaga kerak bo'lmasa o'chiradi)
-     - QR ichida: matn / havola
-   O'zgartirishni faqat admin (worksheet_templates.manage) qila oladi.
- • QR generator dasturning o'zida — internet va qo'shimcha paket kerak emas.
-   Tekshirildi: 150–300 dpi bosmada kirill ismlar bilan ham o'qiladi.
- Bazaga o'zgarish YO'Q (migratsiya yo'q, seeder yo'q).
+ Namunalar → «Namuna ro'yxatga olish» (va tahrirlash) formasida «Sinov profili»
+ tanlanganda «Aniqlanadigan elementlar» maydoni profil elementlari bilan darhol
+ to'ldiriladi. Keyin qo'lda qo'shish/olib tashlash mumkin.
+ (Avval elementlar faqat saqlashda, maydon bo'sh qolsa, serverda qo'shilardi —
+ formada ko'rinmasdi.)
+ Xuddi shunday «Sinov obyektlari» formasida ham.
+ Profil almashtirilsa — elementlar yangi profilnikiga almashadi.
 
-1. LOKAL KOMPYUTERDA (E:\ai projects\lims-sevru)
+ Faqat interfeys. Bazaga o'zgarish YO'Q (migratsiya yo'q, seeder yo'q).
+
+1. LOKAL KOMPYUTERDA
 ---------------------------------------------------------------------------
-  1) Zip ichidagi fayllarni loyiha ildiziga yoying (ustiga yozish — «Ha»).
-     OQISH.txt ni loyihaga qo'shmang.
+  1) Zipni loyiha ildiziga yoying (OQISH.txt siz).
   2) npm run build
-  3) powershell -ExecutionPolicy Bypass -File deploy\tekshir_versiyalar.ps1
-       → «public\build: Paket 45 bilan yig'ilgan»
-  4) Tekshirish: tasdiqlangan varaqni oching → «Chop etish» → pastda ikki karta.
-     Telefon kamerasi bilan QR ni skanerlang.
-  5) git add -A
-     git add -f public/build
-     git commit -m "Paket 45: varaqda QR va imzo bloki"
-     git push
+  3) Tekshirish: Namunalar → «Namuna ro'yxatga olish» → Sinov profili: «bo'tana Au»
+     → «Aniqlanadigan elementlar» da Au belgilanishi kerak.
+  4) git add -A ;  git add -f public/build ;  git commit -m "Paket 46" ;  git push
+  (tekshir_versiyalar.ps1 «Paket 45» belgisini tekshiradi — bu paketda yangi belgi yo'q.)
 
 2. SERVERDA
 ---------------------------------------------------------------------------
      git fetch
      git reset --hard origin/main
      php artisan optimize:clear
-  (yoki deploy\server_yangilash.bat)  Brauzerda Ctrl+F5.
+  Brauzerda Ctrl+F5.
 
-3. ESLATMA
----------------------------------------------------------------------------
-  • Sukut bo'yicha blok va QR YOQIQ. Kerak bo'lmagan laboratoriyada:
-    Ishchi varaq shablonlari → Chop etish sozlamalari → belgini olib tashlang.
-  • Har server (zavod) o'z sozlamasiga ega.
-  • Serverda «php artisan key:generate» ISHLATMANG — kodlar APP_KEY ga bog'liq.
+ Eslatma: profil elementlari sahifa ochilganda bir marta yuklanadi. Admin profil
+ elementlarini o'zgartirsa — formadan oldin sahifani yangilang (F5).

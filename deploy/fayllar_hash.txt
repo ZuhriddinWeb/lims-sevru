@@ -120,7 +120,7 @@ database\seeders\WorksheetModuleSeeder.php | 006b456cc9d432c0fecf0cd3c681d3f5b77
 deploy\baza_yaratish.sql | 94e9f1b04a8decf8c97e5fa509896c88826f3e5e026ac45ee55d4dca55f9e6ba | ornatish_va_yangilash
 deploy\env.production.example | 364feaaa78f47210751fe03b830aa8bc13a7b9c9021b1e5256de98ecf23340e4 | ornatish_va_yangilash
 deploy\server_yangi_ornatish.bat | dbe1a4465f9e27736c8d44ce621861b98310210c193665ec30a44f12162fa968 | paket45_varaq_qr
-deploy\server_yangilash.bat | 28b54fc0be070ae4f7376a897030173c6c6d3f72310605143b419959344a8476 | paket45_varaq_qr
+deploy\server_yangilash.bat | 310630e77399eb8337f53f6240c75eb3d1eb1893478349398cfe63de4ec2b5e2 | paket46_profil_elementlar
 deploy\web.config.example | 9132d01d46f6184c6e4afd05f4707fb0410ff7a833162d34348612918d160e75 | paket35_video
 resources\js\components\crud\FormField.vue | 513f7fbe464c426a9a220f96eb116285874b089cd8b6fe4674bf6038ee4eb445 | paket42_profil_guruhlari
 resources\js\components\crud\FormulaInput.vue | 5f206a9d6e38f14038e03ad688a30bd2bcac565318499da8c2cc8c92b3cbe24b | tuzatish_switch
@@ -305,7 +305,7 @@ resources\js\modules\intake\schedule\i18nP39.js | aff4185edfc4be90fe5c251d96b96d
 resources\js\modules\intake\requests\i18nP41.js | beae78641787aae08f17bdeefdce4e1b628737ad6d581a05724f34e6177bc964 | paket41_shifr_soati
 app\Http\Controllers\Api\TestProfileController.php | 91c52a8d14f2bf9654cb505a44b78ba897703687a8c8486d53598152e2af3b2b | paket42_profil_guruhlari
 app\Models\TestProfile.php | 96d58fb42dc954afd7db583fda249d60b99c638cc8ce874b7c24a97685f1f306 | paket42_profil_guruhlari
-resources\js\components\crud\CrudPage.vue | 37a041684e3ead0e1c7a9f51d59e921f919a78e365b1156e4ee62f7131ff9da6 | paket43_filtr_saqlash
+resources\js\components\crud\CrudPage.vue | a5b5de34b3001dd0d8c82f188e6eca87d1fc22931078a22eed0a9e535ce60581 | paket46_profil_elementlar
 resources\js\i18n\locales\en.js | 4f3c5cc1f8e77a5dddbf305e420eb687b2a1538bed65b3d5bb1edc0ac996a0fe | paket42_profil_guruhlari
 resources\js\i18n\locales\ru.js | b3e2509b9d32778bf7542c1c488d565a6127e4d8bb0f8c32a366625441aa973a | paket42_profil_guruhlari
 resources\js\i18n\locales\uz.js | f6b15dcd1330dcd59cebd3fb46ea92ef688d69ea48acb78b429f03a7b101276b | paket42_profil_guruhlari
@@ -325,3 +325,4 @@ app\Services\Worksheets\PrintStamps.php | 31f39e45b7caaf9d39041651b30e7d14f0e1f3
 app\Http\Controllers\Api\WorksheetPrintSettingsController.php | 7fd6a3444cfe2182ec94a0990782ee62fdef8deaa6926cb1e071a222a16ebc07 | paket45_varaq_qr
 resources\js\lib\qr.js | 912cac1997fff0d451d242ca2f731af2f6c330cb8f902dd95a5207f06fba09d3 | paket45_varaq_qr
 resources\js\modules\worksheets\components\PrintSettingsModal.vue | 4cde37be6afc6248f04d1f76848e836bcc68f64c2a3ed65c8d134b4b16c33c77 | paket45_varaq_qr
+resources\js\resources\lab.js | 36abf69f783ed5c7cb6ca3b7a64ad7feabb901eea14519443d04d5ecb8d52028 | paket46_profil_elementlar

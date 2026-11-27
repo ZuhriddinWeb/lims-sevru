@@ -5,6 +5,7 @@ import { Download, Pencil, Plus, Search, SlidersHorizontal, Trash2, X } from 'lu
 import { useI18n as useI18nGlobal } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
+import { useCatalogStore } from '@/stores/catalogs'
 import { useCrud } from '@/composables/useCrud'
 import DataTable from './DataTable.vue'
 import FormField from './FormField.vue'
@@ -54,6 +55,16 @@ function resetForm(row = null) {
     form[f.key] = v
   })
   errors.value = {}
+}
+
+// [P46] Maydon foydalanuvchi tomonidan o'zgartirilganda (forma ochilganda emas) — resurs `onChange` chaqiriladi.
+// Masalan: sinov profili tanlanganda aniqlanadigan elementlar profildan belgilanadi.
+const catalogStore = useCatalogStore()
+function onFieldInput(f, v) {
+  form[f.key] = v
+  if (typeof f.onChange === 'function') {
+    Promise.resolve(f.onChange(v, { form, catalogs: catalogStore, editing: editing.value })).catch(() => {})
+  }
 }
 
 function openCreate() {
@@ -282,7 +293,8 @@ defineExpose({ refresh: crud.fetch, openCreate, openEdit })
               :field="f"
               :form="form"
               :error="errors[f.key]"
-              v-model="form[f.key]"
+              :model-value="form[f.key]"
+              @update:model-value="onFieldInput(f, $event)"
             />
           </div>
         </section>

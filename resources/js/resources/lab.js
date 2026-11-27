@@ -1,6 +1,15 @@
 import { localized } from '@/i18n'
 import { monthOptions } from '@/lib/format'
 
+/** [P46] Sinov profili tanlanganda — uning elementlari formada darhol belgilanadi (foydalanuvchi keyin o'zgartira oladi) */
+async function applyProfileElements(id, { form, catalogs }) {
+  if (!id) return
+  const list = await catalogs.load('testProfiles')
+  const profile = list.find((p) => Number(p.id) === Number(id))
+  const ids = (profile?.elements ?? []).map((e) => Number(e.id))
+  if (ids.length) form.element_ids = ids
+}
+
 /* Takrorlanadigan variantlar */
 export const EQUIPMENT_STATUSES = [
   { value: 'working', labelKey: 'status.working' },
@@ -151,7 +160,7 @@ export const testObjectResource = {
           { key: 'status', type: 'select', labelKey: 'status.label', options: OBJECT_STATUSES, default: 'new' },
           { key: 'laboratory_id', type: 'relation', labelKey: 'catalog.laboratory', source: 'laboratories' },
           { key: 'test_profile_id', type: 'relation', labelKey: 'profile.one', hintKey: 'profile.applied',
-            source: 'testProfiles',
+            source: 'testProfiles', onChange: applyProfileElements,
             filterOptions: (o, form) => !form.type || !o.object_type || o.object_type === form.type },
           { key: 'description', type: 'textarea', labelKey: 'testObject.description', col: 2, rows: 2 },
         ],
@@ -231,7 +240,7 @@ export const sampleResource = {
           { key: 'customer_group_id', type: 'relation', labelKey: 'sample.customerGroup', source: 'customerGroups', required: true },
           { key: 'assigned_group_id', type: 'relation', labelKey: 'sample.assignedGroup', source: 'executorGroups' },
           { key: 'test_profile_id', type: 'relation', labelKey: 'profile.one', hintKey: 'profile.applied',
-            source: 'testProfiles', col: 2 },
+            source: 'testProfiles', col: 2, onChange: applyProfileElements },
           { key: 'element_ids', type: 'multiselect', labelKey: 'sample.elements', hintKey: 'sample.elementsHint',
             source: 'elements', fromRelation: 'sample_elements', relationKey: 'element_id', col: 2 },
           { key: 'notes', type: 'textarea', labelKey: 'equipment.notes', col: 2, rows: 2 },
